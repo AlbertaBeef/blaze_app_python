@@ -354,6 +354,11 @@ def get_anchor_options( model_type, input_width, input_height, num_anchors ):
         
     return anchor_options  
 
+
+# Based on :
+# reference : https://github.com/vidursatija/BlazePalm/blob/master/ML/genarchors.py
+# reference : https://github.com/hollance/BlazeFace-PyTorch/blob/master/Anchors.ipynb
+# Added case for num_strides==1
 def calculate_scale(min_scale, max_scale, stride_index, num_strides):
     if num_strides == 1:
         return (max_scale + min_scale) * 0.5
