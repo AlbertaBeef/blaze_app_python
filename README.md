@@ -1,2 +1,81 @@
-# blaze_app_python
+# Overview
+
 Python application demonstration code for mediapipe models (blazepalm/hand, blazeface, blazepose).
+
+## Supported Frameworks
+
+blaze_app_python 
+The blaze_app_python provides a common code base for comparing models inferenced from the following frameworks:
+- TFLite : [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md)
+- PyTorch : [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch)
+- Vitis-AI 3.5 : [AlbertaBeef/blaze_tutorial](https://github.com/AlbertaBeef/blaze_tutorial/tree/2023.1/vitis-ai)
+- Hailo-8 (coming soon) : [AlbertaBeef/blaze_tutorial](https://github.com/AlbertaBeef/blaze_tutorial/tree/2023.1/hailo-8)
+
+
+## Supported Models
+
+The following specific models are supported.
+
+<details>
+ <summary><b>TFLite models</b></summary>
+
+Detection Models
+
+| Version | Model                    | Input Size  |  Scores   |   Boxes   | Comments             | Source               | Model Link                                | 
+| :-----: | :----------------------: | :---------: | :-------: | :-------: | :------------------- | :------------------- | :---------------------------------------- | 
+|  v0.06  | Palm                     |   256\*256  |   2944    |  2944x18  | BBox + 7 keypoints   | [metalwhale/hand_tracking](https://.github.com/metalwhale/hand_tracking) | [palm_detection_without_custom_op.tflite](https://raw.githubusercontent.com/metalwhale/hand_tracking/master/models/palm_detection_without_custom_op.tflite)  |
+|  v0.10  | Palm (Full)              |   192\*192  |   2016    |  2016x18  | BBox + 7 keypoints   | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [palm_detection_lite.tflite](https://storage.googleapis.com/mediapipe-assets/palm_detection_lite.tflite) | 
+|  v0.10  | Palm (Full)              |   192\*192  |   2016    |  2016x18  | BBox + 7 keypoints   | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [palm_detection_full.tflite](https://storage.googleapis.com/mediapipe-assets/palm_detection_full.tflite) | 
+|  v0.10  | Face (Short Range)       |   128\*128  |    896    |   896x16  | BBox + 6 keypoints   | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [face_detection_short_range.tflite](https://storage.googleapis.com/mediapipe-assets/face_detection_short_range.tflite) | 
+|  v0.10  | Face (Full Range)        |   128\*128  |    896    |   896x16  | BBox + 6 keypoints   | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [face_detection_full_range.tflite](https://storage.googleapis.com/mediapipe-assets/face_detection_full_range.tflite) | 
+|  v0.10  | Face (Full Range Sparse) |   128\*128  |    896    |   896x16  | BBox + 6 keypoints   | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [face_detection_full_range_sparse.tflite](https://storage.googleapis.com/mediapipe-assets/face_detection_full_range_sparse.tflite) | 
+|  v0.10  | Pose                     |   224\*224  |   2254    |  2254x12  | BBox + 4 keypoints   | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [pose_detection.tflite](https://storage.googleapis.com/mediapipe-assets/pose_detection.tflite) | 
+
+Landmarks Models
+
+| Version | Model        | Input Size  |  Flag  | Landmarks | Comments                                 | Source               | Model Link                                | 
+| :-----: | :----------: | :---------: | :----: | :-------: | :--------------------------------------- | :------------------- | :---------------------------------------- | 
+|  v0.06  | Hand         |   256\*256  |    1   |    21x3   | 21 keypoints (x,y,score)                 | [metalwhale/hand_tracking](https://.github.com/metalwhale/hand_tracking) | [hand_landmark.tflite](https://raw.githubusercontent.com/metalwhale/hand_tracking/master/models/hand_landmark.tflite)  |
+|  v0.10  | Hand (Lite)  |   224\*224  |    1   |  2016x18  | 21 keypoints (x,y,score)                 | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [hand_landmark_lite.tflite](https://storage.googleapis.com/mediapipe-assets/hand_landmark_lite.tflite) | 
+|  v0.10  | Hand (Full)  |   224\*224  |    1   |  2016x18  | 21 keypoints (x,y,score)                 | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md)| [hand_landmark_full.tflite](https://storage.googleapis.com/mediapipe-assets/hand_landmark_full.tflite) | 
+|  v0.10  | Face         |   192\*192  |    1   |   896x16  | 468 keypoints (x,y,score)                | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [face_landmark.tflite](https://storage.googleapis.com/mediapipe-assets/face_landmark.tflite) | 
+|  v0.10  | Pose (Full Body, Lite)  |   256\*256  |    1   |    39x5   | 39 keypoints (x,y,z,visibility,presence) | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [pose_landmark_lite.tflite](https://storage.googleapis.com/mediapipe-assets/pose_landmark_lite.tflite) | 
+|  v0.10  | Pose (Full Body, Full)  |   256\*256  |    1   |    39x5   | 39 keypoints (x,y,z,visibility,presence) | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [pose_landmark_full.tflite](https://storage.googleapis.com/mediapipe-assets/pose_landmark_full.tflite) | 
+|  v0.10  | Pose (Full Body, Heavy) |   256\*256  |    1   |    39x5   | 39 keypoints (x,y,z,visibility,presence) | [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md) | [pose_landmark_heavy.tflite](https://storage.googleapis.com/mediapipe-assets/pose_landmark_heavy.tflite) | 
+
+
+</details>
+
+<details>
+ <summary><b>PyTorch models</b></summary>
+
+Detection Models
+
+| Version | Type                | Input Size  |  Scores   |   Boxes   | Comments             | Source               | Model Link                                | 
+| :-----: | :-----------------: | :---------: | :-------: | :-------: | :------------------- | :------------------- | :---------------------------------------- | 
+|  v0.06  | Palm                |   256\*256  |   2944    |  2944x18  | BBox + 7 keypoints   | [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch) | [blazepalm.pth](https://raw.githubusercontent.com/zmurez/MediaPipePyTorch/master/blazepalm.pth)  |
+|  v0.06  | Face (Front Camera) |   128\*128  |    896    |   896x16  | BBox + 6 keypoints   | [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch) | [blazeface.pth](https://raw.githubusercontent.com/zmurez/MediaPipePyTorch/master/blazeface.pth) | 
+|  v0.06  | Face (Back Camera)  |   256\*256  |    896    |   896x16  | BBox + 6 keypoints   | [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch) | [blazefaceback.pth](https://raw.githubusercontent.com/zmurez/MediaPipePyTorch/master/blazefaceback.pth) | 
+|  v0.06  | Pose                |   128\*128  |    896    |   896x12  | BBox + 4 keypoints   | [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch) | [blazepose.pth](https://raw.githubusercontent.com/zmurez/MediaPipePyTorch/master/blazepose.pth) | 
+
+Landmarks Models
+
+| Version | Type              | Input Size  |  Flag  | Landmarks  | Comments             | Source               | Model Link                                | 
+| :-----: | :---------------: | :---------: | :----: | :-------: | :------------------- | :------------------- | :---------------------------------------- | 
+|  v0.06  | Hand              |   256\*256  |    1   |    21x3  | 21 keypoints (x,y,score)  | [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch) | [blazehand_landmark.pth](https://raw.githubusercontent.com/zmurez/MediaPipePyTorch/master/blazehand_landmark.pth) |
+|  v0.06  | Face              |   192\*192  |    1   |   896x16  | 468 keypoints (x,y,score)   | [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch) | [blazeface_landmark.pth](https://raw.githubusercontent.com/zmurez/MediaPipePyTorch/master/blazeface_landmark.pth) | 
+|  v0.06  | Pose (Upper Body) |   256\*256  |    1   |    39x5   | 31 keypoints (x,y,z,visibility,presence) | [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch) | [blazepose_landmark.pth](https://raw.githubusercontent.com/zmurez/MediaPipePyTorch/master/blazepose_landmark.pth)| 
+
+
+</details>
+
+
+## References
+
+The blaze_app_python is based on the following work:
+- Google MediaPipe models : [mediapipe models](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md)
+- BlazePalm : [vidursatija/BlazePalm](https://github.com/vidursatija/BlazePalm)
+- BlazeFace-PyTorch : [hollance/BlazeFace-PyTorch](https://github.com/hollance/BlazeFace-PyTorch)
+- MediaPipePyTorch : [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch)
+- Blaze Tutorial : [AlbertaBeef/blaze_tutorial](https://github.com/AlbertaBeef/blaze_tutorial/tree/2023.1)
+
