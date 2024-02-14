@@ -61,7 +61,7 @@ Replace "tflite" with other targets when applicable.
 
 ## Supported Frameworks
 
-The blaze_app_python provides a common code base for comparing models inferenced from the following frameworks:
+The blaze_app_python demo provides a common code base for comparing models inferenced from the following frameworks:
 - TFLite : [google/mediapipe](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md)
 - PyTorch : [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch)
 - Vitis-AI 3.5 : [AlbertaBeef/blaze_tutorial/vitis-ai](https://github.com/AlbertaBeef/blaze_tutorial/tree/2023.1/vitis-ai)
@@ -128,7 +128,7 @@ Landmarks Models
 
 ## References
 
-The blaze_app_python is based on the following work:
+The blaze_app_python demo is based on the following work:
 - Google MediaPipe models : [google/mediapipe](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md)
 - BlazePalm : [vidursatija/BlazePalm](https://github.com/vidursatija/BlazePalm)
 - BlazeFace-PyTorch : [hollance/BlazeFace-PyTorch](https://github.com/hollance/BlazeFace-PyTorch)
