@@ -14,6 +14,7 @@ limitations under the License.
 # Blaze Demo Application (live with USB camera)
 #
 # References:
+#   https://www.github.com/AlbertaBeef/blaze_app_python
 #   https://www.github.com/AlbertaBeef/blaze_tutorial/tree/2023.1
 #
 # Dependencies:
@@ -79,8 +80,10 @@ dev_media = get_media_dev_by_name("uvcvideo")
 print(dev_video)
 print(dev_media)
 
-#input_video = 0 
-input_video = dev_video  
+if dev_video == None:
+    input_video = 0 
+else:
+    input_video = dev_video  
 print("[INFO] Input Video : ",input_video)
 
 output_dir = './captured-images'
