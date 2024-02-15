@@ -56,6 +56,7 @@ Replace "tflite" with other targets when applicable.
 |  t  | toggle between image and live video       |
 |  d  | toggle debug image on/off                 |
 |  e  | toggle scores image on/off                |
+|  f  | toggle FPS display on/off                 |
 |  v  | toggle verbose on/off                     |
 |  z  | toggle profiling on/off                   |
    
