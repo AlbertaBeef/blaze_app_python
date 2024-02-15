@@ -1,6 +1,7 @@
 # Overview
 
-Python application demonstration code for mediapipe models (blazepalm/hand, blazeface, blazepose).
+Python demonstration code for mediapipe models (blazepalm/hand, blazeface, blazepose).
+![](blaze_detect_live_hand_face_pose_animation.gif)
 
 ## Instructions
 
