@@ -475,7 +475,7 @@ while True:
                    prof_landmark_pre[pipeline_id]   = blaze_landmark.profile_pre
                    prof_landmark_model[pipeline_id] = blaze_landmark.profile_model
                    prof_landmark_post[pipeline_id]  = blaze_landmark.profile_post
-               prof_annotate[pipeline_id]       = profile_annotate
+                   prof_annotate[pipeline_id]       = profile_annotate
                #
                prof_total[pipeline_id] = profile_resize + \
                                          blaze_detector.profile_pre + \
