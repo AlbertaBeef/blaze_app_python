@@ -20,6 +20,10 @@ limitations under the License.
 # Dependencies:
 #   PyTorch
 #      torch
+#   plots
+#      pyplotly
+#      kaleido
+#
 
 
 import numpy as np
@@ -39,6 +43,8 @@ import glob
 import subprocess
 import re
 import sys
+
+import plotly.graph_objects as go
 
 sys.path.append(os.path.abspath('../blaze_common/'))
 from blazedetector import BlazeDetector
@@ -76,20 +82,26 @@ text_lineType = cv2.LINE_AA
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
+ap.add_argument('-i', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
 ap.add_argument('-b', '--blaze',  type=str, default="hand", help="Application (hand, face, pose).  Default is hand")
 ap.add_argument('-m', '--model1', type=str, help='Path of blazepalm model. Default is models/blazepalm.pth')
 ap.add_argument('-n', '--model2', type=str, help='Path of blazehandlardmark model. Default is models/blazehand_landmark.pth')
-ap.add_argument('-d', '--debug'   , action='store_true', default=False, help="Enable Debug mode. Default is off")
-ap.add_argument('-z', '--profile' , action='store_true', default=False, help="Enable Profile mode. Default is off")
+ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
+ap.add_argument('-w', '--withoutview', default=False, action='store_true', help="Disable Output viewing. Default is on")
+ap.add_argument('-z', '--profile'    , default=False, action='store_true', help="Enable Profile mode. Default is off")
 
 args = ap.parse_args()  
   
 print('Command line options:')
-print(' --blaze   : ', args.blaze)
-print(' --model1  : ', args.model1)
-print(' --model2  : ', args.model2)
-print(' --debug   : ', args.debug)
-print(' --profile : ', args.profile)
+print(' --image       : ', args.image)
+print(' --blaze       : ', args.blaze)
+print(' --model1      : ', args.model1)
+print(' --model2      : ', args.model2)
+print(' --debug       : ', args.debug)
+print(' --withoutview : ', args.withoutview)
+print(' --profile     : ', args.profile)
+
+nb_blaze_pipelines = 1
 
 print("[INFO] Searching for USB camera ...")
 dev_video = get_video_dev_by_name("uvcvideo")
@@ -154,21 +166,9 @@ blaze_landmark = BlazeLandmark(blaze_landmark_type)
 blaze_landmark.set_debug(debug=args.debug)
 blaze_landmark.load_model(args.model2)
 
-def ignore(x):
-    pass
-
-app_main_title = blaze_title+" Demo"
-app_ctrl_title = blaze_title+" Demo"
-app_debug_title = blaze_title+" Debug"
-cv2.namedWindow(app_main_title)
-
-thresh_min_score = blaze_detector.min_score_thresh
-thresh_min_score_prev = thresh_min_score
-cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
-
 
 print("================================================================")
-print(app_main_title)
+print("Blaze Detect Live Demo")
 print("================================================================")
 print("\tPress ESC to quit ...")
 print("----------------------------------------------------------------")
@@ -187,12 +187,27 @@ print("================================================================")
 
 bStep = False
 bPause = False
-bUseImage = False
+bWrite = False
+bUseImage = args.image
 bShowDebugImage = False
 bShowScores = False
 bShowFPS = False
 bVerbose = args.debug
+bViewOutput = not args.withoutview
 bProfile = args.profile
+
+def ignore(x):
+    pass
+
+if bViewOutput:
+    app_main_title = blaze_title+" Demo"
+    app_ctrl_title = blaze_title+" Demo"
+    app_debug_title = blaze_title+" Debug"
+    cv2.namedWindow(app_main_title)
+
+    thresh_min_score = blaze_detector.min_score_thresh
+    thresh_min_score_prev = thresh_min_score
+    cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
 
 image = []
 output = []
@@ -213,27 +228,50 @@ while True:
     if rt_fps_count == 0:
         rt_fps_time = cv2.getTickCount()
 
-    #if cap.grab():
-    if True:
-    
-        # Get trackbar values
-        thresh_min_score = cv2.getTrackbarPos('threshMinScore', app_ctrl_title)
-        if thresh_min_score < 10:
-            thresh_min_score = 10
-            cv2.setTrackbarPos('threshMinScore', app_ctrl_title,thresh_min_score)
-        thresh_min_score = thresh_min_score*(1/100)
-        if thresh_min_score != thresh_min_score_prev:
-            blaze_detector.min_score_thresh = thresh_min_score
-            thresh_min_score_prev = thresh_min_score
-                
-        frame_count = frame_count + 1
-        #flag, image = cap.retrieve()
-        flag, image = cap.read()
+    frame_count = frame_count + 1
+
+    if bUseImage:
+        frame = cv2.imread('../woman_hands.jpg')
+        if not (type(frame) is np.ndarray):
+            print("[ERROR] cv2.imread('woman_hands.jpg') FAILED !")
+            break;
+    else:
+        flag, frame = cap.read()
         if not flag:
+            print("[ERROR] cap.read() FAILEd !")
             break
-        else:
-            if bUseImage:
-                image = cv2.imread('../woman_hands.jpg')
+
+    if bProfile:
+        prof_title          = ['']*nb_blaze_pipelines
+        prof_resize         = np.zeros(nb_blaze_pipelines)
+        prof_detector_pre   = np.zeros(nb_blaze_pipelines)
+        prof_detector_model = np.zeros(nb_blaze_pipelines)
+        prof_detector_post  = np.zeros(nb_blaze_pipelines)
+        prof_extract_roi    = np.zeros(nb_blaze_pipelines)
+        prof_landmark_pre   = np.zeros(nb_blaze_pipelines)
+        prof_landmark_model = np.zeros(nb_blaze_pipelines)
+        prof_landmark_post  = np.zeros(nb_blaze_pipelines)
+        prof_annotate       = np.zeros(nb_blaze_pipelines)
+        #
+        prof_total          = np.zeros(nb_blaze_pipelines)
+        prof_fps            = np.zeros(nb_blaze_pipelines)
+
+    if True:    
+        pipeline_id = 0
+        if True:
+            image = frame.copy()
+
+            # Get trackbar values
+            if bViewOutput:
+                thresh_min_score = cv2.getTrackbarPos('threshMinScore', app_ctrl_title)
+                if thresh_min_score < 10:
+                    thresh_min_score = 10
+                    cv2.setTrackbarPos('threshMinScore', app_ctrl_title,thresh_min_score)
+                thresh_min_score = thresh_min_score*(1/100)
+                if thresh_min_score != thresh_min_score_prev:
+                    blaze_detector.min_score_thresh = thresh_min_score
+                    thresh_min_score_prev = thresh_min_score
+                
                 
             #image = cv2.resize(image,(0,0), fx=scale, fy=scale) 
             output = image.copy()
@@ -243,7 +281,7 @@ while True:
             start = timer()
             image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
             img1,scale1,pad1=blaze_detector.resize_pad(image)
-            profile_pre = timer()-start
+            profile_resize = timer()-start
 
             if bShowDebugImage:
                 # show the resized input image
@@ -296,23 +334,156 @@ while True:
             # display real-time FPS counter (if valid)
             if rt_fps_valid == True and bShowFPS:
                 cv2.putText(output,rt_fps_message, (rt_fps_x,rt_fps_y),text_fontType,text_fontSize,text_color,text_lineSize,text_lineType)
-                
+
+            if bViewOutput:                
+                # show the output image
+                cv2.imshow(app_main_title, output)
+
             # Profiling
             if bProfile:
+               prof_title[pipeline_id] = blaze_title
+               prof_resize[pipeline_id]         = profile_resize
+               prof_detector_pre[pipeline_id]   = blaze_detector.profile_pre
+               prof_detector_model[pipeline_id] = blaze_detector.profile_model
+               prof_detector_post[pipeline_id]  = blaze_detector.profile_post
+               if len(normalized_detections) > 0:
+                   prof_extract_roi[pipeline_id]    = profile_extract
+                   prof_landmark_pre[pipeline_id]   = blaze_landmark.profile_pre
+                   prof_landmark_model[pipeline_id] = blaze_landmark.profile_model
+                   prof_landmark_post[pipeline_id]  = blaze_landmark.profile_post
+                   prof_annotate[pipeline_id]       = profile_annotate
+               #
+               prof_total[pipeline_id] = profile_resize + \
+                                         blaze_detector.profile_pre + \
+                                         blaze_detector.profile_model + \
+                                         blaze_detector.profile_post
+               if len(normalized_detections) > 0:
+                   prof_total[pipeline_id] += profile_extract + \
+                                              blaze_landmark.profile_pre + \
+                                              blaze_landmark.profile_model + \
+                                              blaze_landmark.profile_post + \
+                                              profile_annotate
+               prof_fps[pipeline_id] = 1.0 / prof_total[pipeline_id]
+            if bWrite:
+                filename = ("blaze_detect_live_frame%04d_%s_input.tif"%(frame_count,blaze_title))
+                print("Capturing ",filename," ...")
+                input_img = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
+                cv2.imwrite(os.path.join(output_dir,filename),input_img)
+
+                filename = ("blaze_detect_live_frame%04d_%s_detection.tif"%(frame_count,blaze_title))
+                print("Capturing ",filename," ...")
+                cv2.imwrite(os.path.join(output_dir,filename),output)
+        
+                if bShowDebugImage:
+                    filename = ("blaze_detect_live_frame%04d_%s_debug.tif"%(frame_count,blaze_title))
+                    print("Capturing ",filename," ...")
+                    cv2.imwrite(os.path.join(output_dir,filename),debug_img)
+
+            if False:
                if len(normalized_detections) == 0:
                    print("[PROFILE] Detector[(%001.06f) (%001.06f) (%001.06f)]"%(
-                       profile_pre+blaze_detector.profile_pre, blaze_detector.profile_model, blaze_detector.profile_post
+                       profile_resize+blaze_detector.profile_pre, blaze_detector.profile_model, blaze_detector.profile_post
                        ))
                else:
                    print("[PROFILE] Detector[(%001.06f) (%001.06f) (%001.06f)] Extract[(%001.06f)] Landmark[(%001.06f) (%001.06f) (%001.06f)]  Annotate[(%001.06f)]"%(
-                       profile_pre+blaze_detector.profile_pre, blaze_detector.profile_model, blaze_detector.profile_post,
+                       profile_resize+blaze_detector.profile_pre, blaze_detector.profile_model, blaze_detector.profile_post,
                        profile_extract,                       
                        blaze_landmark.profile_pre, blaze_landmark.profile_model, blaze_landmark.profile_post,
                        profile_annotate
                        ))
             
-            # show the output image
-            cv2.imshow(app_main_title, output)
+            
+    if bProfile:
+        #
+        # Latency
+        #
+        #prof_resize
+        #prof_detector_pre
+        #prof_detector_model
+        #prof_detector_post
+        #prof_extract_roi
+        #prof_landmark_pre
+        #prof_landmark_model
+        #prof_landmark_post
+        #prof_annotate
+
+        # Create stacked bar chart
+        fig = go.Figure(data=[
+            go.Bar(name='resize'         , y=prof_title, x=prof_resize        , orientation='h'),
+            go.Bar(name='detector[pre]'  , y=prof_title, x=prof_detector_pre  , orientation='h'),
+            go.Bar(name='detector[model]', y=prof_title, x=prof_detector_model, orientation='h'),
+            go.Bar(name='detector[post]' , y=prof_title, x=prof_detector_post , orientation='h'),
+            go.Bar(name='extract_roi'    , y=prof_title, x=prof_extract_roi   , orientation='h'),
+            go.Bar(name='landmark[pre]'  , y=prof_title, x=prof_landmark_pre  , orientation='h'),
+            go.Bar(name='landmark[model]', y=prof_title, x=prof_landmark_model, orientation='h'),
+            go.Bar(name='landmark[post]' , y=prof_title, x=prof_landmark_post , orientation='h'),
+            go.Bar(name='annotate'       , y=prof_title, x=prof_annotate      , orientation='h')
+        ])
+
+        # Change the layout
+        profile_latency_title = 'Latency (sec)'
+        fig.update_layout(title=profile_latency_title,
+                          xaxis_title='Latency',
+                          yaxis_title='Pipeline',
+                          legend_title="Component:",
+                          #legend_traceorder="reversed",
+                          barmode='stack')
+                          #barmode='group')
+                      
+        # Show the plot
+        #fig.show()   
+        
+        # Convert chart to image
+        img_bytes = fig.to_image(format="png")
+        img = np.array(bytearray(img_bytes), dtype=np.uint8)
+        profile_latency_img = cv2.imdecode(img, -1)
+
+        # Display or process the image using OpenCV or any other library
+        cv2.imshow(profile_latency_title, profile_latency_img)                         
+
+        if bWrite:
+            filename = ("blaze_detect_live_frame%04d_profiling_latency.png"%(frame_count))
+            print("Capturing ",filename," ...")
+            cv2.imwrite(os.path.join(output_dir,filename),profile_latency_img)
+
+    if bShowFPS:
+        #
+        # FPS
+        #
+        #prof_total
+        #prof_fps
+
+        # Create stacked bar chart
+        fig = go.Figure(data=[
+            #go.Bar(name='latency' , y=prof_title, x=prof_total, orientation='h'),
+            go.Bar(name='FPS'     , y=prof_title, x=prof_fps  , orientation='h')
+        ])
+
+        # Change the layout
+        profile_fps_title = 'Performance (FPS)'
+        fig.update_layout(title=profile_fps_title,
+                          xaxis_title='FPS',
+                          yaxis_title='Pipeline',
+                          legend_title="Component:",
+                          #legend_traceorder="reversed",
+                          barmode='group')
+                      
+        # Show the plot
+        #fig.show()   
+        
+        # Convert chart image
+        img_bytes = fig.to_image(format="png")
+        img = np.array(bytearray(img_bytes), dtype=np.uint8)
+        profile_fps_img = cv2.imdecode(img, -1)
+
+        # Display or process the image using OpenCV or any other library
+        cv2.imshow(profile_fps_title, profile_fps_img)                         
+
+        if bWrite:
+            filename = ("blaze_detect_live_frame%04d_profiling_fps.png"%(frame_count))
+            print("Capturing ",filename," ...")
+            cv2.imwrite(os.path.join(output_dir,filename),profile_fps_img)
+            
 
     if bStep == True:
         key = cv2.waitKey(0)
@@ -323,21 +494,10 @@ while True:
 
     #print(key)
     
+    bWrite = False
     if key == 119: # 'w'
-        filename = ("%s_frame%04d_input.tif"%(blaze_landmark_type,frame_count))
-        print("Capturing ",filename," ...")
-        input_img = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
-        cv2.imwrite(os.path.join(output_dir,filename),input_img)
+        bWrite = True
 
-        filename = ("%s_frame%04d_detection.tif"%(blaze_landmark_type,frame_count))
-        print("Capturing ",filename," ...")
-        cv2.imwrite(os.path.join(output_dir,filename),output)
-        
-        if bShowDebugImage:
-            filename = ("%s_frame%04d_debug.tif"%(blaze_landmark_type,frame_count))
-            print("Capturing ",filename," ...")
-            cv2.imwrite(os.path.join(output_dir,filename),debug_img)
-      
     if key == 115: # 's'
         bStep = True    
     
@@ -354,7 +514,7 @@ while True:
     if key == 100: # 'd'
         bShowDebugImage = not bShowDebugImage  
         if not bShowDebugImage:
-           cv2.destroyWindow("Debug")
+           cv2.destroyWindow(app_debug_title)
            
     if key == 101: # 'e'
         bShowScores = not bShowScores
@@ -364,9 +524,11 @@ while True:
 
     if key == 102: # 'f'
         bShowFPS = not bShowFPS
+        if not bShowFPS:
+            cv2.destroyWindow(profile_fps_title)
 
     if key == 118: # 'v'
-        bVerbose = not bVerbose 
+        bVerbose = not bVerbose
         blaze_detector.set_debug(debug=bVerbose) 
         blaze_landmark.set_debug(debug=bVerbose)
 
@@ -374,6 +536,8 @@ while True:
         bProfile = not bProfile 
         blaze_detector.set_profile(profile=bProfile) 
         blaze_landmark.set_profile(profile=bProfile)
+        if not bProfile:
+            cv2.destroyWindow(profile_latency_title)
 
     if key == 27 or key == 113: # ESC or 'q':
         break

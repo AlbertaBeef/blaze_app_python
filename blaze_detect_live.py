@@ -323,7 +323,6 @@ for pipeline_id in range(nb_blaze_pipelines):
             thresh_min_score_prev = thresh_min_score
             cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
 
-
 image = []
 output = []
 
@@ -344,18 +343,18 @@ while True:
         rt_fps_time = cv2.getTickCount()
 
     frame_count = frame_count + 1
-    #flag, frame = cap.retrieve()
-    flag, frame = cap.read()
-    if not flag:
-        print("[ERROR] cap.read() FAILEd !")
-        break
 
     if bUseImage:
         frame = cv2.imread('woman_hands.jpg')
         if not (type(frame) is np.ndarray):
             print("[ERROR] cv2.imread('woman_hands.jpg') FAILED !")
             break;
-    
+    else:
+        flag, frame = cap.read()
+        if not flag:
+            print("[ERROR] cap.read() FAILEd !")
+            break
+
     if bProfile:
         prof_title          = ['']*nb_blaze_pipelines
         prof_resize         = np.zeros(nb_blaze_pipelines)
@@ -567,6 +566,12 @@ while True:
         # Display or process the image using OpenCV or any other library
         cv2.imshow(profile_latency_title, profile_latency_img)                         
 
+        if bWrite:
+            filename = ("blaze_detect_live_frame%04d_profiling_latency.png"%(frame_count))
+            print("Capturing ",filename," ...")
+            cv2.imwrite(os.path.join(output_dir,filename),profile_latency_img)
+
+    if bShowFPS:
         #
         # FPS
         #
@@ -600,10 +605,6 @@ while True:
         cv2.imshow(profile_fps_title, profile_fps_img)                         
 
         if bWrite:
-            filename = ("blaze_detect_live_frame%04d_profiling_latency.png"%(frame_count))
-            print("Capturing ",filename," ...")
-            cv2.imwrite(os.path.join(output_dir,filename),profile_latency_img)
-
             filename = ("blaze_detect_live_frame%04d_profiling_fps.png"%(frame_count))
             print("Capturing ",filename," ...")
             cv2.imwrite(os.path.join(output_dir,filename),profile_fps_img)
@@ -621,7 +622,7 @@ while True:
     bWrite = False
     if key == 119: # 'w'
         bWrite = True
-          
+
     if key == 115: # 's'
         bStep = True    
     
@@ -652,6 +653,8 @@ while True:
 
     if key == 102: # 'f'
         bShowFPS = not bShowFPS
+        if not bShowFPS:
+            cv2.destroyWindow(profile_fps_title)
 
     if key == 118: # 'v'
         bVerbose = not bVerbose
@@ -669,7 +672,6 @@ while True:
         blaze_landmark.set_profile(profile=bProfile)
         if not bProfile:
             cv2.destroyWindow(profile_latency_title)
-            cv2.destroyWindow(profile_fps_title)
 
     if key == 27 or key == 113: # ESC or 'q':
         break
