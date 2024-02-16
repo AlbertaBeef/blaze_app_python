@@ -545,7 +545,7 @@ while True:
         ])
 
         # Change the layout
-        profile_latency_title = 'Lantency (sec)'
+        profile_latency_title = 'Latency (sec)'
         fig.update_layout(title=profile_latency_title,
                           xaxis_title='Latency',
                           yaxis_title='Pipeline',
