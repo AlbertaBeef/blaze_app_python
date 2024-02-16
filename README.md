@@ -1,7 +1,7 @@
 # Overview
 
 Python demonstration code for mediapipe models (blazepalm/hand, blazeface, blazepose).
-![](blaze_detect_live_hand_face_pose_animation.gif)
+![](images/blaze_detect_live_hand_face_pose_animation.gif)
 
 ## Instructions
 
@@ -37,13 +37,16 @@ Replace "tflite" with other targets when applicable.
 
 ### Launch Arguments
 
-| -Argument | --Argument | Description                               | 
-| :-------: | :--------: | :---------------------------------------- | 
-|  -b       | --blaze    | Blaze Application : hand, face, pose      |
-|  -m       | --model1   | Detection Model (optional)                |
-|  -n       | --model2   | Landmark Model (optional)                 |
-|  -d       | --debug    | Debug Mode (0=off, 1=on)                  |
-|  -p       | --profile  | Profile Mode (0=off, 1=on)                |
+| -Argument | --Argument    | Description                               | 
+| :-------: | :-----------: | :---------------------------------------- | 
+|  -i       | --image       | Use 'womand_hands.jpg' image as input. Default is usbcam      |
+|  -b       | --blaze       | Blaze Application : hand, face, pose      |
+|  -m       | --model1      | Detection Model (optional)                |
+|  -n       | --model2      | Landmark Model (optional)                 |
+|  -l       | --list        | List pipelines                            |
+|  -d       | --debug       | Enable Debug Mode.  Default is off        |
+|  -w       | --withoutview | Disable Output Viewing.  Default is on    |
+|  -z       | --profile     | Enable Profile Mode.  Default is off      |
 
 ### Run-Time Options
 
@@ -124,6 +127,45 @@ Landmarks Models
 |  v0.06  | Face              |   192\*192  |    1   |   896x16  | 468 keypoints (x,y,score)   | [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch) | [blazeface_landmark.pth](https://raw.githubusercontent.com/zmurez/MediaPipePyTorch/master/blazeface_landmark.pth) | 
 |  v0.06  | Pose (Upper Body) |   256\*256  |    1   |    39x5   | 31 keypoints (x,y,z,visibility,presence) | [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch) | [blazepose_landmark.pth](https://raw.githubusercontent.com/zmurez/MediaPipePyTorch/master/blazepose_landmark.pth)| 
 
+
+</details>
+
+## Profiling
+
+Profiling Results on various platforms
+
+<details>
+ <summary><b>Workstation (HP Z4 G4) with AMD Radeon Pro W7900 GPU</b></summary>
+
+Latency.
+![](images/blaze_detect_live_workstation01_profiling_latency.gif)
+
+Frame Rate (estimated from total latency)
+![](images/blaze_detect_live_workstation01_profiling_fps.gif)
+
+</details>
+
+
+<details>
+ <summary><b>Laptop (ZBook)</b></summary>
+
+Latency.
+![](images/blaze_detect_live_laptop01_profiling_latency.gif)
+
+Frame Rate (estimated from total latency)
+![](images/blaze_detect_live_laptop01_profiling_fps.gif)
+
+</details>
+
+
+<details>
+ <summary><b>ZUBoard with B512 DPU</b></summary>
+
+Latency.
+![](images/blaze_detect_live_zuboard01_profiling_latency.gif)
+
+Frame Rate (estimated from total latency)
+![](images/blaze_detect_live_zuboard01_profiling_fps.gif)
 
 </details>
 
