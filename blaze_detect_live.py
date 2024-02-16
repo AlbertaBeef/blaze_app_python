@@ -26,7 +26,9 @@ limitations under the License.
 #   Vitis-AI 3.5
 #      xir
 #      vitis_ai_library
-#
+#   plots
+#      pyplotly
+#      kaleido
 
 
 import numpy as np
@@ -46,6 +48,8 @@ import glob
 import subprocess
 import re
 import sys
+
+import plotly.graph_objects as go
 
 sys.path.append(os.path.abspath('blaze_common/'))
 sys.path.append(os.path.abspath('blaze_tflite/'))
@@ -127,6 +131,59 @@ text_color    = (0,0,255)
 text_lineSize = max( 1, int(2*scale) )
 text_lineType = cv2.LINE_AA
 
+# construct the argument parser and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument('-b', '--blaze'   , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
+ap.add_argument('-t', '--target'  , type=str,  default="blaze_tflite,blaze_pytorch,blaze_vitisai", help="Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai'")
+ap.add_argument('-p', '--pipeline', type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
+ap.add_argument('-l', '--list'    , action='store_true', default=False, help="List pipelines.")
+ap.add_argument('-d', '--debug'   , action='store_true', default=False, help="Enable Debug mode. Default is off")
+ap.add_argument('-z', '--profile' , action='store_true', default=False, help="Enable Profile mode. Default is off")
+
+args = ap.parse_args()  
+  
+print('Command line options:')
+print(' --blaze   : ', args.blaze)
+print(' --target  : ', args.target)
+print(' --pipeline: ', args.pipeline)
+print(' --list    : ', args.list)
+print(' --debug   : ', args.debug)
+print(' --profile : ', args.profile)
+
+
+blaze_pipelines = [
+    { "blaze": "hand", "pipeline": "tfl_hand_v0_06"       , "model1": "blaze_tflite/models/palm_detection_without_custom_op.tflite", "model2": "blaze_tflite/models/hand_landmark.tflite" },
+    { "blaze": "hand", "pipeline": "tfl_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",              "model2": "blaze_tflite/models/hand_landmark_lite.tflite" },
+    { "blaze": "hand", "pipeline": "tfl_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
+    { "blaze": "hand", "pipeline": "pyt_hand_v0_06"       , "model1": "blaze_pytorch/models/blazepalm.pth",                          "model2": "blaze_pytorch/models/blazehand_landmark.pth" },
+    { "blaze": "hand", "pipeline": "vai_hand_v0_06"       , "model1": "blaze_vitisai/models/blazepalm/"+dpu_arch+"/blazepalm.xmodel","model2": "blaze_vitisai/models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel" },
+    { "blaze": "face", "pipeline": "tfl_face_v0_10_short" , "model1": "blaze_tflite/models/face_detection_short_range.tflite",       "model2": "blaze_tflite/models/face_landmark.tflite" },
+    { "blaze": "face", "pipeline": "tfl_face_v0_10_full"  , "model1": "blaze_tflite/models/face_detection_full_range.tflite",        "model2": "blaze_tflite/models/face_landmark.tflite" },
+    { "blaze": "face", "pipeline": "tfl_face_v0_10_sparse", "model1": "blaze_tflite/models/face_detection_full_range_sparse.tflite", "model2": "blaze_tflite/models/face_landmark.tflite" },
+    { "blaze": "face", "pipeline": "pyt_face_v0_06_front" , "model1": "blaze_pytorch/models/blazeface.pth",                          "model2": "blaze_pytorch/models/blazeface_landmark.pth" },
+    { "blaze": "face", "pipeline": "pyt_face_v0_06_back"  , "model1": "blaze_pytorch/models/blazefaceback.pth",                      "model2": "blaze_pytorch/models/blazeface_landmark.pth" },
+    { "blaze": "pose", "pipeline": "tfl_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_lite.tflite" },
+    { "blaze": "pose", "pipeline": "tfl_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_full.tflite" },
+    { "blaze": "pose", "pipeline": "tfl_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_heavy.tflite" },
+    { "blaze": "pose", "pipeline": "pyt_pose_v0_06"       , "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" }
+]
+nb_blaze_pipelines = len(blaze_pipelines)
+
+if args.list:
+   print("")
+   print("List of target pipelines:")
+   for i in range(nb_blaze_pipelines):
+      print("%02d %s %s"%(i,
+         blaze_pipelines[i]["pipeline"].ljust(25),
+         blaze_pipelines[i]["model1"])
+         )
+      print("%s %s"%("".ljust(2+1+25),
+         blaze_pipelines[i]["model2"])
+         )
+   print("")
+   exit()
+
+
 print("[INFO] Searching for USB camera ...")
 dev_video = get_video_dev_by_name("uvcvideo")
 dev_media = get_media_dev_by_name("uvcvideo")
@@ -153,45 +210,15 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT,frame_height)
 print("camera",input_video," (",frame_width,",",frame_height,")")
 
 
-# construct the argument parser and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument('-b', '--blaze',  type=str, default="hand,face,pose", help="Application (hand, face, pose).  Default is hand,face,port")
-ap.add_argument('-d', '--debug',  type=bool, default=False, help = 'Debug mode. Default is off')
-ap.add_argument('-p', '--profile',type=bool, default=False, help = 'Profile mode. Default is off')
-
-args = ap.parse_args()  
-  
-print('Command line options:')
-print(' --blaze   : ', args.blaze)
-print(' --debug   : ', args.debug)
-print(' --profile : ', args.profile)
-
-
-blaze_models = [
-    { "blaze": "hand", "model1": "blaze_tflite/models/palm_detection_without_custom_op.tflite", "model2": "blaze_tflite/models/hand_landmark.tflite" },
-    { "blaze": "hand", "model1": "blaze_tflite/models/palm_detection_lite.tflite",              "model2": "blaze_tflite/models/hand_landmark_lite.tflite" },
-    { "blaze": "hand", "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
-    { "blaze": "hand", "model1": "blaze_pytorch/models/blazepalm.pth",                          "model2": "blaze_pytorch/models/blazehand_landmark.pth" },
-    { "blaze": "hand", "model1": "blaze_vitisai/models/blazepalm/"+dpu_arch+"/blazepalm.xmodel","model2": "blaze_vitisai/models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel" },
-    { "blaze": "face", "model1": "blaze_tflite/models/face_detection_short_range.tflite",       "model2": "blaze_tflite/models/face_landmark.tflite" },
-    { "blaze": "face", "model1": "blaze_tflite/models/face_detection_full_range.tflite",        "model2": "blaze_tflite/models/face_landmark.tflite" },
-    { "blaze": "face", "model1": "blaze_tflite/models/face_detection_full_range_sparse.tflite", "model2": "blaze_tflite/models/face_landmark.tflite" },
-    { "blaze": "face", "model1": "blaze_pytorch/models/blazeface.pth",                          "model2": "blaze_pytorch/models/blazeface_landmark.pth" },
-    { "blaze": "pose", "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_lite.tflite" },
-    { "blaze": "pose", "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_full.tflite" },
-    { "blaze": "pose", "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_heavy.tflite" },
-    { "blaze": "pose", "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" }
-]
-
-hand_models = []
-face_models = []
-pose_models = []
-for i in range(len(blaze_models)):
-    blaze  = blaze_models[i]["blaze"]
-    model1 = blaze_models[i]["model1"]
-    model2 = blaze_models[i]["model2"]
-    #print("[INFO] ",blaze,model1,model2)
+for i in range(nb_blaze_pipelines):
+    blaze    = blaze_pipelines[i]["blaze"]
+    pipeline = blaze_pipelines[i]["pipeline"]
+    model1   = blaze_pipelines[i]["model1"]
+    model2   = blaze_pipelines[i]["model2"]
    
+    blaze_pipelines[i]["supported"] = False # until proven otherwise
+    blaze_pipelines[i]["selected"] = False # until proven otherwise
+    
     target1 = re.search('(.+?)/', model1).group(1) 
     target2 = re.search('(.+?)/', model1).group(1)
     if supported_targets[target1]==True and supported_targets[target2]==True:
@@ -229,66 +256,38 @@ for i in range(len(blaze_models)):
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
         blaze_landmark.load_model(model2)
        
-        blaze_models[i]["detector"] = blaze_detector
-        blaze_models[i]["landmark"] = blaze_landmark
-        
-        if blaze=="hand":
-            hand_models.append(blaze_models[i])
-        elif blaze=="face":
-            face_models.append(blaze_models[i])
-        elif blaze=="pose":
-            pose_models.append(blaze_models[i])
- 
-        print("[INFO] ",blaze,model1,model2)
+        blaze_pipelines[i]["supported"]     = True
+        blaze_pipelines[i]["detector_type"] = detector_type
+        blaze_pipelines[i]["detector"]      = blaze_detector
+        blaze_pipelines[i]["landmark_type"] = landmark_type
+        blaze_pipelines[i]["landmark"]      = blaze_landmark
+    #print("blaze in args.blaze = ",blaze in args.blaze, "and target1 in args.target = ", target1 in args.target, "and target2 in args.target", target2 in args.target, "and (pipeline in args.pipeline or args.pipeline == 'all')",(pipeline in args.pipeline or args.pipeline == "all"))
+    if blaze in args.blaze and target1 in args.target and target2 in args.target and (pipeline in args.pipeline or args.pipeline == "all"):
+        blaze_pipelines[i]["selected"] = True
 
-nb_hand_models = len(hand_models)
-nb_face_models = len(face_models)
-nb_pose_models = len(pose_models)
-
-hand_model_id = 0
-face_model_id = 0
-pose_model_id = 0
 
 def ignore(x):
     pass
 
-blaze_list = { "hand", "face", "pose" }
-for i,blaze in enumerate(blaze_list):
+for pipeline_id in range(nb_blaze_pipelines):
 
-    if blaze in args.blaze:        
+    if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
 
-            if blaze == "hand":    
-                blaze_detector_type = "blazepalm"
-                blaze_landmark_type = "blazehandlandmark"
-                blaze_title = "BlazeHandLandmark"
-                blaze_detector = hand_models[hand_model_id]["detector"]
-                blaze_landmark = hand_models[hand_model_id]["landmark"]
+        blaze_detector_type = blaze_pipelines[pipeline_id]["detector_type"]
+        blaze_landmark_type = blaze_pipelines[pipeline_id]["landmark_type"]
+        blaze_title = blaze_pipelines[pipeline_id]["pipeline"]
                 
-            elif blaze == "face":
-                blaze_detector_type = "blazeface"
-                blaze_landmark_type = "blazefacelandmark"
-                blaze_title = "BlazeFaceLandmark"
-                blaze_detector = face_models[face_model_id]["detector"]
-                blaze_landmark = face_models[face_model_id]["landmark"]
+        app_main_title = blaze_title+" Demo"
+        app_ctrl_title = blaze_title+" Demo"
+        cv2.namedWindow(app_main_title)
 
-            elif blaze == "pose":
-                blaze_detector_type = "blazepose"
-                blaze_landmark_type = "blazeposelandmark"
-                blaze_title = "BlazePoseLandmark"
-                blaze_detector = pose_models[pose_model_id]["detector"]
-                blaze_landmark = pose_models[pose_model_id]["landmark"]
-                 
-            app_main_title = blaze_title+" Demo"
-            app_ctrl_title = blaze_title+" Demo"
-            cv2.namedWindow(app_main_title)
-
-            thresh_min_score = blaze_detector.min_score_thresh
-            thresh_min_score_prev = thresh_min_score
-            cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
+        thresh_min_score = blaze_detector.min_score_thresh
+        thresh_min_score_prev = thresh_min_score
+        cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
 
 
 print("================================================================")
-print(app_main_title)
+print("Blaze Detect Live Demo")
 print("================================================================")
 print("\tPress ESC to quit ...")
 print("----------------------------------------------------------------")
@@ -307,6 +306,7 @@ print("================================================================")
 
 bStep = False
 bPause = False
+bWrite = False
 bUseImage = False
 bShowDebugImage = False
 bShowScores = False
@@ -337,36 +337,42 @@ while True:
     #flag, frame = cap.retrieve()
     flag, frame = cap.read()
     if not flag:
+        print("[ERROR] cap.read() FAILEd !")
         break
-                
-    blaze_list = { "hand", "face", "pose" }
-    for i,blaze in enumerate(blaze_list):
 
-        if blaze in args.blaze:        
-            
+    if bUseImage:
+        frame = cv2.imread('woman_hands.jpg')
+        if not (type(frame) is np.ndarray):
+            print("[ERROR] cv2.imread('woman_hands.jpg') FAILED !")
+            break;
+    
+    if bProfile:
+        prof_title          = ['']*nb_blaze_pipelines
+        prof_resize         = np.zeros(nb_blaze_pipelines)
+        prof_detector_pre   = np.zeros(nb_blaze_pipelines)
+        prof_detector_model = np.zeros(nb_blaze_pipelines)
+        prof_detector_post  = np.zeros(nb_blaze_pipelines)
+        prof_extract_roi    = np.zeros(nb_blaze_pipelines)
+        prof_landmark_pre   = np.zeros(nb_blaze_pipelines)
+        prof_landmark_model = np.zeros(nb_blaze_pipelines)
+        prof_landmark_post  = np.zeros(nb_blaze_pipelines)
+        prof_annotate       = np.zeros(nb_blaze_pipelines)
+        #
+        prof_total          = np.zeros(nb_blaze_pipelines)
+        prof_fps            = np.zeros(nb_blaze_pipelines)
+    
+    for pipeline_id in range(nb_blaze_pipelines):
+
+        if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
+
             image = frame.copy()
             
-            if blaze == "hand":    
-                blaze_detector_type = "blazepalm"
-                blaze_landmark_type = "blazehandlandmark"
-                blaze_title = "BlazeHandLandmark"
-                blaze_detector = hand_models[hand_model_id]["detector"]
-                blaze_landmark = hand_models[hand_model_id]["landmark"]
-                
-            elif blaze == "face":
-                blaze_detector_type = "blazeface"
-                blaze_landmark_type = "blazefacelandmark"
-                blaze_title = "BlazeFaceLandmark"
-                blaze_detector = face_models[face_model_id]["detector"]
-                blaze_landmark = face_models[face_model_id]["landmark"]
-
-            elif blaze == "pose":
-                blaze_detector_type = "blazepose"
-                blaze_landmark_type = "blazeposelandmark"
-                blaze_title = "BlazePoseLandmark"
-                blaze_detector = pose_models[pose_model_id]["detector"]
-                blaze_landmark = pose_models[pose_model_id]["landmark"]
-             
+            blaze_detector_type = blaze_pipelines[pipeline_id]["detector_type"]
+            blaze_landmark_type = blaze_pipelines[pipeline_id]["landmark_type"]
+            blaze_title = blaze_pipelines[pipeline_id]["pipeline"]
+            blaze_detector = blaze_pipelines[pipeline_id]["detector"]
+            blaze_landmark = blaze_pipelines[pipeline_id]["landmark"]
+            
             app_main_title = blaze_title+" Demo"
             app_ctrl_title = blaze_title+" Demo"
             app_debug_title = blaze_title+" Debug"
@@ -390,7 +396,7 @@ while True:
             start = timer()
             image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
             img1,scale1,pad1=blaze_detector.resize_pad(image)
-            profile_pre = timer()-start
+            profile_resize = timer()-start
 
             if bShowDebugImage:
                 # show the resized input image
@@ -444,22 +450,152 @@ while True:
             if rt_fps_valid == True and bShowFPS:
                 cv2.putText(output,rt_fps_message, (rt_fps_x,rt_fps_y),text_fontType,text_fontSize,text_color,text_lineSize,text_lineType)
                 
+            # show the output image
+            cv2.imshow(app_main_title, output)
+
             # Profiling
             if bProfile:
+               prof_title[pipeline_id] = blaze_title
+               prof_resize[pipeline_id]         = profile_resize
+               prof_detector_pre[pipeline_id]   = blaze_detector.profile_pre
+               prof_detector_model[pipeline_id] = blaze_detector.profile_model
+               prof_detector_post[pipeline_id]  = blaze_detector.profile_post
+               if len(normalized_detections) > 0:
+                   prof_extract_roi[pipeline_id]    = profile_extract
+                   prof_landmark_pre[pipeline_id]   = blaze_landmark.profile_pre
+                   prof_landmark_model[pipeline_id] = blaze_landmark.profile_model
+                   prof_landmark_post[pipeline_id]  = blaze_landmark.profile_post
+               prof_annotate[pipeline_id]       = profile_annotate
+               #
+               prof_total[pipeline_id] = profile_resize + \
+                                         blaze_detector.profile_pre + \
+                                         blaze_detector.profile_model + \
+                                         blaze_detector.profile_post
+               if len(normalized_detections) > 0:
+                   prof_total[pipeline_id] += profile_extract + \
+                                              blaze_landmark.profile_pre + \
+                                              blaze_landmark.profile_model + \
+                                              blaze_landmark.profile_post + \
+                                              profile_annotate
+               prof_fps[pipeline_id] = 1.0 / prof_total[pipeline_id]
+            if bWrite:
+                filename = ("blaze_detect_live_frame%04d_%s_input.tif"%(frame_count,blaze_title))
+                print("Capturing ",filename," ...")
+                input_img = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
+                cv2.imwrite(os.path.join(output_dir,filename),input_img)
+
+                filename = ("blaze_detect_live_frame%04d_%s_detection.tif"%(frame_count,blaze_title))
+                print("Capturing ",filename," ...")
+                cv2.imwrite(os.path.join(output_dir,filename),output)
+        
+                if bShowDebugImage:
+                    filename = ("blaze_detect_live_frame%04d_%s_debug.tif"%(frame_count,blaze_title))
+                    print("Capturing ",filename," ...")
+                    cv2.imwrite(os.path.join(output_dir,filename),debug_img)
+
+            if False:
                if len(normalized_detections) == 0:
                    print("[PROFILE] Detector[(%001.06f) (%001.06f) (%001.06f)]"%(
-                       profile_pre+blaze_detector.profile_pre, blaze_detector.profile_model, blaze_detector.profile_post
+                       profile_resize+blaze_detector.profile_pre, blaze_detector.profile_model, blaze_detector.profile_post
                        ))
                else:
                    print("[PROFILE] Detector[(%001.06f) (%001.06f) (%001.06f)] Extract[(%001.06f)] Landmark[(%001.06f) (%001.06f) (%001.06f)]  Annotate[(%001.06f)]"%(
-                       profile_pre+blaze_detector.profile_pre, blaze_detector.profile_model, blaze_detector.profile_post,
+                       profile_resize+blaze_detector.profile_pre, blaze_detector.profile_model, blaze_detector.profile_post,
                        profile_extract,                       
                        blaze_landmark.profile_pre, blaze_landmark.profile_model, blaze_landmark.profile_post,
                        profile_annotate
                        ))
             
-            # show the output image
-            cv2.imshow(app_main_title, output)
+            
+    if bProfile:
+        #
+        # Latency
+        #
+        #prof_resize
+        #prof_detector_pre
+        #prof_detector_model
+        #prof_detector_post
+        #prof_extract_roi
+        #prof_landmark_pre
+        #prof_landmark_model
+        #prof_landmark_post
+        #prof_annotate
+
+        # Create stacked bar chart
+        fig = go.Figure(data=[
+            go.Bar(name='resize'         , y=prof_title, x=prof_resize        , orientation='h'),
+            go.Bar(name='detector[pre]'  , y=prof_title, x=prof_detector_pre  , orientation='h'),
+            go.Bar(name='detector[model]', y=prof_title, x=prof_detector_model, orientation='h'),
+            go.Bar(name='detector[post]' , y=prof_title, x=prof_detector_post , orientation='h'),
+            go.Bar(name='extract_roi'    , y=prof_title, x=prof_extract_roi   , orientation='h'),
+            go.Bar(name='landmark[pre]'  , y=prof_title, x=prof_landmark_pre  , orientation='h'),
+            go.Bar(name='landmark[model]', y=prof_title, x=prof_landmark_model, orientation='h'),
+            go.Bar(name='landmark[post]' , y=prof_title, x=prof_landmark_post , orientation='h'),
+            go.Bar(name='annotate'       , y=prof_title, x=prof_annotate      , orientation='h')
+        ])
+
+        # Change the layout
+        profile_latency_title = 'Lantency (sec)'
+        fig.update_layout(title=profile_latency_title,
+                          xaxis_title='Latency',
+                          yaxis_title='Pipeline',
+                          legend_title="Component:",
+                          #legend_traceorder="reversed",
+                          barmode='stack')
+                          #barmode='group')
+                      
+        # Show the plot
+        #fig.show()   
+        
+        # Convert chart to image
+        img_bytes = fig.to_image(format="png")
+        img = np.array(bytearray(img_bytes), dtype=np.uint8)
+        profile_latency_img = cv2.imdecode(img, -1)
+
+        # Display or process the image using OpenCV or any other library
+        cv2.imshow(profile_latency_title, profile_latency_img)                         
+
+        #
+        # FPS
+        #
+        #prof_total
+        #prof_fps
+
+        # Create stacked bar chart
+        fig = go.Figure(data=[
+            #go.Bar(name='latency' , y=prof_title, x=prof_total, orientation='h'),
+            go.Bar(name='FPS'     , y=prof_title, x=prof_fps  , orientation='h')
+        ])
+
+        # Change the layout
+        profile_fps_title = 'Performance (FPS)'
+        fig.update_layout(title=profile_fps_title,
+                          xaxis_title='FPS',
+                          yaxis_title='Pipeline',
+                          legend_title="Component:",
+                          #legend_traceorder="reversed",
+                          barmode='group')
+                      
+        # Show the plot
+        #fig.show()   
+        
+        # Convert chart image
+        img_bytes = fig.to_image(format="png")
+        img = np.array(bytearray(img_bytes), dtype=np.uint8)
+        profile_fps_img = cv2.imdecode(img, -1)
+
+        # Display or process the image using OpenCV or any other library
+        cv2.imshow(profile_fps_title, profile_fps_img)                         
+
+        if bWrite:
+            filename = ("blaze_detect_live_frame%04d_profiling_latency.tif"%(frame_count))
+            print("Capturing ",filename," ...")
+            cv2.imwrite(os.path.join(output_dir,filename),profile_latency_img)
+
+            filename = ("blaze_detect_live_frame%04d_profiling_fps.tif"%(frame_count))
+            print("Capturing ",filename," ...")
+            cv2.imwrite(os.path.join(output_dir,filename),profile_fps_img)
+            
 
     if bStep == True:
         key = cv2.waitKey(0)
@@ -470,21 +606,10 @@ while True:
 
     #print(key)
     
+    bWrite = False
     if key == 119: # 'w'
-        filename = ("%s_frame%04d_input.tif"%(blaze_landmark_type,frame_count))
-        print("Capturing ",filename," ...")
-        input_img = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
-        cv2.imwrite(os.path.join(output_dir,filename),input_img)
-
-        filename = ("%s_frame%04d_detection.tif"%(blaze_landmark_type,frame_count))
-        print("Capturing ",filename," ...")
-        cv2.imwrite(os.path.join(output_dir,filename),output)
-        
-        if bShowDebugImage:
-            filename = ("%s_frame%04d_debug.tif"%(blaze_landmark_type,frame_count))
-            print("Capturing ",filename," ...")
-            cv2.imwrite(os.path.join(output_dir,filename),debug_img)
-      
+        bWrite = True
+          
     if key == 115: # 's'
         bStep = True    
     
@@ -501,14 +626,9 @@ while True:
     if key == 100: # 'd'
         bShowDebugImage = not bShowDebugImage  
         if not bShowDebugImage:
-            for i,blaze in enumerate(blaze_list):
-                if blaze in args.blaze:        
-                    if blaze == "hand":    
-                        blaze_title = "BlazeHandLandmark"
-                    elif blaze == "face":
-                        blaze_title = "BlazeFaceLandmark"
-                    elif blaze == "pose":
-                        blaze_title = "BlazePoseLandmark"
+            for pipeline_id in range(nb_blaze_pipelines):
+                if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
+                    blaze_title = blaze_pipelines[pipeline_id]["pipeline"]
                     app_debug_title = blaze_title+" Debug"
                     cv2.destroyWindow(app_debug_title)
            
@@ -522,14 +642,22 @@ while True:
         bShowFPS = not bShowFPS
 
     if key == 118: # 'v'
-        bVerbose = not bVerbose 
-        blaze_detector.set_debug(debug=bVerbose) 
-        blaze_landmark.set_debug(debug=bVerbose)
+        bVerbose = not bVerbose
+        for pipeline_id in range(nb_blaze_pipelines):
+            if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
+                blaze_detector = blaze_pipelines[pipeline_id]["detector"]
+                blaze_landmark = blaze_pipelines[pipeline_id]["landmark"]
+                
+                blaze_detector.set_debug(debug=bVerbose) 
+                blaze_landmark.set_debug(debug=bVerbose)
 
     if key == 122: # 'z'
         bProfile = not bProfile 
         blaze_detector.set_profile(profile=bProfile) 
         blaze_landmark.set_profile(profile=bProfile)
+        if not bProfile:
+            cv2.destroyWindow(profile_latency_title)
+            cv2.destroyWindow(profile_fps_title)
 
     if key == 27 or key == 113: # ESC or 'q':
         break

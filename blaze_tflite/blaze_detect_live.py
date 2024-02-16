@@ -76,6 +76,23 @@ text_color    = (0,0,255)
 text_lineSize = max( 1, int(2*scale) )
 text_lineType = cv2.LINE_AA
 
+# construct the argument parser and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument('-b', '--blaze',  type=str, default="hand", help="Application (hand, face, pose).  Default is hand")
+ap.add_argument('-m', '--model1', type=str, help='Path of blazepalm model. Default is models/palm_detection_without_custom_op.tflite')
+ap.add_argument('-n', '--model2', type=str, help='Path of blazehandlardmark model. Default is models/hand_landmark.tflite')
+ap.add_argument('-d', '--debug'   , action='store_true', default=False, help="Enable Debug mode. Default is off")
+ap.add_argument('-z', '--profile' , action='store_true', default=False, help="Enable Profile mode. Default is off")
+
+args = ap.parse_args()  
+  
+print('Command line options:')
+print(' --blaze   : ', args.blaze)
+print(' --model1  : ', args.model1)
+print(' --model2  : ', args.model2)
+print(' --debug   : ', args.debug)
+print(' --profile : ', args.profile)
+
 print("[INFO] Searching for USB camera ...")
 dev_video = get_video_dev_by_name("uvcvideo")
 dev_media = get_media_dev_by_name("uvcvideo")
@@ -101,23 +118,6 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT,frame_height)
 #frame_height = int(round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 print("camera",input_video," (",frame_width,",",frame_height,")")
 
-
-# construct the argument parser and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument('-b', '--blaze',  type=str, default="hand", help="Application (hand, face, pose).  Default is hand")
-ap.add_argument('-m', '--model1', type=str, help='Path of blazepalm model. Default is models/palm_detection_without_custom_op.tflite')
-ap.add_argument('-n', '--model2', type=str, help='Path of blazehandlardmark model. Default is models/hand_landmark.tflite')
-ap.add_argument('-d', '--debug',  type=bool, default=False, help = 'Debug mode. Default is off')
-ap.add_argument('-p', '--profile',type=bool, default=False, help = 'Profile mode. Default is off')
-
-args = ap.parse_args()  
-  
-print('Command line options:')
-print(' --blaze   : ', args.blaze)
-print(' --model1  : ', args.model1)
-print(' --model2  : ', args.model2)
-print(' --debug   : ', args.debug)
-print(' --profile : ', args.profile)
 
 if args.blaze == "hand":
    blaze_detector_type = "blazepalm"
@@ -233,7 +233,7 @@ while True:
             break
         else:
             if bUseImage:
-                image = cv2.imread('../image.jpg')
+                image = cv2.imread('../woman_hands.jpg')
                 
             #image = cv2.resize(image,(0,0), fx=scale, fy=scale) 
             output = image.copy()
