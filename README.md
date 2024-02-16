@@ -138,10 +138,10 @@ Profiling Results on various platforms
  <summary><b>Workstation (HP Z4 G4) with AMD Radeon Pro W7900 GPU</b></summary>
 
 Latency.
-![](images/blaze_detect_live_workstation01_profiling_latency.tif)
+![](images/blaze_detect_live_workstation01_profiling_latency.gif)
 
 Frame Rate (estimated from total latency)
-![](images/blaze_detect_live_workstation01_profiling_fps.tif)
+![](images/blaze_detect_live_workstation01_profiling_fps.gif)
 
 </details>
 
@@ -150,10 +150,10 @@ Frame Rate (estimated from total latency)
  <summary><b>Laptop (ZBook)</b></summary>
 
 Latency.
-![](images/blaze_detect_live_laptop01_profiling_latency.tif)
+![](images/blaze_detect_live_laptop01_profiling_latency.gif)
 
 Frame Rate (estimated from total latency)
-![](images/blaze_detect_live_laptop01_profiling_fps.tif)
+![](images/blaze_detect_live_laptop01_profiling_fps.gif)
 
 </details>
 
@@ -162,10 +162,10 @@ Frame Rate (estimated from total latency)
  <summary><b>ZUBoard with B512 DPU</b></summary>
 
 Latency.
-![](images/blaze_detect_live_zuboardn01_profiling_latency.tif)
+![](images/blaze_detect_live_zuboard01_profiling_latency.gif)
 
 Frame Rate (estimated from total latency)
-![](images/blaze_detect_live_zuboard01_profiling_fps.tif)
+![](images/blaze_detect_live_zuboard01_profiling_fps.gif)
 
 </details>
 
