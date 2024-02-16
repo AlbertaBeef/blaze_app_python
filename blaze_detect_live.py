@@ -134,6 +134,7 @@ text_lineType = cv2.LINE_AA
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
+ap.add_argument('-i', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
 ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
 ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_pytorch,blaze_vitisai", help="Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
@@ -145,6 +146,7 @@ ap.add_argument('-z', '--profile'    , default=False, action='store_true', help=
 args = ap.parse_args()  
   
 print('Command line options:')
+print(' --image       : ', args.image)
 print(' --blaze       : ', args.blaze)
 print(' --target      : ', args.target)
 print(' --pipeline    : ', args.pipeline)
@@ -292,7 +294,7 @@ print("================================================================")
 bStep = False
 bPause = False
 bWrite = False
-bUseImage = False
+bUseImage = args.image
 bShowDebugImage = False
 bShowScores = False
 bShowFPS = False
