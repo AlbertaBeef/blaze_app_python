@@ -600,11 +600,11 @@ while True:
         cv2.imshow(profile_fps_title, profile_fps_img)                         
 
         if bWrite:
-            filename = ("blaze_detect_live_frame%04d_profiling_latency.tif"%(frame_count))
+            filename = ("blaze_detect_live_frame%04d_profiling_latency.png"%(frame_count))
             print("Capturing ",filename," ...")
             cv2.imwrite(os.path.join(output_dir,filename),profile_latency_img)
 
-            filename = ("blaze_detect_live_frame%04d_profiling_fps.tif"%(frame_count))
+            filename = ("blaze_detect_live_frame%04d_profiling_fps.png"%(frame_count))
             print("Capturing ",filename," ...")
             cv2.imwrite(os.path.join(output_dir,filename),profile_fps_img)
             
