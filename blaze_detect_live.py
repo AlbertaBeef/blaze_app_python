@@ -134,22 +134,24 @@ text_lineType = cv2.LINE_AA
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument('-b', '--blaze'   , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
-ap.add_argument('-t', '--target'  , type=str,  default="blaze_tflite,blaze_pytorch,blaze_vitisai", help="Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai'")
-ap.add_argument('-p', '--pipeline', type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
-ap.add_argument('-l', '--list'    , action='store_true', default=False, help="List pipelines.")
-ap.add_argument('-d', '--debug'   , action='store_true', default=False, help="Enable Debug mode. Default is off")
-ap.add_argument('-z', '--profile' , action='store_true', default=False, help="Enable Profile mode. Default is off")
+ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
+ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_pytorch,blaze_vitisai", help="Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai'")
+ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
+ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
+ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
+ap.add_argument('-w', '--withoutview', default=False, action='store_true', help="Disable Output viewing. Default is on")
+ap.add_argument('-z', '--profile'    , default=False, action='store_true', help="Enable Profile mode. Default is off")
 
 args = ap.parse_args()  
   
 print('Command line options:')
-print(' --blaze   : ', args.blaze)
-print(' --target  : ', args.target)
-print(' --pipeline: ', args.pipeline)
-print(' --list    : ', args.list)
-print(' --debug   : ', args.debug)
-print(' --profile : ', args.profile)
+print(' --blaze       : ', args.blaze)
+print(' --target      : ', args.target)
+print(' --pipeline    : ', args.pipeline)
+print(' --list        : ', args.list)
+print(' --debug       : ', args.debug)
+print(' --withoutview : ', args.withoutview)
+print(' --profile     : ', args.profile)
 
 
 blaze_pipelines = [
@@ -269,26 +271,6 @@ for i in range(nb_blaze_pipelines):
         blaze_pipelines[i]["selected"] = True
 
 
-def ignore(x):
-    pass
-
-for pipeline_id in range(nb_blaze_pipelines):
-
-    if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
-
-        blaze_detector_type = blaze_pipelines[pipeline_id]["detector_type"]
-        blaze_landmark_type = blaze_pipelines[pipeline_id]["landmark_type"]
-        blaze_title = blaze_pipelines[pipeline_id]["pipeline"]
-                
-        app_main_title = blaze_title+" Demo"
-        app_ctrl_title = blaze_title+" Demo"
-        cv2.namedWindow(app_main_title)
-
-        thresh_min_score = blaze_detector.min_score_thresh
-        thresh_min_score_prev = thresh_min_score
-        cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
-
-
 print("================================================================")
 print("Blaze Detect Live Demo")
 print("================================================================")
@@ -315,7 +297,30 @@ bShowDebugImage = False
 bShowScores = False
 bShowFPS = False
 bVerbose = args.debug
+bViewOutput = not args.withoutview
 bProfile = args.profile
+
+def ignore(x):
+    pass
+
+for pipeline_id in range(nb_blaze_pipelines):
+
+    if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
+
+        blaze_detector_type = blaze_pipelines[pipeline_id]["detector_type"]
+        blaze_landmark_type = blaze_pipelines[pipeline_id]["landmark_type"]
+        blaze_title = blaze_pipelines[pipeline_id]["pipeline"]
+                
+        app_main_title = blaze_title+" Demo"
+        app_ctrl_title = blaze_title+" Demo"
+        
+        if bViewOutput:
+            cv2.namedWindow(app_main_title)
+
+            thresh_min_score = blaze_detector.min_score_thresh
+            thresh_min_score_prev = thresh_min_score
+            cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
+
 
 image = []
 output = []
@@ -381,14 +386,15 @@ while True:
             app_debug_title = blaze_title+" Debug"
             
             # Get trackbar values
-            thresh_min_score = cv2.getTrackbarPos('threshMinScore', app_ctrl_title)
-            if thresh_min_score < 10:
-                thresh_min_score = 10
-                cv2.setTrackbarPos('threshMinScore', app_ctrl_title,thresh_min_score)
-            thresh_min_score = thresh_min_score*(1/100)
-            if thresh_min_score != thresh_min_score_prev:
-                blaze_detector.min_score_thresh = thresh_min_score
-                thresh_min_score_prev = thresh_min_score
+            if bViewOutput:
+                thresh_min_score = cv2.getTrackbarPos('threshMinScore', app_ctrl_title)
+                if thresh_min_score < 10:
+                    thresh_min_score = 10
+                    cv2.setTrackbarPos('threshMinScore', app_ctrl_title,thresh_min_score)
+                thresh_min_score = thresh_min_score*(1/100)
+                if thresh_min_score != thresh_min_score_prev:
+                    blaze_detector.min_score_thresh = thresh_min_score
+                    thresh_min_score_prev = thresh_min_score
                 
                 
             #image = cv2.resize(image,(0,0), fx=scale, fy=scale) 
@@ -452,9 +458,10 @@ while True:
             # display real-time FPS counter (if valid)
             if rt_fps_valid == True and bShowFPS:
                 cv2.putText(output,rt_fps_message, (rt_fps_x,rt_fps_y),text_fontType,text_fontSize,text_color,text_lineSize,text_lineType)
-                
-            # show the output image
-            cv2.imshow(app_main_title, output)
+
+            if bViewOutput:                
+                # show the output image
+                cv2.imshow(app_main_title, output)
 
             # Profiling
             if bProfile:
