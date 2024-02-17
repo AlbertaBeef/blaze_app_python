@@ -132,15 +132,36 @@ Landmarks Models
 
 ## Profiling
 
-Profiling Results on various platforms
+Profiling Results for the following pipelines on various platforms
+
+| Type    | Pipeline              | Detector Model                                              | Landmark Model                                                        | 
+| :-----: | :-------------------: | :---------------------------------------------------------- | :-------------------------------------------------------------------- | 
+|  hand   | tfl_hand_v0_06        | blaze_tflite/models/palm_detection_without_custom_op.tflite | blaze_tflite/models/hand_landmark.tflite                              |
+|  hand   | tfl_hand_v0_10_lite   | blaze_tflite/models/palm_detection_lite.tflite              | blaze_tflite/models/hand_landmark_lite.tflite                         |
+|  hand   | tfl_hand_v0_10_full   | blaze_tflite/models/palm_detection_full.tflite              | blaze_tflite/models/hand_landmark_full.tflite                         |
+|  hand   | pyt_hand_v0_06        | blaze_pytorch/models/blazepalm.pth                          | blaze_pytorch/models/blazehand_landmark.pth                           |
+|  hand   | vai_hand_v0_06        | blaze_vitisai/models/blazepalm/{DPU}/blazepalm.xmodel       | blaze_vitisai/models/blazehandlandmark/{DPU}/blazehandlandmark.xmodel |
+|  face   | tfl_face_v0_10_short  | blaze_tflite/models/face_detection_short_range.tflite       | blaze_tflite/models/face_landmark.tflite                              |
+|  face   | tfl_face_v0_10_full   | blaze_tflite/models/face_detection_full_range.tflite        | blaze_tflite/models/face_landmark.tflite                              |
+|  face   | tfl_face_v0_10_sparse | blaze_tflite/models/face_detection_full_range_sparse.tflite | blaze_tflite/models/face_landmark.tflite                              |
+|  face   | pyt_face_v0_06_front  | blaze_pytorch/models/blazeface.pth                          | blaze_pytorch/models/blazeface_landmark.pth                           |
+|  face   | pyt_face_v0_06_back   | blaze_pytorch/models/blazefaceback.pth                      | blaze_pytorch/models/blazeface_landmark.pth                           |
+|  pose   | tfl_pose_v0_10_lite   | blaze_tflite/models/pose_detection.tflite                   | blaze_tflite/models/pose_landmark_lite.tflite                         |
+|  pose   | tfl_pose_v0_10_full   | blaze_tflite/models/pose_detection.tflite                   | blaze_tflite/models/pose_landmark_full.tflite                         |
+|  pose   | tfl_pose_v0_10_heavy  | blaze_tflite/models/pose_detection.tflite                   | blaze_tflite/models/pose_landmark_heavy.tflite                        |
+|  pose   | pyt_pose_v0_06        | blaze_pytorch/models/blazepose.pth                          | blaze_pytorch/models/blazepose_landmark.pth                           |
+
+Where {DPU} corresponds to the DPU architecture for Vitis-AI targets.
 
 <details>
  <summary><b>Workstation (HP Z4 G4) with AMD Radeon Pro W7900 GPU</b></summary>
 
-Latency.
+Latency
+
 ![](images/blaze_detect_live_workstation01_profiling_latency.gif)
 
 Frame Rate (estimated from total latency)
+
 ![](images/blaze_detect_live_workstation01_profiling_fps.gif)
 
 </details>
@@ -149,10 +170,12 @@ Frame Rate (estimated from total latency)
 <details>
  <summary><b>Laptop (ZBook)</b></summary>
 
-Latency.
+Latency
+
 ![](images/blaze_detect_live_laptop01_profiling_latency.gif)
 
 Frame Rate (estimated from total latency)
+
 ![](images/blaze_detect_live_laptop01_profiling_fps.gif)
 
 </details>
@@ -161,10 +184,12 @@ Frame Rate (estimated from total latency)
 <details>
  <summary><b>ZUBoard with B512 DPU</b></summary>
 
-Latency.
+Latency
+
 ![](images/blaze_detect_live_zuboard01_profiling_latency.gif)
 
 Frame Rate (estimated from total latency)
+
 ![](images/blaze_detect_live_zuboard01_profiling_fps.gif)
 
 </details>
