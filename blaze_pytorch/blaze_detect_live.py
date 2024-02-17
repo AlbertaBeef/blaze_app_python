@@ -241,7 +241,7 @@ while True:
             print("[ERROR] cap.read() FAILEd !")
             break
 
-    if bProfile:
+    if bProfile or bShowFPS:
         prof_title          = ['']*nb_blaze_pipelines
         prof_resize         = np.zeros(nb_blaze_pipelines)
         prof_detector_pre   = np.zeros(nb_blaze_pipelines)
@@ -340,7 +340,7 @@ while True:
                 cv2.imshow(app_main_title, output)
 
             # Profiling
-            if bProfile:
+            if bProfile or bShowFPS:
                prof_title[pipeline_id] = blaze_title
                prof_resize[pipeline_id]         = profile_resize
                prof_detector_pre[pipeline_id]   = blaze_detector.profile_pre
