@@ -15,6 +15,16 @@ class BlazeLandmark(BlazeLandmarkBase):
 
         self.blaze_app = blaze_app
         
+        if torch.cuda.is_available():
+            self.gpu_device = "cuda:0"
+            self.gpu_name   = torch.cuda.get_device_name(0)
+        else:
+            self.gpu_device = "cpu"
+            self.gpu_name   = ""
+        torch.set_grad_enabled(False)
+        if self.DEBUG:
+           print("[BlazeLandmark] GPU : ",self.gpu_device,self.gpu_name)
+
             
     def load_model(self, model_path):
 
@@ -22,15 +32,15 @@ class BlazeLandmark(BlazeLandmarkBase):
            print("[BlazeLandmark.load_model] Model File : ",model_path)
            
         if self.blaze_app == "blazehandlandmark":
-            self.model = BlazeHandLandmark()
+            self.model = BlazeHandLandmark().to(self.gpu_device)
             self.model.load_weights(model_path)            
             self.resolution = 256
         elif self.blaze_app == "blazefacelandmark":
-            self.model = BlazeFaceLandmark()
+            self.model = BlazeFaceLandmark().to(self.gpu_device)
             self.model.load_weights(model_path)            
             self.resolution = 192
         elif self.blaze_app == "blazeposelandmark":
-            self.model = BlazePoseLandmark()
+            self.model = BlazePoseLandmark().to(self.gpu_device)
             self.model.load_weights(model_path)            
             self.resolution = 256
 
@@ -50,6 +60,7 @@ class BlazeLandmark(BlazeLandmarkBase):
         start = timer()
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x).permute((0, 3, 1, 2))
+        x = x.to(self.gpu_device)            
         self.profile_pre = timer()-start
 
         #if self.DEBUG:

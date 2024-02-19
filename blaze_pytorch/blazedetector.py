@@ -16,6 +16,16 @@ class BlazeDetector(BlazeDetectorBase):
         self.blaze_app = blaze_app
         self.batch_size = 1
         
+        if torch.cuda.is_available():
+            self.gpu_device = "cuda:0"
+            self.gpu_name   = torch.cuda.get_device_name(0)
+        else:
+            self.gpu_device = "cpu"
+            self.gpu_name   = ""
+        torch.set_grad_enabled(False)
+        if self.DEBUG:
+           print("[BlazeDetector] GPU : ",self.gpu_device,self.gpu_name)
+
 
     def load_model(self, model_path):
 
@@ -28,7 +38,7 @@ class BlazeDetector(BlazeDetectorBase):
             self.y_scale = 256.0
             self.h_scale = 256.0
             self.w_scale = 256.0
-            self.model = BlazePalm()
+            self.model = BlazePalm().to(self.gpu_device)
             self.model.load_weights(model_path)
             self.model.eval()
         elif self.blaze_app == "blazeface":
@@ -45,7 +55,7 @@ class BlazeDetector(BlazeDetectorBase):
                 self.y_scale = 128.0
                 self.h_scale = 128.0
                 self.w_scale = 128.0
-            self.model = BlazeFace(self.back_model)
+            self.model = BlazeFace(self.back_model).to(self.gpu_device)
             self.model.load_weights(model_path)
             self.model.eval()
         elif self.blaze_app == "blazepose":
@@ -54,7 +64,7 @@ class BlazeDetector(BlazeDetectorBase):
             self.y_scale = 128.0
             self.h_scale = 128.0
             self.w_scale = 128.0
-            self.model = BlazePose()
+            self.model = BlazePose().to(self.gpu_device)
             self.model.load_weights(model_path)
             self.model.eval()
 
@@ -130,6 +140,7 @@ class BlazeDetector(BlazeDetectorBase):
         
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x).permute((0, 3, 1, 2))
+        x = x.to(self.gpu_device)
 
         #if self.DEBUG:
         #   print("[BlazeDetector.predict_on_batch] Input Shape : ",x.shape)
