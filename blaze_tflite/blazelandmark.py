@@ -5,10 +5,12 @@ from blazebase import BlazeLandmarkBase
 #import tensorflow as tf
 bUseTfliteRuntime = False
 try:
-   import tensorflow as tf
+    import tensorflow as tf
+    import tensorflow.lite
+
 except:
-   from tflite_runtime.interpreter import Interpreter
-   bUseTfliteRuntime = True
+    from tflite_runtime.interpreter import Interpreter
+    bUseTfliteRuntime = True
 
 from timeit import default_timer as timer
 
