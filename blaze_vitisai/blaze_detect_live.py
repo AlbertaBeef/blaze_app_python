@@ -106,6 +106,7 @@ ap.add_argument('-n', '--model2', type=str, help='Path of blazehandlardmark mode
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
 ap.add_argument('-w', '--withoutview', default=False, action='store_true', help="Disable Output viewing. Default is on")
 ap.add_argument('-z', '--profile'    , default=False, action='store_true', help="Enable Profile mode. Default is off")
+ap.add_argument('-f', '--fps'        , default=False, action='store_true', help="Enable Profile mode (FPS). Default is off")
 
 args = ap.parse_args()  
   
@@ -117,6 +118,7 @@ print(' --model2      : ', args.model2)
 print(' --debug       : ', args.debug)
 print(' --withoutview : ', args.withoutview)
 print(' --profile     : ', args.profile)
+print(' --fps         : ', args.fps)
 
 nb_blaze_pipelines = 1
 
@@ -208,7 +210,7 @@ bWrite = False
 bUseImage = args.image
 bShowDebugImage = False
 bShowScores = False
-bShowFPS = False
+bShowFPS = args.fps
 bVerbose = args.debug
 bViewOutput = not args.withoutview
 bProfile = args.profile
