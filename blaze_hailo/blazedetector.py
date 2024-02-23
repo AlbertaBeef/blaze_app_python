@@ -90,12 +90,12 @@ class BlazeDetector(BlazeDetectorBase):
             
             if self.DEBUG:
                print("[BlazeDetector.load_model] Input Shape : ",self.inputShape)
-               print("[BlazeDetector.load_model] conv533 Shape : ",self.conv533Shape)
-               print("[BlazeDetector.load_model] conv544 Shape : ",self.conv544Shape)
-               print("[BlazeDetector.load_model] conv551 Shape : ",self.conv551Shape)
-               print("[BlazeDetector.load_model] conv532 Shape : ",self.conv532Shape)
-               print("[BlazeDetector.load_model] conv543 Shape : ",self.conv543Shape)
-               print("[BlazeDetector.load_model] conv550 Shape : ",self.conv550Shape)
+               #print("[BlazeDetector.load_model] conv533 Shape : ",self.conv533Shape)
+               #print("[BlazeDetector.load_model] conv544 Shape : ",self.conv544Shape)
+               #print("[BlazeDetector.load_model] conv551 Shape : ",self.conv551Shape)
+               #print("[BlazeDetector.load_model] conv532 Shape : ",self.conv532Shape)
+               #print("[BlazeDetector.load_model] conv543 Shape : ",self.conv543Shape)
+               #print("[BlazeDetector.load_model] conv550 Shape : ",self.conv550Shape)
                print("[BlazeDetector.load_model] Output1 Shape : ",self.outputShape1)
                print("[BlazeDetector.load_model] Output2 Shape : ",self.outputShape2)
 
@@ -118,10 +118,10 @@ class BlazeDetector(BlazeDetectorBase):
             
             if self.DEBUG:
                print("[BlazeDetector.load_model] Input Shape : ",self.inputShape)
-               print("[BlazeDetector.load_model] conv410 Shape : ",self.conv410Shape)
-               print("[BlazeDetector.load_model] conv412 Shape : ",self.conv412Shape)
-               print("[BlazeDetector.load_model] conv409 Shape : ",self.conv409Shape)
-               print("[BlazeDetector.load_model] conv411 Shape : ",self.conv411Shape)
+               #print("[BlazeDetector.load_model] conv410 Shape : ",self.conv410Shape)
+               #print("[BlazeDetector.load_model] conv412 Shape : ",self.conv412Shape)
+               #print("[BlazeDetector.load_model] conv409 Shape : ",self.conv409Shape)
+               #print("[BlazeDetector.load_model] conv411 Shape : ",self.conv411Shape)
                print("[BlazeDetector.load_model] Output1 Shape : ",self.outputShape1)
                print("[BlazeDetector.load_model] Output2 Shape : ",self.outputShape2)
             
@@ -274,11 +274,8 @@ class BlazeDetector(BlazeDetectorBase):
         #                                                                             => [1x2016x18]
         # Conv__411 [1x108x12x12] =transpose=> [1x12x12x108] =reshape=> [1x864x18]  //
         if self.blaze_app == "blazepalm" and self.num_outputs == 4:
-            conv_1_2_24_24 = infer_results[self.output_vstream_infos[0].name]
-            conv_1_6_12_12 = infer_results[self.output_vstream_infos[1].name]
-
-            transpose_1_24_24_2 = np.transpose(conv_1_2_24_24,[0,2,3,1])
-            transport_12_12_6 = np.transpose(conv_1_6_12_12,[0,2,3,1])
+            transpose_1_24_24_2 = infer_results[self.output_vstream_infos[1].name]
+            transport_12_12_6 = infer_results[self.output_vstream_infos[0].name]
             
             reshape_1_1152_1 = transpose_1_24_24_2.reshape(1,1152,1)
             reshape_1_864_1 = transport_12_12_6.reshape(1,864,1)
@@ -287,11 +284,8 @@ class BlazeDetector(BlazeDetectorBase):
 
             out1 = concat_1_2016_1.astype(np.float32)
 
-            conv_1_36_24_24 = infer_results[self.output_vstream_infos[2].name]
-            conv_1_108_12_12 = infer_results[self.output_vstream_infos[3].name]
-
-            transpose_1_24_24_36 = np.transpose(conv_1_36_24_24,[0,2,3,1])
-            transport_12_12_108 = np.transpose(conv_1_108_12_12,[0,2,3,1])
+            transpose_1_24_24_36 = infer_results[self.output_vstream_infos[3].name]
+            transport_12_12_108 = infer_results[self.output_vstream_infos[2].name]
             
             reshape_1_1152_18 = transpose_1_24_24_36.reshape(1,1152,18)
             reshape_1_864_18 = transport_12_12_108.reshape(1,864,18)

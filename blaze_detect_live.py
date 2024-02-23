@@ -56,11 +56,13 @@ sys.path.append(os.path.abspath('blaze_common/'))
 sys.path.append(os.path.abspath('blaze_tflite/'))
 sys.path.append(os.path.abspath('blaze_pytorch/'))
 sys.path.append(os.path.abspath('blaze_vitisai/'))
+sys.path.append(os.path.abspath('blaze_hailo/'))
 
 supported_targets = {
     "blaze_tflite": False,
     "blaze_pytorch": False,
-    "blaze_vitisai": False
+    "blaze_vitisai": False,
+    "blaze_hailo": False
 }
 try:
     from blaze_tflite.blazedetector import BlazeDetector as BlazeDetector_tflite
@@ -76,7 +78,7 @@ try:
     print("[INFO] blaze_pytorch supported ...")
     supported_targets["blaze_pytorch"] = True
 except:
-    print("[INFO] blaze_pytorch NOT found ...")
+    print("[INFO] blaze_pytorch NOT supported ...")
 
 try:
     from blaze_vitisai.blazedetector import BlazeDetector as BlazeDetector_vitisai
@@ -101,6 +103,14 @@ try:
 except:
     print("[INFO] blaze_vitisai NOT supported ...")
     dpu_arch = "B?"    
+
+try:
+    from blaze_hailo.blazedetector import BlazeDetector as BlazeDetector_hailo
+    from blaze_hailo.blazelandmark import BlazeLandmark as BlazeLandmark_hailo
+    print("[INFO] blaze_hailo supported ...")
+    supported_targets["blaze_hailo"] = True
+except:
+    print("[INFO] blaze_hailo NOT supported ...")
 
 from visualization import draw_detections, draw_landmarks, draw_roi
 from visualization import HAND_CONNECTIONS, FACE_CONNECTIONS, POSE_FULL_BODY_CONNECTIONS, POSE_UPPER_BODY_CONNECTIONS
@@ -136,7 +146,7 @@ text_lineType = cv2.LINE_AA
 ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
 ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
-ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_pytorch,blaze_vitisai", help="Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai'")
+ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo", help="Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
 ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
@@ -165,6 +175,10 @@ blaze_pipelines = [
     { "blaze": "hand", "pipeline": "tfl_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
     { "blaze": "hand", "pipeline": "pyt_hand_v0_07"       , "model1": "blaze_pytorch/models/blazepalm.pth",                          "model2": "blaze_pytorch/models/blazehand_landmark.pth" },
     { "blaze": "hand", "pipeline": "vai_hand_v0_07"       , "model1": "blaze_vitisai/models/blazepalm/"+dpu_arch+"/blazepalm.xmodel","model2": "blaze_vitisai/models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel" },
+    { "blaze": "hand", "pipeline": "hybrid_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",           "model2": "blaze_hailo/models/hand_landmark_lite.hef" },
+    { "blaze": "hand", "pipeline": "hybrid_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",           "model2": "blaze_hailo/models/hand_landmark_full.hef" },
+    { "blaze": "hand", "pipeline": "hai_hand_v0_10_lite"  , "model1": "blaze_hailo/models/palm_detection_lite.hef",                  "model2": "blaze_hailo/models/hand_landmark_lite.hef" },
+    { "blaze": "hand", "pipeline": "hai_hand_v0_10_full"  , "model1": "blaze_hailo/models/palm_detection_full.hef",                  "model2": "blaze_hailo/models/hand_landmark_full.hef" },
     { "blaze": "face", "pipeline": "tfl_face_v0_07_front" , "model1": "blaze_tflite/models/face_detection_front_v0_07.tflite",       "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
     { "blaze": "face", "pipeline": "tfl_face_v0_07_back"  , "model1": "blaze_tflite/models/face_detection_back_v0_07.tflite",        "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
     { "blaze": "face", "pipeline": "tfl_face_v0_10_short" , "model1": "blaze_tflite/models/face_detection_short_range.tflite",       "model2": "blaze_tflite/models/face_landmark.tflite" },
@@ -232,8 +246,12 @@ for i in range(nb_blaze_pipelines):
     blaze_pipelines[i]["selected"] = False # until proven otherwise
     
     target1 = re.search('(.+?)/', model1).group(1) 
-    target2 = re.search('(.+?)/', model1).group(1)
-    if supported_targets[target1]==True and supported_targets[target2]==True:
+    target2 = re.search('(.+?)/', model2).group(1)
+    
+    if blaze in args.blaze and target1 in args.target and target2 in args.target and (pipeline in args.pipeline or args.pipeline == "all"):
+        blaze_pipelines[i]["selected"] = True
+    
+    if supported_targets[target1]==True and supported_targets[target2]==True and blaze_pipelines[i]["selected"] == True:
         if blaze=="hand":
             detector_type = "blazepalm"
             landmark_type = "blazehandlandmark"
@@ -252,6 +270,8 @@ for i in range(nb_blaze_pipelines):
             blaze_detector = BlazeDetector_pytorch(detector_type)
         elif target1=="blaze_vitisai":
             blaze_detector = BlazeDetector_vitisai(detector_type)
+        elif target1=="blaze_hailo":
+            blaze_detector = BlazeDetector_hailo(detector_type)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
         blaze_detector.set_debug(debug=args.debug)
@@ -264,8 +284,11 @@ for i in range(nb_blaze_pipelines):
             blaze_landmark = BlazeLandmark_pytorch(landmark_type)
         elif target2=="blaze_vitisai":
             blaze_landmark = BlazeLandmark_vitisai(landmark_type)
+        elif target2=="blaze_hailo":
+            blaze_landmark = BlazeLandmark_hailo(landmark_type)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
+        blaze_landmark.set_debug(debug=args.debug)
         blaze_landmark.load_model(model2)
        
         blaze_pipelines[i]["supported"]     = True
@@ -273,9 +296,6 @@ for i in range(nb_blaze_pipelines):
         blaze_pipelines[i]["detector"]      = blaze_detector
         blaze_pipelines[i]["landmark_type"] = landmark_type
         blaze_pipelines[i]["landmark"]      = blaze_landmark
-    #print("blaze in args.blaze = ",blaze in args.blaze, "and target1 in args.target = ", target1 in args.target, "and target2 in args.target", target2 in args.target, "and (pipeline in args.pipeline or args.pipeline == 'all')",(pipeline in args.pipeline or args.pipeline == "all"))
-    if blaze in args.blaze and target1 in args.target and target2 in args.target and (pipeline in args.pipeline or args.pipeline == "all"):
-        blaze_pipelines[i]["selected"] = True
 
 
 print("================================================================")

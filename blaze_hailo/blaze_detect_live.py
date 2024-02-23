@@ -137,8 +137,10 @@ if args.blaze == "hand":
    blaze_detector_type = "blazepalm"
    blaze_landmark_type = "blazehandlandmark"
    blaze_title = "BlazeHandLandmark"
-   default_detector_model='models/palm_detection_v0_07.hef'
-   default_landmark_model='models/hand_landmark_v0_07.hef'
+   #default_detector_model='models/palm_detection_v0_07.hef'
+   #default_landmark_model='models/hand_landmark_v0_07.hef'
+   default_detector_model='models/palm_detection_lite.hef'
+   default_landmark_model='models/hand_landmark_lite.hef'
 elif args.blaze == "face":
    blaze_detector_type = "blazeface"
    blaze_landmark_type = "blazefacelandmark"
