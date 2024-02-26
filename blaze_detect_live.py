@@ -175,6 +175,7 @@ blaze_pipelines = [
     { "blaze": "hand", "pipeline": "tfl_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
     { "blaze": "hand", "pipeline": "pyt_hand_v0_07"       , "model1": "blaze_pytorch/models/blazepalm.pth",                          "model2": "blaze_pytorch/models/blazehand_landmark.pth" },
     { "blaze": "hand", "pipeline": "vai_hand_v0_07"       , "model1": "blaze_vitisai/models/blazepalm/"+dpu_arch+"/blazepalm.xmodel","model2": "blaze_vitisai/models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel" },
+    { "blaze": "hand", "pipeline": "hybrid_palm_v0_10_lite"  , "model1": "blaze_hailo/models/palm_detection_lite.hef",           "model2": "blaze_tflite/models/hand_landmark_lite.tflite" },
     { "blaze": "hand", "pipeline": "hybrid_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",           "model2": "blaze_hailo/models/hand_landmark_lite.hef" },
     { "blaze": "hand", "pipeline": "hybrid_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",           "model2": "blaze_hailo/models/hand_landmark_full.hef" },
     { "blaze": "hand", "pipeline": "hai_hand_v0_10_lite"  , "model1": "blaze_hailo/models/palm_detection_lite.hef",                  "model2": "blaze_hailo/models/hand_landmark_lite.hef" },
@@ -250,6 +251,8 @@ for i in range(nb_blaze_pipelines):
     
     if blaze in args.blaze and target1 in args.target and target2 in args.target and (pipeline in args.pipeline or args.pipeline == "all"):
         blaze_pipelines[i]["selected"] = True
+        if args.debug:
+            print("[blaze_detect_live] Pipeline ",pipeline," selected.")
     
     if supported_targets[target1]==True and supported_targets[target2]==True and blaze_pipelines[i]["selected"] == True:
         if blaze=="hand":
@@ -296,6 +299,9 @@ for i in range(nb_blaze_pipelines):
         blaze_pipelines[i]["detector"]      = blaze_detector
         blaze_pipelines[i]["landmark_type"] = landmark_type
         blaze_pipelines[i]["landmark"]      = blaze_landmark
+
+        if args.debug:
+            print("[blaze_detect_live] Pipeline ",pipeline," supported and initialized.")
 
 
 print("================================================================")
