@@ -73,14 +73,16 @@ class BlazeLandmark(BlazeLandmarkBase):
     def load_model(self, model_path):
 
         if self.DEBUG:
-           print("[BlazeLandmark.load_model] Model File : ",model_path)
+            print("[BlazeLandmark.load_model] Model File : ",model_path)
+            #[BlazeLandmark.load_model] Model File :  blaze_hailo/models/hand_landmark_lite.hef
            
         # The target can be used as a context manager ("with" statement) to ensure it's released on time.
         # Here it's avoided for the sake of simplicity
         #self.target = VDevice(params=self.params)
         self.devices = Device.scan()
         if self.DEBUG:
-           print("[BlazeLandmark.load_model] Hailo Devices : ",self.devices)
+            print("[BlazeLandmark.load_model] Hailo Devices : ",self.devices)
+            #[BlazeLandmark.load_model] Hailo Devices :  ['0000:01:00.0']
         
         # Loading compiled HEFs to device:
         self.hef = HEF(model_path)
@@ -89,12 +91,25 @@ class BlazeLandmark(BlazeLandmarkBase):
         with VDevice(device_ids=self.devices) as target:
             if self.DEBUG:
                 print("[BlazeLandmark.load_model] Hailo target : ",target)
+                #[BlazeLandmark.load_model] Hailo target :  <hailo_platform.pyhailort.pyhailort.VDevice object at 0xffff95c62d90>
         
             # Get the "network groups" (connectivity groups, aka. "different networks") information from the .hef
             self.configure_params = ConfigureParams.create_from_hef(hef=self.hef, interface=HailoStreamInterface.PCIe)
             if self.DEBUG:
                 print("[BlazeLandmark.load_model] Hailo configure_params : ",self.configure_params)
+                #[BlazeLandmark.load_model] Hailo configure_params :  {'hand_landmark_lite': <hailo_platform.pyhailort._pyhailort.ConfigureParams object at 0xffff96276870>}
             self.network_groups = target.configure(self.hef, self.configure_params)
+            #[HailoRT] [error] CHECK_AS_EXPECTED failed - Error, Could not find logical periph bytes per buffer value
+            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
+            #[HailoRT] [error] CHECK_EXPECTED_AS_STATUS failed with status=HAILO_INVALID_ARGUMENT(2)
+            #[HailoRT] [error] CHECK_SUCCESS failed with status=HAILO_INVALID_ARGUMENT(2)
+            #[HailoRT] [error] CHECK_SUCCESS_AS_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
+            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
+            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
+            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
+            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
+            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
+            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
             if self.DEBUG:
                 print("[BlazeLandmark.load_model] Hailo network_groups : ",self.network_groups)
             self.network_group = self.network_groups[0]

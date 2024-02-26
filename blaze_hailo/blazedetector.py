@@ -72,14 +72,16 @@ class BlazeDetector(BlazeDetectorBase):
     def load_model(self, model_path):
 
         if self.DEBUG:
-           print("[BlazeDetector.load_model] Model File : ",model_path)
+            print("[BlazeDetector.load_model] Model File : ",model_path)
+            #[BlazeDetector.load_model] Model File :  blaze_hailo/models/palm_detection_lite.hef
            
         # The target can be used as a context manager ("with" statement) to ensure it's released on time.
         # Here it's avoided for the sake of simplicity
         #self.target = VDevice(params=self.params)
         self.devices = Device.scan()
         if self.DEBUG:
-           print("[BlazeDetector.load_model] Hailo Devices : ",self.devices)
+            print("[BlazeDetector.load_model] Hailo Devices : ",self.devices)
+            #[BlazeDetector.load_model] Hailo Devices :  ['0000:01:00.0']
 
         # Loading compiled HEFs to device:
         self.hef = HEF(model_path)
@@ -88,14 +90,18 @@ class BlazeDetector(BlazeDetectorBase):
         with VDevice(device_ids=self.devices) as target:
             if self.DEBUG:
                 print("[BlazeDetector.load_model] Hailo target : ",target)
+                #[BlazeDetector.load_model] Hailo target :  <hailo_platform.pyhailort.pyhailort.VDevice object at 0xffff95c24700>
 
             # Get the "network groups" (connectivity groups, aka. "different networks") information from the .hef
             self.configure_params = ConfigureParams.create_from_hef(hef=self.hef, interface=HailoStreamInterface.PCIe)
             if self.DEBUG:
                 print("[BlazeDetector.load_model] Hailo configure_params : ",self.configure_params)
+                #[BlazeDetector.load_model] Hailo configure_params :  {'palm_detection_lite': <hailo_platform.pyhailort._pyhailort.ConfigureParams object at 0xffff962d1f70>}
             self.network_groups = target.configure(self.hef, self.configure_params)
             if self.DEBUG:
                 print("[BlazeDetector.load_model] Hailo network_groups : ",self.network_groups)
+                #[BlazeDetector.load_model] Hailo network_groups :  [<hailo_platform.pyhailort.pyhailort.ConfiguredNetwork object at 0xffff95c62eb0>]
+
             self.network_group = self.network_groups[0]
             self.network_group_params = self.network_group.create_params()
 
@@ -114,6 +120,8 @@ class BlazeDetector(BlazeDetectorBase):
             if self.DEBUG:
                 print("[BlazeDetector.load_model] Input VStream Infos : ",self.input_vstream_infos)
                 print("[BlazeDetector.load_model] Output VStream Infos : ",self.output_vstream_infos)
+                #[BlazeDetector.load_model] Input VStream Infos :  [VStreamInfo("palm_detection_lite/input_layer1")]
+                #[BlazeDetector.load_model] Output VStream Infos :  [VStreamInfo("palm_detection_lite/conv24"), VStreamInfo("palm_detection_lite/conv29"), VStreamInfo("palm_detection_lite/conv25"), VStreamInfo("palm_detection_lite/conv30")]
         
             # Get input/output tensors dimensions
             self.num_inputs = len(self.input_vstream_infos)
@@ -125,6 +133,13 @@ class BlazeDetector(BlazeDetectorBase):
                 print("[BlazeDetector.load_model] Number of Outputs : ",self.num_outputs)
                 for i in range(self.num_outputs):
                     print("[BlazeDetector.load_model] Output[",i,"] Shape : ",tuple(self.output_vstream_infos[i].shape)," Name : ",self.output_vstream_infos[i].name)
+                #[BlazeDetector.load_model] Number of Inputs :  1
+                #[BlazeDetector.load_model] Input[ 0 ] Shape :  (192, 192, 3)  Name :  palm_detection_lite/input_layer1
+                #[BlazeDetector.load_model] Number of Outputs :  4
+                #[BlazeDetector.load_model] Output[ 0 ] Shape :  (12, 12, 6)  Name :  palm_detection_lite/conv24
+                #[BlazeDetector.load_model] Output[ 1 ] Shape :  (24, 24, 2)  Name :  palm_detection_lite/conv29
+                #[BlazeDetector.load_model] Output[ 2 ] Shape :  (12, 12, 108)  Name :  palm_detection_lite/conv25
+                #[BlazeDetector.load_model] Output[ 3 ] Shape :  (24, 24, 36)  Name :  palm_detection_lite/conv30
         
             self.inputShape = tuple(self.input_vstream_infos[0].shape)
 
