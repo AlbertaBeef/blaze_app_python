@@ -465,12 +465,12 @@ while True:
                         if blaze_landmark_type == "blazehandlandmark":
                             draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2)
                         elif blaze_landmark_type == "blazefacelandmark":
-                            draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, size=1)                                    
+                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], FACE_CONNECTIONS, size=1)                                    
                         elif blaze_landmark_type == "blazeposelandmark":
                             if landmarks.shape[1] > 33:
-                                draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
                             else:
-                                draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
                         debug_img = cv2.hconcat([debug_img,roi_img[i]])
                 
                 start = timer() 
