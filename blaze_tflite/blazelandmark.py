@@ -93,7 +93,7 @@ class BlazeLandmark(BlazeLandmarkBase):
             if self.blaze_app == "blazehandlandmark":
                 out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
                 out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
-                out2 = out2.reshape(1,21,-1) # 42 => [1,21,2]
+                out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] / 63 => [1,21,3]
                 out2 = out2/self.resolution
                 #out3 = np.zeros(out1.shape,out1.dtype) # tflite model not returning handedness
             elif self.blaze_app == "blazefacelandmark":

@@ -326,7 +326,7 @@ bStep = False
 bPause = False
 bWrite = False
 bUseImage = args.image
-bShowDebugImage = False
+bShowDebugImage = True
 bShowScores = False
 bShowFPS = args.fps
 bVerbose = args.debug
@@ -448,20 +448,33 @@ while True:
             if len(normalized_detections) > 0:
   
                 start = timer()          
-                palm_detections = blaze_detector.denormalize_detections(normalized_detections,scale1,pad1)
+                detections = blaze_detector.denormalize_detections(normalized_detections,scale1,pad1)
                     
-                xc,yc,scale,theta = blaze_detector.detection2roi(palm_detections)
-                hand_img,hand_affine,hand_box = blaze_landmark.extract_roi(image,xc,yc,theta,scale)
+                xc,yc,scale,theta = blaze_detector.detection2roi(detections)
+                roi_img,roi_affine,roi_box = blaze_landmark.extract_roi(image,xc,yc,theta,scale)
                 profile_extract = timer()-start
 
+                flags, normalized_landmarks = blaze_landmark.predict(roi_img)
+                
                 if bShowDebugImage:
                     # show the ROIs
-                    for i in range(hand_img.shape[0]):
-                        debug_img = cv2.hconcat([debug_img,hand_img[i]])
+                    for i in range(roi_img.shape[0]):
+                        #roi_landmarks = np.expand_dims(normalized_landmarks[i,:,:].copy(), axis=0)
+                        roi_landmarks = normalized_landmarks[i,:,:].copy()
+                        roi_landmarks = roi_landmarks*blaze_landmark.resolution
+                        if blaze_landmark_type == "blazehandlandmark":
+                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2)
+                        elif blaze_landmark_type == "blazefacelandmark":
+                            draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, size=1)                                    
+                        elif blaze_landmark_type == "blazeposelandmark":
+                            if landmarks.shape[1] > 33:
+                                draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
+                            else:
+                                draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+                        debug_img = cv2.hconcat([debug_img,roi_img[i]])
                 
-                flags, normalized_landmarks = blaze_landmark.predict(hand_img)
                 start = timer() 
-                landmarks = blaze_landmark.denormalize_landmarks(normalized_landmarks, hand_affine)
+                landmarks = blaze_landmark.denormalize_landmarks(normalized_landmarks, roi_affine)
 
                 for i in range(len(flags)):
                     landmark, flag = landmarks[i], flags[i]
@@ -476,8 +489,8 @@ while True:
                         else:
                             draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
                    
-                draw_roi(output,hand_box)
-                draw_detections(output,palm_detections)
+                draw_roi(output,roi_box)
+                draw_detections(output,detections)
                 profile_annotate = timer()-start
 
             if bShowDebugImage:

@@ -99,29 +99,19 @@ class BlazeLandmark(BlazeLandmarkBase):
                 print("[BlazeLandmark.load_model] Hailo configure_params : ",self.configure_params)
                 #[BlazeLandmark.load_model] Hailo configure_params :  {'hand_landmark_lite': <hailo_platform.pyhailort._pyhailort.ConfigureParams object at 0xffff96276870>}
             self.network_groups = target.configure(self.hef, self.configure_params)
-            #[HailoRT] [error] CHECK_AS_EXPECTED failed - Error, Could not find logical periph bytes per buffer value
-            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
-            #[HailoRT] [error] CHECK_EXPECTED_AS_STATUS failed with status=HAILO_INVALID_ARGUMENT(2)
-            #[HailoRT] [error] CHECK_SUCCESS failed with status=HAILO_INVALID_ARGUMENT(2)
-            #[HailoRT] [error] CHECK_SUCCESS_AS_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
-            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
-            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
-            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
-            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
-            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
-            #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_INVALID_ARGUMENT(2)
             if self.DEBUG:
                 print("[BlazeLandmark.load_model] Hailo network_groups : ",self.network_groups)
+                #[BlazeLandmark.load_model] Hailo network_groups :  [<hailo_platform.pyhailort.pyhailort.ConfiguredNetwork object at 0xffff8c2e9eb0>]
             self.network_group = self.network_groups[0]
             self.network_group_params = self.network_group.create_params()
 
             # Create input and output virtual streams params
             # Quantized argument signifies whether or not the incoming data is already quantized.
             # Data is quantized by HailoRT if and only if quantized == False .
-            self.input_vstreams_params = InputVStreamParams.make(self.network_group, quantized=False,
-                                                                 format_type=FormatType.FLOAT32)
-            self.output_vstreams_params = OutputVStreamParams.make(self.network_group, quantized=True,
-                                                                   format_type=FormatType.UINT8)
+            #self.input_vstreams_params = InputVStreamParams.make(self.network_group, quantized=False, format_type=FormatType.FLOAT32)
+            #self.output_vstreams_params = OutputVStreamParams.make(self.network_group, quantized=True, format_type=FormatType.UINT8)
+            self.input_vstreams_params = InputVStreamParams.make(self.network_group)
+            self.output_vstreams_params = OutputVStreamParams.make(self.network_group, format_type=FormatType.FLOAT32)
 
             # Define dataset params
             self.input_vstream_infos = self.hef.get_input_vstream_infos()
@@ -129,6 +119,8 @@ class BlazeLandmark(BlazeLandmarkBase):
             if self.DEBUG:
                 print("[BlazeLandmark.load_model] Input VStream Infos : ",self.input_vstream_infos)
                 print("[BlazeLandmark.load_model] Output VStream Infos : ",self.output_vstream_infos)
+                #[BlazeLandmark.load_model] Input VStream Infos :  [VStreamInfo("hand_landmark_lite/input_layer1")]
+                #[BlazeLandmark.load_model] Output VStream Infos :  [VStreamInfo("hand_landmark_lite/fc1"), VStreamInfo("hand_landmark_lite/fc3"), VStreamInfo("hand_landmark_lite/fc2"), VStreamInfo("hand_landmark_lite/fc4")]
 
             # Get input/output tensors dimensions
             self.num_inputs = len(self.input_vstream_infos)
@@ -140,6 +132,13 @@ class BlazeLandmark(BlazeLandmarkBase):
                 print("[BlazeDetector.load_model] Number of Outputs : ",self.num_outputs)
                 for i in range(self.num_outputs):
                     print("[BlazeDetector.load_model] Output[",i,"] Shape : ",tuple(self.output_vstream_infos[i].shape))
+                #[BlazeDetector.load_model] Number of Inputs :  1
+                #[BlazeDetector.load_model] Input[ 0 ] Shape :  (224, 224, 3)
+                #[BlazeDetector.load_model] Number of Outputs :  4
+                #[BlazeDetector.load_model] Output[ 0 ] Shape :  (63,)
+                #[BlazeDetector.load_model] Output[ 1 ] Shape :  (63,)
+                #[BlazeDetector.load_model] Output[ 2 ] Shape :  (1,)
+                #[BlazeDetector.load_model] Output[ 3 ] Shape :  (1,)
 
             self.inputShape = self.input_vstream_infos[0].shape
             self.outputShape1 = tuple(self.output_vstream_infos[0].shape)
@@ -149,8 +148,13 @@ class BlazeLandmark(BlazeLandmarkBase):
                 print("[BlazeLandmark.load_model] Input Shape : ",self.inputShape)
                 print("[BlazeLandmark.load_model] Output1 Shape : ",self.outputShape1)
                 print("[BlazeLandmark.load_model] Output2 Shape : ",self.outputShape2)
+                #[BlazeLandmark.load_model] Input Shape :  (224, 224, 3)
+                #[BlazeLandmark.load_model] Output1 Shape :  (63,)
+                #[BlazeLandmark.load_model] Output2 Shape :  (63,)
 
         self.resolution = self.inputShape[1]
+        if self.DEBUG:
+            print("[BlazeLandmark.load_model] Input Resolution : ",self.resolution)
 
     def predict(self, x):
 
@@ -169,8 +173,9 @@ class BlazeLandmark(BlazeLandmarkBase):
 
             # 1. Preprocess the images into tensors:
             start = timer()
-            input_data = np.asarray(self.input_tensor_buffers[0])
-            input_data[0] = x[i,:,:,:]
+            xi = np.expand_dims(x[i,:,:,:], axis=0)
+            xi = xi * 255.0
+            input_data = {self.input_vstream_infos[0].name: xi}
             self.profile_pre += timer()-start
                                
             # 2. Run the neural network:
@@ -202,15 +207,26 @@ class BlazeLandmark(BlazeLandmarkBase):
             start = timer()  
 
             if self.blaze_app == "blazehandlandmark":
-               out1 = np.asarray(self.output_tensor_buffers[0]) 
-               #handedness = np.asarray(self.output_tensor_buffers[1]) 
-               out2 = np.asarray(self.output_tensor_buffers[2]) 
+                out1 = infer_results[self.output_vstream_infos[2].name]
+                handedness = infer_results[self.output_vstream_infos[3].name] 
+                out2 = infer_results[self.output_vstream_infos[0].name]
+                out2 = out2.reshape(1,21,-1) # 42 => [1,21,2]
+                out2 = out2/self.resolution
             elif self.blaze_app == "blazefacelandmark":
-               out1 = np.asarray(self.output_tensor_buffers[0]) 
-               out2 = np.asarray(self.output_tensor_buffers[1]) 
+                out1 = infer_results[self.output_vstream_infos[0].name]
+                out2 = infer_results[self.output_vstream_infos[1].name]
+                out2 = out2.reshape(1,-1,3) # 1404 => [1,356,2]
+                out2 = out2/self.resolution                 
             elif self.blaze_app == "blazeposelandmark":
-               out1 = np.asarray(self.output_tensor_buffers[0]) 
-               out2 = np.asarray(self.output_tensor_buffers[1]) 
+                out1 = infer_results[self.output_vstream_infos[0].name]
+                out2 = infer_results[self.output_vstream_infos[1].name]
+                out2 = out2.reshape(1,-1,5) # 195 => [1,39,5]
+                out2 = out2/self.resolution  
+                
+            #if self.DEBUG:
+            #    print("[BlazeLandmark] out1 : ",out1.shape,out1)
+            #    #print("[BlazeLandmark] handedness : ",handedness.shape,handedness)                              
+            #    print("[BlazeLandmark] out2 : ",out1.shape,out2)                              
 
             out1_list.append(out1.squeeze(0))
             out2_list.append(out2.squeeze(0))
