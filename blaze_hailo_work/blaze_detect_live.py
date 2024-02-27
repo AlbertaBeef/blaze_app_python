@@ -18,10 +18,8 @@ limitations under the License.
 #   https://www.github.com/AlbertaBeef/blaze_tutorial/tree/2023.1
 #
 # Dependencies:
-#   TFLite
-#      tensorflow
-#    or
-#      tflite_runtime
+#   Hailo
+#      hailo_platform
 #   plots
 #      pyplotly
 #      kaleido
@@ -86,8 +84,8 @@ text_lineType = cv2.LINE_AA
 ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
 ap.add_argument('-b', '--blaze',  type=str, default="hand", help="Application (hand, face, pose).  Default is hand")
-ap.add_argument('-m', '--model1', type=str, help='Path of blazepalm model. Default is models/palm_detection_without_custom_op.tflite')
-ap.add_argument('-n', '--model2', type=str, help='Path of blazehandlardmark model. Default is models/hand_landmark.tflite')
+ap.add_argument('-m', '--model1', type=str, help='Path of blazepalm model. Default is models/palm_detection_lite.hef')
+ap.add_argument('-n', '--model2', type=str, help='Path of blazehandlardmark model. Default is models/hand_landmark_lite.hef')
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
 ap.add_argument('-w', '--withoutview', default=False, action='store_true', help="Disable Output viewing. Default is on")
 ap.add_argument('-z', '--profile'    , default=False, action='store_true', help="Enable Profile mode. Default is off")
@@ -139,20 +137,20 @@ if args.blaze == "hand":
    blaze_detector_type = "blazepalm"
    blaze_landmark_type = "blazehandlandmark"
    blaze_title = "BlazeHandLandmark"
-   default_detector_model='models/palm_detection_lite.tflite'
-   default_landmark_model='models/hand_landmark_lite.tflite'
+   default_detector_model='models/palm_detection_lite.hef'
+   default_landmark_model='models/hand_landmark_lite.hef'
 elif args.blaze == "face":
    blaze_detector_type = "blazeface"
    blaze_landmark_type = "blazefacelandmark"
    blaze_title = "BlazeFaceLandmark"
-   default_detector_model='models/face_detection_short_range.tflite'
-   default_landmark_model='models/face_landmark.tflite'
+   default_detector_model='models/face_detection_short_range.hef'
+   default_landmark_model='models/face_landmark.hef'
 elif args.blaze == "pose":
    blaze_detector_type = "blazepose"
    blaze_landmark_type = "blazeposelandmark"
    blaze_title = "BlazePoseLandmark"
-   default_detector_model='models/pose_detection.tflite'
-   default_landmark_model='models/pose_landmark_full.tflite'
+   default_detector_model='models/pose_detection.hef'
+   default_landmark_model='models/pose_landmark_full.hef'
 else:
    print("[ERROR] Invalid Blaze application : ",args.blaze,".  MUST be one of hand,face,pose.")
 
@@ -168,7 +166,8 @@ blaze_detector.load_model(args.model1)
 
 blaze_landmark = BlazeLandmark(blaze_landmark_type)
 blaze_landmark.set_debug(debug=args.debug)
-blaze_landmark.load_model(args.model2)
+blaze_landmark.resolution = int(blaze_detector.x_scale)
+#blaze_landmark.load_model(args.model2)
 
 
 print("================================================================")
@@ -296,33 +295,21 @@ while True:
             if len(normalized_detections) > 0:
   
                 start = timer()          
-                detections = blaze_detector.denormalize_detections(normalized_detections,scale1,pad1)
+                palm_detections = blaze_detector.denormalize_detections(normalized_detections,scale1,pad1)
                     
-                xc,yc,scale,theta = blaze_detector.detection2roi(detections)
-                roi_img,roi_affine,roi_box = blaze_landmark.extract_roi(image,xc,yc,theta,scale)
+                xc,yc,scale,theta = blaze_detector.detection2roi(palm_detections)
+                hand_img,hand_affine,hand_box = blaze_landmark.extract_roi(image,xc,yc,theta,scale)
                 profile_extract = timer()-start
-
-                flags, normalized_landmarks = blaze_landmark.predict(roi_img)
 
                 if bShowDebugImage:
                     # show the ROIs
-                    for i in range(roi_img.shape[0]):
-                        #roi_landmarks = np.expand_dims(normalized_landmarks[i,:,:].copy(), axis=0)
-                        roi_landmarks = normalized_landmarks[i,:,:].copy()
-                        roi_landmarks = roi_landmarks*blaze_landmark.resolution
-                        if blaze_landmark_type == "blazehandlandmark":
-                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2)
-                        elif blaze_landmark_type == "blazefacelandmark":
-                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], FACE_CONNECTIONS, size=1)                                    
-                        elif blaze_landmark_type == "blazeposelandmark":
-                            if roi_landmarks.shape[1] > 33:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
-                            else:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
-                        debug_img = cv2.hconcat([debug_img,roi_img[i]])
-
+                    for i in range(hand_img.shape[0]):
+                        debug_img = cv2.hconcat([debug_img,hand_img[i]])
+                
+                #flags, normalized_landmarks = blaze_landmark.predict(hand_img)
                 start = timer() 
-                landmarks = blaze_landmark.denormalize_landmarks(normalized_landmarks, roi_affine)
+                '''
+                landmarks = blaze_landmark.denormalize_landmarks(normalized_landmarks, hand_affine)
 
                 for i in range(len(flags)):
                     landmark, flag = landmarks[i], flags[i]
@@ -336,9 +323,10 @@ while True:
                             draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
                         else:
                             draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+                '''
                    
-                draw_roi(output,roi_box)
-                draw_detections(output,detections)
+                draw_roi(output,hand_box)
+                draw_detections(output,palm_detections)
                 profile_annotate = timer()-start
 
             if bShowDebugImage:

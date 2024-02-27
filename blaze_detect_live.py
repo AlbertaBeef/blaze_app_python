@@ -326,7 +326,7 @@ bStep = False
 bPause = False
 bWrite = False
 bUseImage = args.image
-bShowDebugImage = True
+bShowDebugImage = False
 bShowScores = False
 bShowFPS = args.fps
 bVerbose = args.debug
@@ -455,7 +455,7 @@ while True:
                 profile_extract = timer()-start
 
                 flags, normalized_landmarks = blaze_landmark.predict(roi_img)
-                
+
                 if bShowDebugImage:
                     # show the ROIs
                     for i in range(roi_img.shape[0]):
@@ -472,7 +472,7 @@ while True:
                             else:
                                 draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
                         debug_img = cv2.hconcat([debug_img,roi_img[i]])
-                
+
                 start = timer() 
                 landmarks = blaze_landmark.denormalize_landmarks(normalized_landmarks, roi_affine)
 
