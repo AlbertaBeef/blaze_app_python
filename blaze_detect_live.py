@@ -467,7 +467,7 @@ while True:
                         elif blaze_landmark_type == "blazefacelandmark":
                             draw_landmarks(roi_img[i], roi_landmarks[:,:2], FACE_CONNECTIONS, size=1)                                    
                         elif blaze_landmark_type == "blazeposelandmark":
-                            if landmarks.shape[1] > 33:
+                            if roi_landmarks.shape[1] > 33:
                                 draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
                             else:
                                 draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
