@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 from blazebase import BlazeLandmarkBase
 
@@ -141,8 +142,8 @@ class BlazeLandmark(BlazeLandmarkBase):
                 #[BlazeDetector.load_model] Output[ 3 ] Shape :  (1,)
 
             self.inputShape = self.input_vstream_infos[0].shape
-            self.outputShape1 = tuple(self.output_vstream_infos[0].shape)
-            self.outputShape2 = tuple(self.output_vstream_infos[1].shape)
+            self.outputShape1 = tuple(self.output_vstream_infos[2].shape)
+            self.outputShape2 = tuple(self.output_vstream_infos[0].shape)
 
             if self.DEBUG:
                 print("[BlazeLandmark.load_model] Input Shape : ",self.inputShape)
@@ -173,9 +174,11 @@ class BlazeLandmark(BlazeLandmarkBase):
 
             # 1. Preprocess the images into tensors:
             start = timer()
-            xi = np.expand_dims(x[i,:,:,:], axis=0)
-            xi = xi * 255.0
-            input_data = {self.input_vstream_infos[0].name: xi}
+            image_rgb = cv2.cvtColor(x[i,:,:,:], cv2.COLOR_BGR2RGB)
+            image_norm = image_rgb * 255.0
+            image_input = np.expand_dims(image_norm, axis=0)
+            image_input = image_input.astype(np.uint8)
+            input_data = {self.input_vstream_infos[0].name: image_input}
             self.profile_pre += timer()-start
                                
             # 2. Run the neural network:
@@ -193,11 +196,10 @@ class BlazeLandmark(BlazeLandmarkBase):
                 # Create input and output virtual streams params
                 # Quantized argument signifies whether or not the incoming data is already quantized.
                 # Data is quantized by HailoRT if and only if quantized == False .
-                self.input_vstreams_params = InputVStreamParams.make(self.network_group, quantized=False,
-                                                                     format_type=FormatType.FLOAT32)
-                self.output_vstreams_params = OutputVStreamParams.make(self.network_group, quantized=True,
-                                                                       format_type=FormatType.UINT8)
-                                                                       #format_type=FormatType.FLOAT32)
+                #self.input_vstreams_params = InputVStreamParams.make(self.network_group, quantized=False, format_type=FormatType.FLOAT32)
+                #self.output_vstreams_params = OutputVStreamParams.make(self.network_group, quantized=True, format_type=FormatType.UINT8)
+                self.input_vstreams_params = InputVStreamParams.make(self.network_group)
+                self.output_vstreams_params = OutputVStreamParams.make(self.network_group, format_type=FormatType.FLOAT32) 
              
                 with InferVStreams(self.network_group, self.input_vstreams_params, self.output_vstreams_params) as infer_pipeline:
                     with self.network_group.activate(self.network_group_params):
@@ -210,12 +212,12 @@ class BlazeLandmark(BlazeLandmarkBase):
                 out1 = infer_results[self.output_vstream_infos[2].name]
                 handedness = infer_results[self.output_vstream_infos[3].name] 
                 out2 = infer_results[self.output_vstream_infos[0].name]
-                out2 = out2.reshape(1,21,-1) # 42 => [1,21,2]
+                out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] | 63 => [1,21,3]
                 out2 = out2/self.resolution
             elif self.blaze_app == "blazefacelandmark":
                 out1 = infer_results[self.output_vstream_infos[0].name]
                 out2 = infer_results[self.output_vstream_infos[1].name]
-                out2 = out2.reshape(1,-1,3) # 1404 => [1,356,2]
+                out2 = out2.reshape(1,-1,3) # 1404 => [1,356,3]
                 out2 = out2/self.resolution                 
             elif self.blaze_app == "blazeposelandmark":
                 out1 = infer_results[self.output_vstream_infos[0].name]

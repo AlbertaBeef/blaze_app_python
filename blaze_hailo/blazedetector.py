@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 from blazebase import BlazeDetectorBase
 
@@ -108,11 +109,10 @@ class BlazeDetector(BlazeDetectorBase):
             # Create input and output virtual streams params
             # Quantized argument signifies whether or not the incoming data is already quantized.
             # Data is quantized by HailoRT if and only if quantized == False .
-            self.input_vstreams_params = InputVStreamParams.make(self.network_group, quantized=False,
-                                                                 format_type=FormatType.FLOAT32)
-            self.output_vstreams_params = OutputVStreamParams.make(self.network_group, quantized=True,
-                                                                   format_type=FormatType.UINT8)
-                                                                   #format_type=FormatType.FLOAT32)
+            #self.input_vstreams_params = InputVStreamParams.make(self.network_group, quantized=False, format_type=FormatType.FLOAT32)
+            #self.output_vstreams_params = OutputVStreamParams.make(self.network_group, quantized=True, format_type=FormatType.UINT8)
+            self.input_vstreams_params = InputVStreamParams.make(self.network_group)
+            self.output_vstreams_params = OutputVStreamParams.make(self.network_group, format_type=FormatType.FLOAT32)
 
             # Define dataset params
             self.input_vstream_infos = self.hef.get_input_vstream_infos()
@@ -193,8 +193,11 @@ class BlazeDetector(BlazeDetectorBase):
 
     def preprocess(self, x):
         """Converts the image pixels to the range [-1, 1]."""
-        x = (x / 255.0)
-        x = x.astype(np.float32)
+        #x = (x / 255.0)
+        #x = x.astype(np.float32)
+        
+        #x = cv2.cvtColor(x, cv2.COLOR_BGR2RGB)
+        x = x.astype(np.uint8)
 
         return x
 
@@ -271,11 +274,10 @@ class BlazeDetector(BlazeDetectorBase):
             # Create input and output virtual streams params
             # Quantized argument signifies whether or not the incoming data is already quantized.
             # Data is quantized by HailoRT if and only if quantized == False .
-            self.input_vstreams_params = InputVStreamParams.make(self.network_group, quantized=False,
-                                                                 format_type=FormatType.FLOAT32)
-            self.output_vstreams_params = OutputVStreamParams.make(self.network_group, quantized=True,
-                                                                   format_type=FormatType.UINT8)
-                                                                   #format_type=FormatType.FLOAT32)
+            #self.input_vstreams_params = InputVStreamParams.make(self.network_group, quantized=False, format_type=FormatType.FLOAT32)
+            #self.output_vstreams_params = OutputVStreamParams.make(self.network_group, quantized=True, format_type=FormatType.UINT8)
+            self.input_vstreams_params = InputVStreamParams.make(self.network_group)
+            self.output_vstreams_params = OutputVStreamParams.make(self.network_group, format_type=FormatType.FLOAT32)
         
             with InferVStreams(self.network_group, self.input_vstreams_params, self.output_vstreams_params) as infer_pipeline:
                 with self.network_group.activate(self.network_group_params):
