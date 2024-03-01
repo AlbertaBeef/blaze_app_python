@@ -149,7 +149,8 @@ text_lineType = cv2.LINE_AA
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument('-i', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
+ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
+ap.add_argument('-I', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
 ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
 ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo", help="Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
@@ -162,6 +163,7 @@ ap.add_argument('-f', '--fps'        , default=False, action='store_true', help=
 args = ap.parse_args()  
   
 print('Command line options:')
+print(' --input       : ', args.input)
 print(' --image       : ', args.image)
 print(' --blaze       : ', args.blaze)
 print(' --target      : ', args.target)
@@ -218,7 +220,9 @@ print(dev_video)
 print(dev_media)
 
 if dev_video == None:
-    input_video = 0 
+    input_video = 0
+elif args.input != "":
+    input_video = args.input 
 else:
     input_video = dev_video  
 print("[INFO] Input Video : ",input_video)

@@ -99,7 +99,8 @@ blazehandlandmark_model = "models/blazehandlandmark/"+dpu_arch+"/blazehandlandma
  
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument('-i', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
+ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
+ap.add_argument('-I', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
 ap.add_argument('-b', '--blaze',  type=str, default="hand", help="Application (hand, face, pose).  Default is hand")
 ap.add_argument('-m', '--model1', type=str, help='Path of blazepalm model. Default is '+blazepalm_model)
 ap.add_argument('-n', '--model2', type=str, help='Path of blazehandlardmark model. Default is '+blazehandlandmark_model)
@@ -111,6 +112,7 @@ ap.add_argument('-f', '--fps'        , default=False, action='store_true', help=
 args = ap.parse_args()  
   
 print('Command line options:')
+print(' --input       : ', args.input)
 print(' --image       : ', args.image)
 print(' --blaze       : ', args.blaze)
 print(' --model1      : ', args.model1)
@@ -129,7 +131,9 @@ print(dev_video)
 print(dev_media)
 
 if dev_video == None:
-    input_video = 0 
+    input_video = 0
+elif args.input != "":
+    input_video = args.input 
 else:
     input_video = dev_video  
 print("[INFO] Input Video : ",input_video)
