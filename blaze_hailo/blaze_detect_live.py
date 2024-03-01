@@ -47,6 +47,8 @@ import sys
 import plotly.graph_objects as go
 
 sys.path.append(os.path.abspath('../blaze_common/'))
+from hailo_inference import HailoInference
+hailo_infer = HailoInference()
 from blazedetector import BlazeDetector
 from blazelandmark import BlazeLandmark
 
@@ -161,12 +163,12 @@ if args.model1 == None:
 if args.model2 == None:
    args.model2 = default_landmark_model
 
-blaze_detector = BlazeDetector(blaze_detector_type)
+blaze_detector = BlazeDetector(blaze_detector_type,hailo_infer)
 blaze_detector.set_debug(debug=args.debug)
 blaze_detector.display_scores(debug=False)
 blaze_detector.load_model(args.model1)
 
-blaze_landmark = BlazeLandmark(blaze_landmark_type)
+blaze_landmark = BlazeLandmark(blaze_landmark_type,hailo_infer)
 blaze_landmark.set_debug(debug=args.debug)
 blaze_landmark.load_model(args.model2)
 

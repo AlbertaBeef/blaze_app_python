@@ -11,109 +11,34 @@ from hailo_platform import (HEF, ConfigureParams, FormatType, HailoSchedulingAlg
                             Device, VDevice)
 
 
-# Reference : https://github.com/hailo-ai/Hailo-Application-Code-Examples/blob/main/runtime/python/model_scheduler_inference/hailo_inference_scheduler.py
-
-import os
-import psutil
-
-# ----------------------------------------------------------- #
-# --------------- Hailo Scheduler service functions ---------- #
-
-def check_if_service_enabled(process_name):
-    '''
-    Check if there is any running process that contains the given name processName.
-    '''
-    #Iterate over the all the running process
-    for proc in psutil.process_iter():
-        try:
-            if process_name.lower() in proc.name().lower():
-                print('HailoRT Scheduler service is enabled!')
-                return
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    
-    print('HailoRT Scheduler service is disabled. Enabling service...')
-    os.system('sudo systemctl disable hailort.service --now  && sudo systemctl daemon-reload && sudo systemctl enable hailort.service --now')
-    
-
-def create_vdevice_params():
-    params = VDevice.create_params()
-    params.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
-    if False: #if args.use_multi_process:
-        params.group_id = "SHARED"
-    return params
-
-
 from timeit import default_timer as timer
 
 class BlazeLandmark(BlazeLandmarkBase):
-    def __init__(self,blaze_app="blazehandlandmark"):
+    
+    #def __init__(self,blaze_app="blazehandlandmark"):
+    def __init__(self,blaze_app,hailo_infer):
         super(BlazeLandmark, self).__init__()
 
         self.blaze_app = blaze_app
-        
-        #check_if_service_enabled('hailort_service')
-        
-        self.params = VDevice.create_params()
-        
-        # Setting VDevice params to disable the HailoRT service feature
-        self.params.scheduling_algorithm = HailoSchedulingAlgorithm.NONE
-        #[HailoRT] [error] CHECK_AS_EXPECTED failed - Failed to create vdevice. there are not enough free devices. requested: 1, found: 0
-        #[HailoRT] [error] CHECK_EXPECTED failed with status=HAILO_OUT_OF_PHYSICAL_DEVICES(74)
-        
-        #self.params.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
-        #self.params.group_id = "SHARED"
-        #[HailoRT] [error] multi_process_service requires service compilation with HAILO_BUILD_SERVICE
-        #Traceback (most recent call last):
-        #  File "/usr/lib/python3.9/site-packages/hailo_platform/pyhailort/pyhailort.py", line 2626, in _open_vdevice
-        #    self._vdevice = _pyhailort.VDevice.create(self._params, device_ids)
-        #hailo_platform.pyhailort._pyhailort.HailoRTStatusException: 6
-
-
+        self.hailo_infer = hailo_infer        
 
     def load_model(self, model_path):
 
         if self.DEBUG:
             print("[BlazeLandmark.load_model] Model File : ",model_path)
             #[BlazeLandmark.load_model] Model File :  blaze_hailo/models/hand_landmark_lite.hef
-           
-        # The target can be used as a context manager ("with" statement) to ensure it's released on time.
-        # Here it's avoided for the sake of simplicity
-        #self.target = VDevice(params=self.params)
-        self.devices = Device.scan()
+
+        self.hef_id = self.hailo_infer.load_model(model_path)           
         if self.DEBUG:
-            print("[BlazeLandmark.load_model] Hailo Devices : ",self.devices)
-            #[BlazeLandmark.load_model] Hailo Devices :  ['0000:01:00.0']
-        
-        # Loading compiled HEFs to device:
-        self.hef = HEF(model_path)
+            print("[BlazeLandmark.load_model] HEF Id : ",self.hef_id)
 
-        # The target is used as a context manager ("with" statement) to ensure it's released on time.
-        with VDevice(device_ids=self.devices) as target:
-            if self.DEBUG:
-                print("[BlazeLandmark.load_model] Hailo target : ",target)
-                #[BlazeLandmark.load_model] Hailo target :  <hailo_platform.pyhailort.pyhailort.VDevice object at 0xffff95c62d90>
-        
-            # Get the "network groups" (connectivity groups, aka. "different networks") information from the .hef
-            self.configure_params = ConfigureParams.create_from_hef(hef=self.hef, interface=HailoStreamInterface.PCIe)
-            if self.DEBUG:
-                print("[BlazeLandmark.load_model] Hailo configure_params : ",self.configure_params)
-                #[BlazeLandmark.load_model] Hailo configure_params :  {'hand_landmark_lite': <hailo_platform.pyhailort._pyhailort.ConfigureParams object at 0xffff96276870>}
-            self.network_groups = target.configure(self.hef, self.configure_params)
-            if self.DEBUG:
-                print("[BlazeLandmark.load_model] Hailo network_groups : ",self.network_groups)
-                #[BlazeLandmark.load_model] Hailo network_groups :  [<hailo_platform.pyhailort.pyhailort.ConfiguredNetwork object at 0xffff8c2e9eb0>]
-            self.network_group = self.network_groups[0]
-            self.network_group_params = self.network_group.create_params()
-
-            # Create input and output virtual streams params
-            # Quantized argument signifies whether or not the incoming data is already quantized.
-            # Data is quantized by HailoRT if and only if quantized == False .
-            #self.input_vstreams_params = InputVStreamParams.make(self.network_group, quantized=False, format_type=FormatType.FLOAT32)
-            #self.output_vstreams_params = OutputVStreamParams.make(self.network_group, quantized=True, format_type=FormatType.UINT8)
-            self.input_vstreams_params = InputVStreamParams.make(self.network_group)
-            self.output_vstreams_params = OutputVStreamParams.make(self.network_group, format_type=FormatType.FLOAT32)
-
+        self.hef = self.hailo_infer.hef_list[self.hef_id]
+        self.network_group = self.hailo_infer.network_group_list[self.hef_id]
+        self.network_group_params = self.hailo_infer.network_group_params_list[self.hef_id]
+        self.input_vstreams_params = self.hailo_infer.input_vstreams_params_list[self.hef_id]
+        self.output_vstreams_params = self.hailo_infer.output_vstreams_params_list[self.hef_id]
+ 
+        if True:
             # Define dataset params
             self.input_vstream_infos = self.hef.get_input_vstream_infos()
             self.output_vstream_infos = self.hef.get_output_vstream_infos()
@@ -127,19 +52,19 @@ class BlazeLandmark(BlazeLandmarkBase):
             self.num_inputs = len(self.input_vstream_infos)
             self.num_outputs = len(self.output_vstream_infos)
             if self.DEBUG:
-                print("[BlazeDetector.load_model] Number of Inputs : ",self.num_inputs)
+                print("[BlazeLandmark.load_model] Number of Inputs : ",self.num_inputs)
                 for i in range(self.num_inputs):
-                    print("[BlazeDetector.load_model] Input[",i,"] Shape : ",tuple(self.input_vstream_infos[i].shape))
-                print("[BlazeDetector.load_model] Number of Outputs : ",self.num_outputs)
+                    print("[BlazeLandmark.load_model] Input[",i,"] Shape : ",tuple(self.input_vstream_infos[i].shape))
+                print("[BlazeLandmark.load_model] Number of Outputs : ",self.num_outputs)
                 for i in range(self.num_outputs):
-                    print("[BlazeDetector.load_model] Output[",i,"] Shape : ",tuple(self.output_vstream_infos[i].shape))
-                #[BlazeDetector.load_model] Number of Inputs :  1
-                #[BlazeDetector.load_model] Input[ 0 ] Shape :  (224, 224, 3)
-                #[BlazeDetector.load_model] Number of Outputs :  4
-                #[BlazeDetector.load_model] Output[ 0 ] Shape :  (63,)
-                #[BlazeDetector.load_model] Output[ 1 ] Shape :  (63,)
-                #[BlazeDetector.load_model] Output[ 2 ] Shape :  (1,)
-                #[BlazeDetector.load_model] Output[ 3 ] Shape :  (1,)
+                    print("[BlazeLandmark.load_model] Output[",i,"] Shape : ",tuple(self.output_vstream_infos[i].shape))
+                #[BlazeLandmark.load_model] Number of Inputs :  1
+                #[BlazeLandmark.load_model] Input[ 0 ] Shape :  (224, 224, 3)
+                #[BlazeLandmark.load_model] Number of Outputs :  4
+                #[BlazeLandmark.load_model] Output[ 0 ] Shape :  (63,)
+                #[BlazeLandmark.load_model] Output[ 1 ] Shape :  (63,)
+                #[BlazeLandmark.load_model] Output[ 2 ] Shape :  (1,)
+                #[BlazeLandmark.load_model] Output[ 3 ] Shape :  (1,)
 
             self.inputShape = self.input_vstream_infos[0].shape
             self.outputShape1 = tuple(self.output_vstream_infos[2].shape)
@@ -184,26 +109,9 @@ class BlazeLandmark(BlazeLandmarkBase):
             # 2. Run the neural network:
             start = timer()  
             """ Execute model on Hailo-8 """
-            # The target is used as a context manager ("with" statement) to ensure it's released on time.
-            with VDevice(device_ids=self.devices) as target:
-            
-                # Get the "network groups" (connectivity groups, aka. "different networks") information from the .hef
-                self.configure_params = ConfigureParams.create_from_hef(hef=self.hef, interface=HailoStreamInterface.PCIe)
-                self.network_groups = target.configure(self.hef, self.configure_params)
-                self.network_group = self.network_groups[0]
-                self.network_group_params = self.network_group.create_params()
-
-                # Create input and output virtual streams params
-                # Quantized argument signifies whether or not the incoming data is already quantized.
-                # Data is quantized by HailoRT if and only if quantized == False .
-                #self.input_vstreams_params = InputVStreamParams.make(self.network_group, quantized=False, format_type=FormatType.FLOAT32)
-                #self.output_vstreams_params = OutputVStreamParams.make(self.network_group, quantized=True, format_type=FormatType.UINT8)
-                self.input_vstreams_params = InputVStreamParams.make(self.network_group)
-                self.output_vstreams_params = OutputVStreamParams.make(self.network_group, format_type=FormatType.FLOAT32) 
-             
-                with InferVStreams(self.network_group, self.input_vstreams_params, self.output_vstreams_params) as infer_pipeline:
-                    with self.network_group.activate(self.network_group_params):
-                        infer_results = infer_pipeline.infer(input_data)
+            with InferVStreams(self.network_group, self.input_vstreams_params, self.output_vstreams_params) as infer_pipeline:
+                with self.network_group.activate(self.network_group_params):
+                    infer_results = infer_pipeline.infer(input_data)
             self.profile_model += timer()-start
 
             start = timer()  

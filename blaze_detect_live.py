@@ -27,9 +27,12 @@ limitations under the License.
 #   Vitis-AI 3.5
 #      xir
 #      vitis_ai_library
+#   Hailo
+#      hailo_platform
 #   plots
 #      pyplotly
 #      kaleido
+#
 
 
 import numpy as np
@@ -105,6 +108,8 @@ except:
     dpu_arch = "B?"    
 
 try:
+    from blaze_hailo.hailo_inference import HailoInference
+    hailo_infer = HailoInference()
     from blaze_hailo.blazedetector import BlazeDetector as BlazeDetector_hailo
     from blaze_hailo.blazelandmark import BlazeLandmark as BlazeLandmark_hailo
     print("[INFO] blaze_hailo supported ...")
@@ -175,9 +180,6 @@ blaze_pipelines = [
     { "blaze": "hand", "pipeline": "tfl_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
     { "blaze": "hand", "pipeline": "pyt_hand_v0_07"       , "model1": "blaze_pytorch/models/blazepalm.pth",                          "model2": "blaze_pytorch/models/blazehand_landmark.pth" },
     { "blaze": "hand", "pipeline": "vai_hand_v0_07"       , "model1": "blaze_vitisai/models/blazepalm/"+dpu_arch+"/blazepalm.xmodel","model2": "blaze_vitisai/models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel" },
-    { "blaze": "hand", "pipeline": "hybrid_palm_v0_10_lite"  , "model1": "blaze_hailo/models/palm_detection_lite.hef",           "model2": "blaze_tflite/models/hand_landmark_lite.tflite" },
-    { "blaze": "hand", "pipeline": "hybrid_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",           "model2": "blaze_hailo/models/hand_landmark_lite.hef" },
-    { "blaze": "hand", "pipeline": "hybrid_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",           "model2": "blaze_hailo/models/hand_landmark_full.hef" },
     { "blaze": "hand", "pipeline": "hai_hand_v0_10_lite"  , "model1": "blaze_hailo/models/palm_detection_lite.hef",                  "model2": "blaze_hailo/models/hand_landmark_lite.hef" },
     { "blaze": "hand", "pipeline": "hai_hand_v0_10_full"  , "model1": "blaze_hailo/models/palm_detection_full.hef",                  "model2": "blaze_hailo/models/hand_landmark_full.hef" },
     { "blaze": "face", "pipeline": "tfl_face_v0_07_front" , "model1": "blaze_tflite/models/face_detection_front_v0_07.tflite",       "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
@@ -274,7 +276,7 @@ for i in range(nb_blaze_pipelines):
         elif target1=="blaze_vitisai":
             blaze_detector = BlazeDetector_vitisai(detector_type)
         elif target1=="blaze_hailo":
-            blaze_detector = BlazeDetector_hailo(detector_type)
+            blaze_detector = BlazeDetector_hailo(detector_type,hailo_infer)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
         blaze_detector.set_debug(debug=args.debug)
@@ -288,7 +290,7 @@ for i in range(nb_blaze_pipelines):
         elif target2=="blaze_vitisai":
             blaze_landmark = BlazeLandmark_vitisai(landmark_type)
         elif target2=="blaze_hailo":
-            blaze_landmark = BlazeLandmark_hailo(landmark_type)
+            blaze_landmark = BlazeLandmark_hailo(landmark_type,hailo_infer)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
         blaze_landmark.set_debug(debug=args.debug)
