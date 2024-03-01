@@ -243,7 +243,7 @@ while True:
             print("[ERROR] cap.read() FAILEd !")
             break
 
-    if bProfile or bShowFPS:
+    if bProfile:
         prof_title          = ['']*nb_blaze_pipelines
         prof_resize         = np.zeros(nb_blaze_pipelines)
         prof_detector_pre   = np.zeros(nb_blaze_pipelines)
@@ -355,7 +355,7 @@ while True:
                 cv2.imshow(app_main_title, output)
 
             # Profiling
-            if bProfile or bShowFPS:
+            if bProfile:
                prof_title[pipeline_id] = blaze_title
                prof_resize[pipeline_id]         = profile_resize
                prof_detector_pre[pipeline_id]   = blaze_detector.profile_pre
@@ -461,7 +461,6 @@ while True:
             print("Capturing ",filename," ...")
             cv2.imwrite(os.path.join(output_dir,filename),profile_latency_img)
 
-    if bShowFPS:
         #
         # FPS
         #
@@ -539,8 +538,6 @@ while True:
 
     if key == 102: # 'f'
         bShowFPS = not bShowFPS
-        if not bShowFPS:
-            cv2.destroyWindow(profile_fps_title)
 
     if key == 118: # 'v'
         bVerbose = not bVerbose
@@ -553,6 +550,7 @@ while True:
         blaze_landmark.set_profile(profile=bProfile)
         if not bProfile:
             cv2.destroyWindow(profile_latency_title)
+            cv2.destroyWindow(profile_fps_title)
 
     if key == 27 or key == 113: # ESC or 'q':
         break
