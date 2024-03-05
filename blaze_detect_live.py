@@ -216,34 +216,64 @@ if args.list:
    exit()
 
 
-print("[INFO] Searching for USB camera ...")
-dev_video = get_video_dev_by_name("uvcvideo")
-dev_media = get_media_dev_by_name("uvcvideo")
-print(dev_video)
-print(dev_media)
+bInputImage = False
+bInputVideo = False
+bInputCamera = True
 
-if dev_video == None:
-    input_video = 0
-elif args.input != "":
-    input_video = args.input 
-else:
-    input_video = dev_video  
-print("[INFO] Input Video : ",input_video)
+if os.path.exists(args.input):
+    print("[INFO] Input exists : ",args.input)
+    file_name, file_extension = os.path.splitext(args.input)
+    file_extension = file_extension.lower()
+    print("[INFO] Input type : ",file_extension)
+    if file_extension == ".jpg" or file_extension == ".png" or file_extension == ".tif":
+        bInputImage = True
+        bInputVideo = False
+        bInputCamera = False
+    if file_extension == ".mov" or file_extension == ".mp4":
+        bInputImage = False
+        bInputVideo = True
+        bInputCamera = False
+
+if bInputCamera == True:
+    print("[INFO] Searching for USB camera ...")
+    dev_video = get_video_dev_by_name("uvcvideo")
+    dev_media = get_media_dev_by_name("uvcvideo")
+    print(dev_video)
+    print(dev_media)
+
+    if dev_video == None:
+        input_video = 0
+    elif args.input != "":
+        input_video = args.input 
+    else:
+        input_video = dev_video  
+
+    # Open video
+    cap = cv2.VideoCapture(input_video)
+    frame_width = 640
+    frame_height = 480
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH,frame_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT,frame_height)
+    #frame_width = int(round(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+    #frame_height = int(round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    print("[INFO] input : camera",input_video," (",frame_width,",",frame_height,")")
+
+if bInputVideo == True:
+    # Open video file
+    cap = cv2.VideoCapture(args.input)
+    frame_width = int(round(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+    frame_height = int(round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    print("[INFO] input : video ",args.input," (",frame_width,",",frame_height,")")
+
+if bInputImage == True:
+    image = cv2.imread(args.input)
+    frame_height,frame_width,_ = image.shape
+    print("[INFO] input : image ",args.input," (",frame_width,",",frame_height,")")
 
 output_dir = './captured-images'
 
 if not os.path.exists(output_dir):      
     os.mkdir(output_dir)            # Create the output directory if it doesn't already exist
-
-# Open video
-cap = cv2.VideoCapture(input_video)
-frame_width = 640
-frame_height = 480
-cap.set(cv2.CAP_PROP_FRAME_WIDTH,frame_width)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT,frame_height)
-#frame_width = int(round(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
-#frame_height = int(round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-print("camera",input_video," (",frame_width,",",frame_height,")")
 
 
 for i in range(nb_blaze_pipelines):
@@ -388,6 +418,11 @@ while True:
         frame = cv2.imread('woman_hands.jpg')
         if not (type(frame) is np.ndarray):
             print("[ERROR] cv2.imread('woman_hands.jpg') FAILED !")
+            break;
+    elif bInputImage:
+        frame = cv2.imread(args.input)
+        if not (type(frame) is np.ndarray):
+            print("[ERROR] cv2.imread(",args.input,") FAILED !")
             break;
     else:
         flag, frame = cap.read()
