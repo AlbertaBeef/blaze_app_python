@@ -81,14 +81,8 @@ class BlazeDetector(BlazeDetectorBase):
             # Conv__543 [1x36x16x16] =transpose=> [1x16x16x36] =reshape=> [1x512x18]    => [1x2944x18]
             # Conv__550 [1x36x32x32] =transpose=> [1x32x32x36] =reshape=> [1x2048x1]  //
             if self.blaze_app == "blazepalm" and self.num_outputs == 6:
-
                 self.outputShape1 = tuple((1,2944,1))
                 self.outputShape2 = tuple((1,2944,18))
-            
-                if self.DEBUG:
-                    print("[BlazeDetector.load_model] Input Shape : ",self.inputShape)
-                    print("[BlazeDetector.load_model] Output1 Shape : ",self.outputShape1)
-                    print("[BlazeDetector.load_model] Output2 Shape : ",self.outputShape2)
 
             ### palm_detection_lite/full
             # Conv__410 [1x2x24x24] =transpose=> [1x24x24x2] =reshape=> [1x1152x1] \\
@@ -99,14 +93,24 @@ class BlazeDetector(BlazeDetectorBase):
             #                                                                             => [1x2016x18]
             # Conv__411 [1x108x12x12] =transpose=> [1x12x12x108] =reshape=> [1x864x18]  //
             if self.blaze_app == "blazepalm" and self.num_outputs == 4:
-
                 self.outputShape1 = tuple((1,2016,1))
                 self.outputShape2 = tuple((1,2016,18))
+
+            # face_detection_short_range
+            if self.blaze_app == "blazeface" and self.num_outputs == 4:
+                self.outputShape1 = tuple((1,896,1))
+                self.outputShape2 = tuple((1,896,16))
             
-                if self.DEBUG:
-                    print("[BlazeDetector.load_model] Input Shape : ",self.inputShape)
-                    print("[BlazeDetector.load_model] Output1 Shape : ",self.outputShape1)
-                    print("[BlazeDetector.load_model] Output2 Shape : ",self.outputShape2)
+            # face_detection_full_range
+            if self.blaze_app == "blazeface" and self.num_outputs == 2:
+                self.outputShape1 = tuple((1,2304,1))
+                self.outputShape2 = tuple((1,2304,16))
+
+        if self.DEBUG:
+            print("[BlazeDetector.load_model] Input Shape : ",self.inputShape)
+            print("[BlazeDetector.load_model] Output1 Shape : ",self.outputShape1)
+            print("[BlazeDetector.load_model] Output2 Shape : ",self.outputShape2)
+
             
         self.x_scale = self.inputShape[1]
         self.y_scale = self.inputShape[2]
@@ -279,6 +283,60 @@ class BlazeDetector(BlazeDetectorBase):
             concat_1_2016_18 = np.concatenate((reshape_1_1152_18,reshape_1_864_18),axis=1)
 
             out2 = concat_1_2016_18.astype(np.float32)
+
+        ### face_detection_short_range
+        #[BlazeDetector.load_model] Model File :  blaze_hailo/models/face_detection_short_range.hef
+        #[BlazeDetector.load_model] HEF Id :  0
+        #[BlazeDetector.load_model] Input VStream Infos :  [VStreamInfo("face_detection_short_range/input_layer1")]
+        #[BlazeDetector.load_model] Output VStream Infos :  [VStreamInfo("face_detection_short_range/conv21"), VStreamInfo("face_detection_short_range/conv14"), VStreamInfo("face_detection_short_range/conv20"), VStreamInfo("face_detection_short_range/conv13")]
+        #[BlazeDetector.load_model] Number of Inputs :  1
+        #[BlazeDetector.load_model] Input[ 0 ] Shape :  (128, 128, 3)  Name :  face_detection_short_range/input_layer1
+        #[BlazeDetector.load_model] Number of Outputs :  4
+        #[BlazeDetector.load_model] Output[ 0 ] Shape :  (8, 8, 96)  Name :  face_detection_short_range/conv21
+        #[BlazeDetector.load_model] Output[ 1 ] Shape :  (16, 16, 32)  Name :  face_detection_short_range/conv14
+        #[BlazeDetector.load_model] Output[ 2 ] Shape :  (8, 8, 6)  Name :  face_detection_short_range/conv20
+        #[BlazeDetector.load_model] Output[ 3 ] Shape :  (16, 16, 2)  Name :  face_detection_short_range/conv13
+        if self.blaze_app == "blazeface" and self.num_outputs == 4:
+            transpose_1_16_16_2 = infer_results[self.output_vstream_infos[3].name]
+            transport_1_8_8_6 = infer_results[self.output_vstream_infos[2].name]
+            
+            reshape_1_512_1 = transpose_1_16_16_2.reshape(1,512,1)
+            reshape_1_384_1 = transport_1_8_8_6.reshape(1,384,1)
+
+            concat_1_896_1 = np.concatenate((reshape_1_512_1,reshape_1_384_1),axis=1)
+
+            out1 = concat_1_896_1.astype(np.float32)
+
+            transpose_1_16_16_32 = infer_results[self.output_vstream_infos[1].name]
+            transport_8_8_96 = infer_results[self.output_vstream_infos[0].name]
+            
+            reshape_1_512_16 = transpose_1_16_16_32.reshape(1,512,16)
+            reshape_1_384_16 = transport_8_8_96.reshape(1,384,16)
+
+            concat_1_896_16 = np.concatenate((reshape_1_512_16,reshape_1_384_16),axis=1)
+
+            out2 = concat_1_896_16.astype(np.float32)
+
+        ### face_detection_full_range
+        #[BlazeDetector.load_model] Model File :  blaze_hailo/models/face_detection_full_range.hef
+        #[BlazeDetector.load_model] HEF Id :  0
+        #[BlazeDetector.load_model] Input VStream Infos :  [VStreamInfo("face_detection_full_range/input_layer1")]
+        #[BlazeDetector.load_model] Output VStream Infos :  [VStreamInfo("face_detection_full_range/conv49"), VStreamInfo("face_detection_full_range/conv48")]
+        #[BlazeDetector.load_model] Number of Inputs :  1
+        #[BlazeDetector.load_model] Input[ 0 ] Shape :  (192, 192, 3)  Name :  face_detection_full_range/input_layer1
+        #[BlazeDetector.load_model] Number of Outputs :  2
+        #[BlazeDetector.load_model] Output[ 0 ] Shape :  (48, 48, 16)  Name :  face_detection_full_range/conv49
+        #[BlazeDetector.load_model] Output[ 1 ] Shape :  (48, 48, 1)  Name :  face_detection_full_range/conv48
+        if self.blaze_app == "blazeface" and self.num_outputs == 2:
+            transpose_1_48_48_1 = infer_results[self.output_vstream_infos[1].name]
+            transpose_1_48_48_16 = infer_results[self.output_vstream_infos[0].name]
+
+            reshape_1_2304_1 = transpose_1_48_48_1.reshape(1,2304,1)
+            reshape_1_2304_16 = transpose_1_48_48_16.reshape(1,2304,16)
+        
+            out1 = reshape_1_2304_1.astype(np.float32)
+            out2 = reshape_1_2304_16.astype(np.float32)
+           
             
         #if self.DEBUG:
         #    print("[BlazeDetector.load_model] Input   : ",x.shape, x.dtype, x)
