@@ -47,6 +47,13 @@ class BlazeLandmark(BlazeLandmarkBase):
         if self.DEBUG:
            print("[BlazeLandmark.load_model] Resolution : ",self.resolution)
 
+    def preprocess(self, x):
+        # image was already pre-processed by extract_roi in blaze_common/blazebase.py
+        # format = RGB
+        # dtype = float32
+        # range = 0.0 - 1.0
+        return x
+
     def predict(self, x):
 
         self.profile_pre = 0.0
@@ -61,6 +68,7 @@ class BlazeLandmark(BlazeLandmarkBase):
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x).permute((0, 3, 1, 2))
         x = x.to(self.gpu_device)            
+        x = self.preprocess(x)
         self.profile_pre = timer()-start
 
         #if self.DEBUG:

@@ -60,6 +60,13 @@ class BlazeLandmark(BlazeLandmarkBase):
 
         self.resolution = self.in_shape[1]
 
+    def preprocess(self, x):
+        # image was already pre-processed by extract_roi in blaze_common/blazebase.py
+        # format = RGB
+        # dtype = float32
+        # range = 0.0 - 1.0
+        return x
+
     def predict(self, x):
 
         self.profile_pre = 0.0
@@ -71,7 +78,10 @@ class BlazeLandmark(BlazeLandmarkBase):
         #out3_list = []
 
         #print("[BlazeLandmark] x ",x.shape,x.dtype)
-        
+        start = timer()        
+        x = self.preprocess(x)
+        self.profile_pre += timer()-start
+                
         nb_images = x.shape[0]
         for i in range(nb_images):
 

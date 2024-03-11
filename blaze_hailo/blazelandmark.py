@@ -81,6 +81,17 @@ class BlazeLandmark(BlazeLandmarkBase):
         if self.DEBUG:
             print("[BlazeLandmark.load_model] Input Resolution : ",self.resolution)
 
+    def preprocess(self, x):
+        # image was already pre-processed by extract_roi in blaze_common/blazebase.py
+        # format = RGB
+        # dtype = float32
+        # range = 0.0 - 1.0
+        
+        # Need to convert back to unsigned 8 bit for hailo implementation
+        x = x * 255.0
+        x = x.astype(np.uint8)
+        return x
+
     def predict(self, x):
 
         self.profile_pre = 0.0
@@ -92,16 +103,16 @@ class BlazeLandmark(BlazeLandmarkBase):
         out3_list = []
 
         #print("[BlazeLandmark] x ",x.shape,x.dtype)
+        start = timer()        
+        x = self.preprocess(x)
+        self.profile_pre += timer()-start
         
         nb_images = x.shape[0]
         for i in range(nb_images):
 
             # 1. Preprocess the images into tensors:
             start = timer()
-            image_rgb = cv2.cvtColor(x[i,:,:,:], cv2.COLOR_BGR2RGB)
-            image_norm = image_rgb * 255.0
-            image_input = np.expand_dims(image_norm, axis=0)
-            image_input = image_input.astype(np.uint8)
+            image_input = np.expand_dims(x[i,:,:,:], axis=0)
             input_data = {self.input_vstream_infos[0].name: image_input}
             self.profile_pre += timer()-start
                                
