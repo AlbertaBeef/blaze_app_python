@@ -53,7 +53,15 @@ import subprocess
 import re
 import sys
 
+from datetime import datetime
 import plotly.graph_objects as go
+
+import getpass
+import socket
+user = getpass.getuser()
+host = socket.gethostname()
+user_host_descriptor = user+"@"+host
+print("[INFO] user@hosthame : ",user_host_descriptor)
 
 sys.path.append(os.path.abspath('blaze_common/'))
 sys.path.append(os.path.abspath('blaze_tflite/'))
@@ -157,8 +165,9 @@ ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command s
 ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
 ap.add_argument('-w', '--withoutview', default=False, action='store_true', help="Disable Output viewing. Default is on")
-ap.add_argument('-z', '--profile'    , default=False, action='store_true', help="Enable Profile mode (Latency). Default is off")
-ap.add_argument('-f', '--fps'        , default=False, action='store_true', help="Enable Profile mode (FPS). Default is off")
+ap.add_argument('-z', '--profilelog' , default=False, action='store_true', help="Enable Profile Log (Latency). Default is off")
+ap.add_argument('-Z', '--profileview', default=False, action='store_true', help="Enable Profile View (Latency). Default is off")
+ap.add_argument('-f', '--fps'        , default=False, action='store_true', help="Enable FPS display. Default is off")
 
 args = ap.parse_args()  
   
@@ -171,7 +180,8 @@ print(' --pipeline    : ', args.pipeline)
 print(' --list        : ', args.list)
 print(' --debug       : ', args.debug)
 print(' --withoutview : ', args.withoutview)
-print(' --profile     : ', args.profile)
+print(' --profilelog  : ', args.profilelog)
+print(' --profileview  : ', args.profileview)
 print(' --fps         : ', args.fps)
 
 
@@ -275,6 +285,15 @@ if bInputImage == True:
 
 output_dir = './captured-images'
 
+profile_csv = './blaze_detect_live.csv'
+if os.path.isfile(profile_csv):
+    f_profile_csv = open(profile_csv, "a")
+    print("[INFO] Appending to existing profiling results file :",profile_csv)
+else:
+    f_profile_csv = open(profile_csv, "w")
+    print("[INFO] Creating new profiling results file :",profile_csv)
+    f_profile_csv.write("time,user,hostname,pipeline,resize,detector_pre,detector_model,detector_post,extract_roi,landmark_pre,landmark_model,landmark_post,annotate,total,fps\n")
+
 if not os.path.exists(output_dir):      
     os.mkdir(output_dir)            # Create the output directory if it doesn't already exist
 
@@ -368,7 +387,8 @@ print("\tPress 'd' to toggle debug image on/off")
 print("\tPress 'e' to toggle scores image on/off")
 print("\tPress 'f' to toggle FPS display on/off")
 print("\tPress 'v' to toggle verbose on/off")
-print("\tPress 'z' to toggle profiling on/off")
+print("\tPress 'z' to toggle profiling log on/off")
+print("\tPress 'Z' to toggle profiling view on/off")
 print("================================================================")
 
 bStep = False
@@ -380,7 +400,8 @@ bShowScores = False
 bShowFPS = args.fps
 bVerbose = args.debug
 bViewOutput = not args.withoutview
-bProfile = args.profile
+bProfileLog = args.profilelog
+bProfileView = args.profileview
 
 def ignore(x):
     pass
@@ -440,7 +461,7 @@ while True:
             print("[ERROR] cap.read() FAILEd !")
             break
 
-    if bProfile:
+    if bProfileLog or bProfileView:
         prof_title          = ['']*nb_blaze_pipelines
         prof_resize         = np.zeros(nb_blaze_pipelines)
         prof_detector_pre   = np.zeros(nb_blaze_pipelines)
@@ -563,7 +584,7 @@ while True:
                 cv2.imshow(app_main_title, output)
 
             # Profiling
-            if bProfile:
+            if bProfileLog or bProfileView:
                prof_title[pipeline_id] = blaze_title
                prof_resize[pipeline_id]         = profile_resize
                prof_detector_pre[pipeline_id]   = blaze_detector.profile_pre
@@ -615,8 +636,31 @@ while True:
                        profile_annotate
                        ))
             
-            
-    if bProfile:
+    if bProfileLog:            
+        timestamp = datetime.now()
+        for pipeline_id in range(nb_blaze_pipelines):
+            if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
+                csv_str = \
+                    str(timestamp)+","+\
+                    str(user)+","+\
+                    str(host)+","+\
+                    blaze_pipelines[pipeline_id]["pipeline"]+","+\
+                    str(prof_resize[pipeline_id])+","+\
+                    str(prof_detector_pre[pipeline_id])+","+\
+                    str(prof_detector_model[pipeline_id])+","+\
+                    str(prof_detector_post[pipeline_id])+","+\
+                    str(prof_extract_roi[pipeline_id])+","+\
+                    str(prof_landmark_pre[pipeline_id])+","+\
+                    str(prof_landmark_model[pipeline_id])+","+\
+                    str(prof_landmark_post[pipeline_id])+","+\
+                    str(prof_annotate[pipeline_id])+","+\
+                    str(prof_total[pipeline_id])+","+\
+                    str(prof_fps[pipeline_id])+"\n"
+                #print("[LOG] ",csv_str)
+                f_profile_csv.write(csv_str)
+    
+    
+    if bProfileView:
         #
         # Latency
         #
@@ -762,10 +806,13 @@ while True:
                 blaze_landmark.set_debug(debug=bVerbose)
 
     if key == 122: # 'z'
-        bProfile = not bProfile 
-        blaze_detector.set_profile(profile=bProfile) 
-        blaze_landmark.set_profile(profile=bProfile)
-        if not bProfile:
+        bProfileLog = not bProfileLog
+
+    if key == 90: # 'Z'
+        bProfileView = not bProfileView 
+        blaze_detector.set_profile(profile=bProfileView) 
+        blaze_landmark.set_profile(profile=bProfileView)
+        if not bProfileView:
             cv2.destroyWindow(profile_latency_title)
             cv2.destroyWindow(profile_fps_title)
 
@@ -783,4 +830,5 @@ while True:
         rt_fps_count = 0
 
 # Cleanup
+f_profile_csv.close()
 cv2.destroyAllWindows()
