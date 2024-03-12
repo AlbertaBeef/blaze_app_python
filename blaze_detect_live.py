@@ -181,7 +181,7 @@ blaze_pipelines = [
     { "blaze": "hand", "pipeline": "tfl_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",              "model2": "blaze_tflite/models/hand_landmark_lite.tflite" },
     { "blaze": "hand", "pipeline": "tfl_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
     { "blaze": "hand", "pipeline": "pyt_hand_v0_07"       , "model1": "blaze_pytorch/models/blazepalm.pth",                          "model2": "blaze_pytorch/models/blazehand_landmark.pth" },
-    { "blaze": "hand", "pipeline": "vai_hand_v0_07"       , "model1": "blaze_vitisai/models/blazepalm/"+dpu_arch+"/blazepalm.xmodel","model2": "blaze_vitisai/models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel" },
+    { "blaze": "hand", "pipeline": "vai_hand_v0_07"       , "model1": "blaze_vitisai/models/BlazePalm/"+dpu_arch+"/BlazePalm.xmodel","model2": "blaze_vitisai/models/BlazeHandLandmark/"+dpu_arch+"/BlazeHandLandmark.xmodel" },
     { "blaze": "hand", "pipeline": "hai_hand_v0_10_lite"  , "model1": "blaze_hailo/models/palm_detection_lite.hef",                  "model2": "blaze_hailo/models/hand_landmark_lite.hef" },
     { "blaze": "hand", "pipeline": "hai_hand_v0_10_full"  , "model1": "blaze_hailo/models/palm_detection_full.hef",                  "model2": "blaze_hailo/models/hand_landmark_full.hef" },
     { "blaze": "face", "pipeline": "tfl_face_v0_07_front" , "model1": "blaze_tflite/models/face_detection_front_v0_07.tflite",       "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
@@ -191,6 +191,9 @@ blaze_pipelines = [
     { "blaze": "face", "pipeline": "tfl_face_v0_10_sparse", "model1": "blaze_tflite/models/face_detection_full_range_sparse.tflite", "model2": "blaze_tflite/models/face_landmark.tflite" },
     { "blaze": "face", "pipeline": "pyt_face_v0_07_front" , "model1": "blaze_pytorch/models/blazeface.pth",                          "model2": "blaze_pytorch/models/blazeface_landmark.pth" },
     { "blaze": "face", "pipeline": "pyt_face_v0_07_back"  , "model1": "blaze_pytorch/models/blazefaceback.pth",                      "model2": "blaze_pytorch/models/blazeface_landmark.pth" },
+    { "blaze": "face", "pipeline": "vai_face_v0_07_hybrid", "model1": "blaze_tflite/models/face_detection_front_v0_07.tflite",       "model2": "blaze_vitisai/models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel" },
+    { "blaze": "face", "pipeline": "vai_face_v0_07_front" , "model1": "blaze_vitisai/models/BlazeFace/"+dpu_arch+"/BlazeFace.xmodel","model2": "blaze_vitisai/models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel" },
+    { "blaze": "face", "pipeline": "vai_face_v0_07_back"  , "model1": "blaze_vitisai/models/BlazeFaceBack/"+dpu_arch+"/BlazeFaceBack.xmodel","model2": "blaze_vitisai/models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel" },
     { "blaze": "face", "pipeline": "hai_face_v0_10_short" , "model1": "blaze_hailo/models/face_detection_short_range.hef",           "model2": "blaze_hailo/models/face_landmark.hef" },
     { "blaze": "face", "pipeline": "hai_face_v0_10_full"  , "model1": "blaze_hailo/models/face_detection_full_range.hef",            "model2": "blaze_hailo/models/face_landmark.hef" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_lite.tflite" },
@@ -276,6 +279,7 @@ if not os.path.exists(output_dir):
     os.mkdir(output_dir)            # Create the output directory if it doesn't already exist
 
 
+nb_active_pipelines = 0
 for i in range(nb_blaze_pipelines):
     blaze    = blaze_pipelines[i]["blaze"]
     pipeline = blaze_pipelines[i]["pipeline"]
@@ -342,7 +346,13 @@ for i in range(nb_blaze_pipelines):
         if args.debug:
             print("[blaze_detect_live] Pipeline ",pipeline," supported and initialized.")
 
+        nb_active_pipelines += 1
+        
 
+if nb_active_pipelines == 0:
+    print("[ERROR] no pipelines selected !")
+    exit()        
+        
 print("================================================================")
 print("Blaze Detect Live Demo")
 print("================================================================")

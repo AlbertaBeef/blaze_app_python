@@ -94,8 +94,8 @@ text_lineType = cv2.LINE_AA
 
 dpu_arch = detect_dpu_architecture()
 print("DPU Architecture : ",dpu_arch)
-blazepalm_model = "models/blazepalm/"+dpu_arch+"/blazepalm.xmodel"
-blazehandlandmark_model = "models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel"
+blazepalm_model = "models/BlazePalm/"+dpu_arch+"/BlazePalm.xmodel"
+blazehandlandmark_model = "models/BlazeHandLandmark/"+dpu_arch+"/BlazeHandLandmark.xmodel"
  
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -158,14 +158,14 @@ if args.blaze == "hand":
    blaze_detector_type = "blazepalm"
    blaze_landmark_type = "blazehandlandmark"
    blaze_title = "BlazeHandLandmark"
-   default_detector_model="models/blazepalm/"+dpu_arch+"/blazepalm.xmodel"
-   default_landmark_model="models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel"
-#elif args.blaze == "face":
-#   blaze_detector_type = "blazeface"
-#   blaze_landmark_type = "blazefacelandmark"
-#   blaze_title = "BlazeFaceLandmark"
-#   default_detector_model="models/blazeface/"+dpu_arch+"/blazeface.xmodel"
-#   default_landmark_model="models/blazefacelandmark/"+dpu_arch+"/blazefacelandmark.xmodel"
+   default_detector_model="models/BlazePalm/"+dpu_arch+"/BlazePalm.xmodel"
+   default_landmark_model="models/BlazeHandLandmark/"+dpu_arch+"/BlazeHandLandmark.xmodel"
+elif args.blaze == "face":
+   blaze_detector_type = "blazeface"
+   blaze_landmark_type = "blazefacelandmark"
+   blaze_title = "BlazeFaceLandmark"
+   default_detector_model="models/BlazeFace/"+dpu_arch+"/BlazeFace.xmodel"
+   default_landmark_model="models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel"
 #elif args.blaze == "pose":
 #   blaze_detector_type = "blazepose"
 #   blaze_landmark_type = "blazeposelandmark"

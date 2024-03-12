@@ -30,6 +30,8 @@ class BlazeDetector(BlazeDetectorBase):
         # Get input scaling
         self.input_fixpos = self.input_tensor_buffers[0].get_tensor().get_attr("fix_point")
         self.input_scale = 2**self.input_fixpos
+        if self.DEBUG:
+           print("[BlazeDetector.load_model] Input Scale : ",self.input_scale," (fixpos=",self.input_fixpos,")")
 
         # Get input/output tensors dimensions
         self.num_inputs = len(self.input_tensor_buffers)
