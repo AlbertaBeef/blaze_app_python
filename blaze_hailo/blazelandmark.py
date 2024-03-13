@@ -26,7 +26,6 @@ class BlazeLandmark(BlazeLandmarkBase):
 
         if self.DEBUG:
             print("[BlazeLandmark.load_model] Model File : ",model_path)
-            #[BlazeLandmark.load_model] Model File :  blaze_hailo/models/hand_landmark_lite.hef
 
         self.hef_id = self.hailo_infer.load_model(model_path)           
         if self.DEBUG:
@@ -59,8 +58,12 @@ class BlazeLandmark(BlazeLandmarkBase):
 
             if self.blaze_app == "blazehandlandmark":
                 self.inputShape = self.input_vstream_infos[0].shape
-                self.outputShape1 = tuple(self.output_vstream_infos[2].shape)
-                self.outputShape2 = tuple(self.output_vstream_infos[0].shape)
+                if self.inputShape[1] == 224: # hand_landmark_v0_07
+                    self.outputShape1 = tuple((1,1))
+                    self.outputShape2 = tuple((1,63))
+                else: # hand_landmark_lite/hand_landmark_full
+                    self.outputShape1 = tuple(self.output_vstream_infos[2].shape)
+                    self.outputShape2 = tuple(self.output_vstream_infos[0].shape)
 
             if self.blaze_app == "blazefacelandmark":
                 self.inputShape = self.input_vstream_infos[0].shape
@@ -126,7 +129,28 @@ class BlazeLandmark(BlazeLandmarkBase):
 
             start = timer()  
 
-            if self.blaze_app == "blazehandlandmark":
+            if self.blaze_app == "blazehandlandmark" and self.resolution == 256:
+                #[BlazeLandmark.load_model] Model File :  blaze_hailo/models/hand_landmark_v0_07.hef
+                #[BlazeLandmark.load_model] HEF Id :  0
+                #[BlazeLandmark.load_model] Input VStream Infos :  [VStreamInfo("hand_landmark_v0_07/input_layer1")]
+                #[BlazeLandmark.load_model] Output VStream Infos :  [VStreamInfo("hand_landmark_v0_07/conv48"), VStreamInfo("hand_landmark_v0_07/conv47"), VStreamInfo("hand_landmark_v0_07/conv46")]
+                #[BlazeLandmark.load_model] Number of Inputs :  1
+                #[BlazeLandmark.load_model] Input[ 0 ] Shape :  (256, 256, 3)
+                #[BlazeLandmark.load_model] Number of Outputs :  3
+                #[BlazeLandmark.load_model] Output[ 0 ] Shape :  (1, 1, 63)
+                #[BlazeLandmark.load_model] Output[ 1 ] Shape :  (1, 1, 1)
+                #[BlazeLandmark.load_model] Output[ 2 ] Shape :  (1, 1, 1)
+                #[BlazeLandmark.load_model] Input Shape :  (256, 256, 3)
+                #[BlazeLandmark.load_model] Output1 Shape :  (1, 1, 1)
+                #[BlazeLandmark.load_model] Output2 Shape :  (1, 1, 63)
+                #[BlazeLandmark.load_model] Input Resolution :  256
+                out1 = infer_results[self.output_vstream_infos[1].name]
+                out1 = out1.reshape(1,1)
+                handedness = infer_results[self.output_vstream_infos[2].name] 
+                out2 = infer_results[self.output_vstream_infos[0].name]
+                out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] | 63 => [1,21,3]
+                out2 = out2/self.resolution
+            elif self.blaze_app == "blazehandlandmark" and self.resolution == 224:
                 #[BlazeLandmark.load_model] Model File :  blaze_hailo/models/hand_landmark_lite.hef
                 #[BlazeLandmark.load_model] Input VStream Infos :  [VStreamInfo("hand_landmark_lite/input_layer1")]
                 #[BlazeLandmark.load_model] Output VStream Infos :  [VStreamInfo("hand_landmark_lite/fc1"), VStreamInfo("hand_landmark_lite/fc4"), VStreamInfo("hand_landmark_lite/fc3"), VStreamInfo("hand_landmark_lite/fc2")]

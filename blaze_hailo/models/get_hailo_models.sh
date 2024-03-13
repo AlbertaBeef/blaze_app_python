@@ -1,5 +1,20 @@
-# TODO : get models from github.com/AlbertaBeef/blaze_tutorial
+# Get models from github.com/AlbertaBeef/blaze_tutorial
+wget https://github.com/AlbertaBeef/blaze_tutorial/releases/download/version1/blaze_hailo_models.zip
 
+#[BlazeLandmark.load_model] Model File :  blaze_hailo/models/hand_landmark_v0_07.hef
+#[BlazeLandmark.load_model] HEF Id :  0
+#[BlazeLandmark.load_model] Input VStream Infos :  [VStreamInfo("hand_landmark_v0_07/input_layer1")]
+#[BlazeLandmark.load_model] Output VStream Infos :  [VStreamInfo("hand_landmark_v0_07/conv48"), VStreamInfo("hand_landmark_v0_07/conv47"), VStreamInfo("hand_landmark_v0_07/conv46")]
+#[BlazeLandmark.load_model] Number of Inputs :  1
+#[BlazeLandmark.load_model] Input[ 0 ] Shape :  (256, 256, 3)
+#[BlazeLandmark.load_model] Number of Outputs :  3
+#[BlazeLandmark.load_model] Output[ 0 ] Shape :  (1, 1, 63)
+#[BlazeLandmark.load_model] Output[ 1 ] Shape :  (1, 1, 1)
+#[BlazeLandmark.load_model] Output[ 2 ] Shape :  (1, 1, 1)
+#[BlazeLandmark.load_model] Input Shape :  (256, 256, 3)
+#[BlazeLandmark.load_model] Output1 Shape :  (1, 1, 1)
+#[BlazeLandmark.load_model] Output2 Shape :  (1, 1, 63)
+#[BlazeLandmark.load_model] Input Resolution :  256
 
 #[BlazeDetector.load_model] Model File :  blaze_hailo/models/palm_detection_lite.hef
 #[BlazeDetector.load_model] HEF Id :  0
