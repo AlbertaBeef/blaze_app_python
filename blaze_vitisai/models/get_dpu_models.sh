@@ -1,4 +1,6 @@
-# TODO : get models from github.com/AlbertaBeef/blaze_tutorial
+# Get models from github.com/AlbertaBeef/blaze_tutorial
+wget https://github.com/AlbertaBeef/blaze_tutorial/releases/download/version1/blaze_vitisai_models.zip
+
 
 #[BlazeDetector.load_model] Model File :  models/BlazePalm/B512/BlazePalm.xmodel
 #[BlazeDetector.load_model] Input Scale :  128  (fixpos= 7 )
