@@ -201,9 +201,8 @@ blaze_pipelines = [
     { "blaze": "face", "pipeline": "tfl_face_v0_10_sparse", "model1": "blaze_tflite/models/face_detection_full_range_sparse.tflite", "model2": "blaze_tflite/models/face_landmark.tflite" },
     { "blaze": "face", "pipeline": "pyt_face_v0_07_front" , "model1": "blaze_pytorch/models/blazeface.pth",                          "model2": "blaze_pytorch/models/blazeface_landmark.pth" },
     { "blaze": "face", "pipeline": "pyt_face_v0_07_back"  , "model1": "blaze_pytorch/models/blazefaceback.pth",                      "model2": "blaze_pytorch/models/blazeface_landmark.pth" },
-    { "blaze": "face", "pipeline": "vai_face_v0_07_hybrid", "model1": "blaze_tflite/models/face_detection_front_v0_07.tflite",       "model2": "blaze_vitisai/models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel" },
-    { "blaze": "face", "pipeline": "vai_face_v0_07_front" , "model1": "blaze_vitisai/models/BlazeFace/"+dpu_arch+"/BlazeFace.xmodel","model2": "blaze_vitisai/models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel" },
-    { "blaze": "face", "pipeline": "vai_face_v0_07_back"  , "model1": "blaze_vitisai/models/BlazeFaceBack/"+dpu_arch+"/BlazeFaceBack.xmodel","model2": "blaze_vitisai/models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel" },
+#    { "blaze": "face", "pipeline": "vai_face_v0_07_front" , "model1": "blaze_vitisai/models/BlazeFace/"+dpu_arch+"/BlazeFace.xmodel","model2": "blaze_vitisai/models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel" },
+#    { "blaze": "face", "pipeline": "vai_face_v0_07_back"  , "model1": "blaze_vitisai/models/BlazeFaceBack/"+dpu_arch+"/BlazeFaceBack.xmodel","model2": "blaze_vitisai/models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel" },
     { "blaze": "face", "pipeline": "hai_face_v0_10_short" , "model1": "blaze_hailo/models/face_detection_short_range.hef",           "model2": "blaze_hailo/models/face_landmark.hef" },
     { "blaze": "face", "pipeline": "hai_face_v0_10_full"  , "model1": "blaze_hailo/models/face_detection_full_range.hef",            "model2": "blaze_hailo/models/face_landmark.hef" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_lite.tflite" },
@@ -656,7 +655,8 @@ while True:
                     str(prof_annotate[pipeline_id])+","+\
                     str(prof_total[pipeline_id])+","+\
                     str(prof_fps[pipeline_id])+"\n"
-                #print("[LOG] ",csv_str)
+                if args.debug:
+                    print("[LOG] ",csv_str)
                 f_profile_csv.write(csv_str)
     
     
