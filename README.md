@@ -39,14 +39,17 @@ Replace "tflite" with other targets when applicable.
 
 | -Argument | --Argument    | Description                               | 
 | :-------: | :-----------: | :---------------------------------------- | 
-|  -i       | --image       | Use 'womand_hands.jpg' image as input. Default is usbcam      |
-|  -b       | --blaze       | Blaze Application : hand, face, pose      |
-|  -m       | --model1      | Detection Model (optional)                |
-|  -n       | --model2      | Landmark Model (optional)                 |
+|  -i       | --input       | Video input device. Default is auto-detect (first usbcam) |
+|  -I       | --image       | Use 'womand_hands.jpg' image as input. Default is usbcam  |
+|  -b       | --blaze       | Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'      |
+|  -t       | --target      | Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo'      |
+|  -p       | --pipeline    | Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'  |
 |  -l       | --list        | List pipelines                            |
 |  -d       | --debug       | Enable Debug Mode.  Default is off        |
 |  -w       | --withoutview | Disable Output Viewing.  Default is on    |
-|  -z       | --profile     | Enable Profile Mode.  Default is off      |
+|  -z       | --profilelog  | Enable Profile Log Mode.  Default is off  |
+|  -Z       | --profileview | Enable Profile View Mode.  Default is off |
+|  -f       | --fps         | Enable FPS Display.  Default is off       |
 
 ### Run-Time Options
 
@@ -61,7 +64,8 @@ Replace "tflite" with other targets when applicable.
 |  e  | toggle scores image on/off                |
 |  f  | toggle FPS display on/off                 |
 |  v  | toggle verbose on/off                     |
-|  z  | toggle profiling on/off                   |
+|  z  | toggle profile log on/off                 |
+|  Z  | toggle profile view on/off                |
    
 
 ## Supported Frameworks
