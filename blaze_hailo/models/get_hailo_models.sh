@@ -1,5 +1,5 @@
 # Get models from github.com/AlbertaBeef/blaze_tutorial
-wget https://github.com/AlbertaBeef/blaze_tutorial/releases/download/version1/blaze_hailo_models.zip
+wget https://github.com/AlbertaBeef/blaze_app_python/releases/download/version1/blaze_hailo_models.zip
 
 #[BlazeLandmark.load_model] Model File :  blaze_hailo/models/hand_landmark_v0_07.hef
 #[BlazeLandmark.load_model] HEF Id :  0

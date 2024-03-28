@@ -1,5 +1,5 @@
 # Get models from github.com/AlbertaBeef/blaze_tutorial
-wget https://github.com/AlbertaBeef/blaze_tutorial/releases/download/version1/blaze_vitisai_models.zip
+wget https://github.com/AlbertaBeef/blaze_app_python/releases/download/version1/blaze_vitisai_models.zip
 
 
 #[BlazeDetector.load_model] Model File :  models/BlazePalm/B512/BlazePalm.xmodel
