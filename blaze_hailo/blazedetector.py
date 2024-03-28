@@ -209,21 +209,17 @@ class BlazeDetector(BlazeDetectorBase):
         #out2 = np.asarray(self.output_tensor_buffers[1]) #.reshape(-1,18)
 
         ### palm_detection_v0_07
-        # Conv__533 [1x6x8x8]   =transpose=> [1x8x8x6]   =reshape=> [1x384x1]  \\
-        # Conv__544 [1x2x16x16] =transpose=> [1x16x16x2] =reshape=> [1x512x1]    => [1x2944x1]
-        # Conv__551 [1x2x32x32] =transpose=> [1x32x23x2] =reshape=> [1x2048x1]  //
+        # palm_detection_v0_07/conv47 [1x8x8x6]   =reshape=> [1x384x1]  \\
+        # palm_detection_v0_07/conv44 [1x16x16x2] =reshape=> [1x512x1]    => [1x2944x1]
+        # palm_detection_v0_07/conv47 [1x32x23x2] =reshape=> [1x2048x1]  //
         #
-        # Conv__532 [1x108x8x8]  =transpose=> [1x8x8x108]  =reshape=> [1x384x18]   \\
-        # Conv__543 [1x36x16x16] =transpose=> [1x16x16x36] =reshape=> [1x512x18]    => [1x2944x18]
-        # Conv__550 [1x36x32x32] =transpose=> [1x32x32x36] =reshape=> [1x2048x18]  //
+        # palm_detection_v0_07/conv42 [1x8x8x108]  =reshape=> [1x384x18]   \\
+        # palm_detection_v0_07/conv45 [1x16x16x36] =reshape=> [1x512x18]    => [1x2944x18]
+        # palm_detection_v0_07/conv48 [1x32x32x36] =reshape=> [1x2048x18]  //
         if self.blaze_app == "blazepalm" and self.num_outputs == 6:
-            conv_1_6_8_8 = infer_results[self.output_vstream_infos[0].name]
-            conv_1_2_16_16 = infer_results[self.output_vstream_infos[1].name]
-            conv_1_2_32_32 = infer_results[self.output_vstream_infos[2].name]
-            
-            transpose_1_8_8_6 = np.transpose(conv_1_6_8_8,[0,2,3,1])
-            transport_16_16_2 = np.transpose(conv_1_2_16_16,[0,2,3,1])
-            transport_32_32_2 = np.transpose(conv_1_2_32_32,[0,2,3,1])
+            transpose_1_8_8_6 = infer_results[self.output_vstream_infos[2].name]
+            transport_16_16_2 = infer_results[self.output_vstream_infos[1].name]
+            transport_32_32_2 = infer_results[self.output_vstream_infos[0].name]
             
             reshape_1_384_1 = transpose_1_8_8_6.reshape(1,384,1)
             reshape_1_512_1 = transport_16_16_2.reshape(1,512,1)
@@ -233,16 +229,12 @@ class BlazeDetector(BlazeDetectorBase):
 
             out1 = concat_1_2944_1.astype(np.float32)
 
-            if self.DEBUG:
-                print("[BlazeDetector.load_model] Output1 : ",out1.shape,out1.dtype)
+            #if self.DEBUG:
+            #    print("[BlazeDetector.load_model] Output1 : ",out1.shape,out1.dtype)
             
-            conv_1_108_8_8 = infer_results[self.output_vstream_infos[3].name]
-            conv_1_36_16_16 = infer_results[self.output_vstream_infos[4].name]
-            conv_1_36_32_32 = infer_results[self.output_vstream_infos[5].name]
-
-            transpose_1_8_8_108 = np.transpose(conv_1_108_8_8,[0,2,3,1])
-            transport_16_16_36 = np.transpose(conv_1_36_16_16,[0,2,3,1])
-            transport_32_32_36 = np.transpose(conv_1_36_32_32,[0,2,3,1])
+            transpose_1_8_8_108 = infer_results[self.output_vstream_infos[5].name]
+            transport_16_16_36 = infer_results[self.output_vstream_infos[4].name]
+            transport_32_32_36 = infer_results[self.output_vstream_infos[3].name]
 
             reshape_1_384_18 = transpose_1_8_8_108.reshape(1,384,18)
             reshape_1_512_18 = transport_16_16_36.reshape(1,512,18)
@@ -252,33 +244,33 @@ class BlazeDetector(BlazeDetectorBase):
             
             out2 = concat_1_2944_18.astype(np.float32)
 
-            if self.DEBUG:
-                print("[BlazeDetector.load_model] Output2 : ",out2.shape,out2.dtype)
+            #if self.DEBUG:
+            #    print("[BlazeDetector.load_model] Output2 : ",out2.shape,out2.dtype)
             
         ### palm_detection_lite/full
-        # Conv__410 [1x2x24x24] =transpose=> [1x24x24x2] =reshape=> [1x1152x1] \\
+        # palm_detection_lite/conv29 [1x24x24x2] =reshape=> [1x1152x1] \\
         #                                                                        => [1x2016x1]
-        # Conv__412 [1x6x12x12] =transpose=> [1x12x12x6] =reshape=> [1x864x1]  //
+        # palm_detection_lite/conv24 [1x12x12x6] =reshape=> [1x864x1]  //
         #
-        # Conv__409 [1x36x24x24]  =transpose=> [1x24x24x36]  =reshape=> [1x1152x18] \\
+        # palm_detection_lite/conv30 [1x24x24x36]  =reshape=> [1x1152x18] \\
         #                                                                             => [1x2016x18]
-        # Conv__411 [1x108x12x12] =transpose=> [1x12x12x108] =reshape=> [1x864x18]  //
+        # palm_detection_lite/conv25 [1x12x12x108] =reshape=> [1x864x18]  //
         if self.blaze_app == "blazepalm" and self.num_outputs == 4:
-            transpose_1_24_24_2 = infer_results[self.output_vstream_infos[1].name]
-            transport_12_12_6 = infer_results[self.output_vstream_infos[0].name]
+            conv_1_24_24_2 = infer_results[self.output_vstream_infos[1].name]
+            conv_12_12_6 = infer_results[self.output_vstream_infos[0].name]
             
-            reshape_1_1152_1 = transpose_1_24_24_2.reshape(1,1152,1)
-            reshape_1_864_1 = transport_12_12_6.reshape(1,864,1)
+            reshape_1_1152_1 = conv_1_24_24_2.reshape(1,1152,1)
+            reshape_1_864_1 = conv_12_12_6.reshape(1,864,1)
 
             concat_1_2016_1 = np.concatenate((reshape_1_1152_1,reshape_1_864_1),axis=1)
 
             out1 = concat_1_2016_1.astype(np.float32)
 
-            transpose_1_24_24_36 = infer_results[self.output_vstream_infos[3].name]
-            transport_12_12_108 = infer_results[self.output_vstream_infos[2].name]
+            conv_1_24_24_36 = infer_results[self.output_vstream_infos[3].name]
+            conv_12_12_108 = infer_results[self.output_vstream_infos[2].name]
             
-            reshape_1_1152_18 = transpose_1_24_24_36.reshape(1,1152,18)
-            reshape_1_864_18 = transport_12_12_108.reshape(1,864,18)
+            reshape_1_1152_18 = conv_1_24_24_36.reshape(1,1152,18)
+            reshape_1_864_18 = conv_12_12_108.reshape(1,864,18)
 
             concat_1_2016_18 = np.concatenate((reshape_1_1152_18,reshape_1_864_18),axis=1)
 
