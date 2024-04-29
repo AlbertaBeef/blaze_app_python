@@ -84,12 +84,36 @@ def detect_dpu_architecture():
     proc = subprocess.run(['xdputil','query'], capture_output=True, encoding='utf8')
     for line in proc.stdout.splitlines():
         if 'DPU Arch' in line:
+            #print("line=",line)
+            
+            # ... unit tests ...
+            #line='        "DPU Arch":"DPUCZDX8G_ISA1_B512_0101000016010200",'
+            #print("line=",line)
+            #line='        "DPU Arch":"DPUCZDX8G_ISA1_B2304",'
+            #print("line=",line)
+            #line='        "DPU Arch":"DPUCV2DX8G_ISA1_C20B1",'
+            #print("line=",line)
+        
+            # Start by looking for following format :
             #         "DPU Arch":"DPUCZDX8G_ISA0_B128_01000020E2012208",
-            #dpu_arch = re.search('DPUCZDX8G_ISA0_(.+?)_', line).group(1)  
-            #                 "DPU Arch":"DPUCZDX8G_ISA1_B2304",
-            #dpu_arch = re.search('DPUCZDX8G_ISA1_(.+?)', line).group(1)
-            #         "DPU Arch":"DPUCZDX8G_ISA1_B512_0101000016010200",
-            dpu_arch = re.search('DPUCZDX8G_ISA1_(.+?)_', line).group(1) 
+            dpu_re_search = re.search('DPUCZDX8G_ISA0_(.+?)_', line)
+            if dpu_re_search == None:
+                # else continue looking for following format :
+                #     "DPU Arch":"DPUCZDX8G_ISA1_B512_0101000016010200",
+                dpu_re_search = re.search('DPUCZDX8G_ISA1_(.+?)_', line)
+            if dpu_re_search == None:
+                # else continue looking for following format :
+                #     "DPU Arch":"DPUCZDX8G_ISA1_B2304",
+                dpu_re_search = re.search('DPUCZDX8G_ISA1_(.+?)"', line)
+            if dpu_re_search == None:
+                # else continue looking for following format :
+                #     "DPU Arch":"DPUCV2DX8G_ISA1_C20B1",
+                dpu_re_search = re.search('DPUCV2DX8G_ISA1_(.+?)"', line)
+            #print("dpu_re_search=", dpu_re_search)
+            #print("dpu_re_search.group(0)=", dpu_re_search.group(0))
+            #print("dpu_re_search.group(1)=", dpu_re_search.group(1))
+            dpu_arch = dpu_re_search.group(1)
+            #print("dpu_arch=", dpu_arch)
             return dpu_arch
 
 # Parameters (tweaked for video)
@@ -102,8 +126,8 @@ text_lineType = cv2.LINE_AA
 
 dpu_arch = detect_dpu_architecture()
 print("DPU Architecture : ",dpu_arch)
-blazepalm_model = "models/BlazePalm/"+dpu_arch+"/BlazePalm.xmodel"
-blazehandlandmark_model = "models/BlazeHandLandmark/"+dpu_arch+"/BlazeHandLandmark.xmodel"
+blazepalm_model = "models/blazepalm/"+dpu_arch+"/blazepalm.xmodel"
+blazehandlandmark_model = "models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel"
  
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -129,7 +153,7 @@ print(' --model2      : ', args.model2)
 print(' --debug       : ', args.debug)
 print(' --withoutview : ', args.withoutview)
 print(' --profilelog  : ', args.profilelog)
-print(' --profileview  : ', args.profileview)
+print(' --profileview : ', args.profileview)
 print(' --fps         : ', args.fps)
 
 nb_blaze_pipelines = 1
@@ -177,14 +201,14 @@ if args.blaze == "hand":
    blaze_detector_type = "blazepalm"
    blaze_landmark_type = "blazehandlandmark"
    blaze_title = "BlazeHandLandmark"
-   default_detector_model="models/BlazePalm/"+dpu_arch+"/BlazePalm.xmodel"
-   default_landmark_model="models/BlazeHandLandmark/"+dpu_arch+"/BlazeHandLandmark.xmodel"
+   default_detector_model="models/blazepalm/"+dpu_arch+"/blazepalm.xmodel"
+   default_landmark_model="models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel"
 elif args.blaze == "face":
    blaze_detector_type = "blazeface"
    blaze_landmark_type = "blazefacelandmark"
    blaze_title = "BlazeFaceLandmark"
-   default_detector_model="models/BlazeFace/"+dpu_arch+"/BlazeFace.xmodel"
-   default_landmark_model="models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel"
+   default_detector_model="models/blazeface/"+dpu_arch+"/blazeface.xmodel"
+   default_landmark_model="models/blazefacelandmark/"+dpu_arch+"/blazefacelandmark.xmodel"
 #elif args.blaze == "pose":
 #   blaze_detector_type = "blazepose"
 #   blaze_landmark_type = "blazeposelandmark"
