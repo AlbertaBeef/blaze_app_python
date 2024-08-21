@@ -201,7 +201,7 @@ blaze_pipelines = [
     { "blaze": "hand", "pipeline": "tfl_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",              "model2": "blaze_tflite/models/hand_landmark_lite.tflite" },
     { "blaze": "hand", "pipeline": "tfl_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
     { "blaze": "hand", "pipeline": "pyt_hand_v0_07"       , "model1": "blaze_pytorch/models/blazepalm.pth",                          "model2": "blaze_pytorch/models/blazehand_landmark.pth" },
-    { "blaze": "hand", "pipeline": "vai_hand_v0_07"       , "model1": "blaze_vitisai/models/blazepalm/"+dpu_arch+"/blazepalm.xmodel","model2": "blaze_vitisai/models/blazehandlandmark/"+dpu_arch+"/blazehandlandmark.xmodel" },
+    { "blaze": "hand", "pipeline": "vai_hand_v0_07"       , "model1": "blaze_vitisai/models/BlazePalm/"+dpu_arch+"/BlazePalm.xmodel","model2": "blaze_vitisai/models/BlazeHandLandmark/"+dpu_arch+"/BlazeHandLandmark.xmodel" },
     { "blaze": "hand", "pipeline": "hai_hand_v0_07_2c"    , "model1": "blaze_hailo/models/palm_detection_v0_07_2c.hef",              "model2": "blaze_hailo/models/hand_landmark_v0_07.hef" },
     { "blaze": "hand", "pipeline": "hai_hand_v0_07_1c"    , "model1": "blaze_hailo/models/palm_detection_v0_07_1c.hef",              "model2": "blaze_hailo/models/hand_landmark_v0_07.hef" },
     { "blaze": "hand", "pipeline": "hai_hand_v0_10_lite"  , "model1": "blaze_hailo/models/palm_detection_lite.hef",                  "model2": "blaze_hailo/models/hand_landmark_lite.hef" },
