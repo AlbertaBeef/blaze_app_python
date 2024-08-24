@@ -1,5 +1,11 @@
 # Get models from github.com/AlbertaBeef/blaze_tutorial
-wget https://github.com/AlbertaBeef/blaze_app_python/releases/download/version1/blaze_vitisai_models.zip
+wget https://github.com/AlbertaBeef/blaze_tutorial/releases/download/vitis_ai_3.5_version_4/blaze_vitisai_compiled_models.zip
+
+# To extract pre-compiled models, use unzip as follows:
+#unzip -o blaze_vitisai_compiled_models.zip models/Blaze*
+
+# To extract quantized models, use unzip as follows:
+#unzip -o blaze_vitisai_compiled_models.zip quantize_result*
 
 
 #[BlazeDetector.load_model] Model File :  models/BlazePalm/B512/BlazePalm.xmodel
