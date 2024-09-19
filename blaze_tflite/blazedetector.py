@@ -153,13 +153,13 @@ class BlazeDetector(BlazeDetectorBase):
         """
         out2 = self.interp_detector.get_tensor(self.out_reg_idx)
 
-        #if self.DEBUG:
-        #    print("[BlazeDetector.load_model] Input   : ",x.shape, x.dtype, x)
-        #    print("[BlazeDetector.load_model] Input Min/Max: ",np.amin(x),np.amax(x))
-        #    print("[BlazeDetector.load_model] Output1 : ",out1.shape, out1.dtype, out1)
-        #    print("[BlazeDetector.load_model] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
-        #    print("[BlazeDetector.load_model] Output2 : ",out2.shape, out2.dtype, out2)
-        #    print("[BlazeDetector.load_model] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
+        if self.DEBUG:
+            print("[BlazeDetector.load_model] Input   : ",x.shape, x.dtype) #, x)
+            print("[BlazeDetector.load_model] Input Min/Max: ",np.amin(x),np.amax(x))
+            print("[BlazeDetector.load_model] Output1 : ",out1.shape, out1.dtype) #, out1)
+            print("[BlazeDetector.load_model] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
+            print("[BlazeDetector.load_model] Output2 : ",out2.shape, out2.dtype) #, out2)
+            print("[BlazeDetector.load_model] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
 
         assert out1.shape[0] == 1 # batch
         assert out1.shape[1] == self.num_anchors

@@ -115,7 +115,10 @@ class BlazeLandmark(BlazeLandmarkBase):
             elif self.blaze_app == "blazeposelandmark":
                 out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
                 out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
-                out2 = out2.reshape(1,-1,5) # 195 => [1,39,5]
+                if out2.shape[1] == 124:
+                    out2 = out2.reshape(1,-1,4) # v0.07 upper : 124 => [1,31,4]
+                else:
+                    out2 = out2.reshape(1,-1,5) # v0.10 full  : 195 => [1,39,5]
                 out2 = out2/self.resolution
                 #out3 = np.asarray(self.interp_poselandmark.get_tensor(self.out_seg_idx))
 
