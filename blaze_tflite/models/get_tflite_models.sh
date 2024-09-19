@@ -169,26 +169,22 @@ wget https://storage.googleapis.com/mediapipe-assets/pose_landmark_heavy.tflite
 
 
 wget https://avtinc.sharepoint.com/:u:/t/ET-Downloads/EQ_OekMvLOhKtg8423P_NhMBdG3L8dbZdEqrDN5ZeHRYHw?e=2m6jMm -O pose_detection_v0_07.tflite
-# [BlazeDetector.load_model] Model File :  blaze_tflite_quant/models/resources/04_full_integer_quantization/pose_detection_128x128_full_integer_quant.tflite
+# [BlazeDetector.load_model] Model File :  blaze_tflite/models/pose_detection_v0_07.tflite
 # [BlazeDetector.load_model] Number of Inputs :  1
 # [BlazeDetector.load_model] Input[ 0 ] Shape :  [  1 128 128   3]  ( input )
 # [BlazeDetector.load_model] Number of Outputs :  2
-# [BlazeDetector.load_model] Output[ 0 ] Shape :  [  1 896   1]  ( Identity )
-# [BlazeDetector.load_model] Output[ 1 ] Shape :  [  1 896  12]  ( Identity_1 )
-# [BlazeDetector.load_model] Input Shape :  [  1 128 128   3]
-# [BlazeDetector.load_model] Output1 Shape :  [  1 896  12]
-# [BlazeDetector.load_model] Output2 Shape :  [  1 896   1]
+# [BlazeDetector.load_model] Output[ 0 ] Shape :  [  1 896  12]  ( regressors )
+# [BlazeDetector.load_model] Output[ 1 ] Shape :  [  1 896   1]  ( classificators )
 # [BlazeDetector.load_model] Num Anchors :  896
 # [BlazeDetectorBase.config_model] Anchor Options :  {'num_layers': 4, 'min_scale': 0.1484375, 'max_scale': 0.75, 'input_size_height': 128, 'input_size_width': 128, 'anchor_offset_x': 0.5, 'anchor_offset_y': 0.5, 'strides': [8, 16, 16, 16], 'aspect_ratios': [1.0], 'reduce_boxes_in_lowest_layer': False, 'interpolated_scale_aspect_ratio': 1.0, 'fixed_anchor_size': True}
 # [BlazeDetectorBase.config_model] Anchors Shape :  (896, 4)
 # [BlazeDetectorBase.config_model] Model Config :  {'num_classes': 1, 'num_anchors': 896, 'num_coords': 12, 'score_clipping_thresh': 100.0, 'x_scale': 128.0, 'y_scale': 128.0, 'h_scale': 128.0, 'w_scale': 128.0, 'min_score_thresh': 0.5, 'min_suppression_threshold': 0.3, 'num_keypoints': 4, 'detection2roi_method': 'alignment', 'kp1': 2, 'kp2': 3, 'theta0': 1.5707963267948966, 'dscale': 1.5, 'dy': 0.0}
 
-
 wget https://avtinc.sharepoint.com/:u:/t/ET-Downloads/Ecp0ghv20vZJl2Xo2ijuTN0BmYheTPs0yPWxQKnzck7K9w?e=T0XsyU -O pose_landmark_v0_07_upper_body.tflite
-# [BlazeLandmark.load_model] Model File :  blaze_tflite_quant/models/resources/04_full_integer_quantization/pose_landmark_upper_body_256x256_full_integer_quant.tflite
+# [BlazeLandmark.load_model] Model File :  blaze_tflite/models/pose_landmark_v0_07_upper_body.tflite
 # [BlazeLandmark.load_model] Number of Inputs :  1
-# [BlazeLandmark.load_model] Input[ 0 ] Shape :  [  1 256 256   3]  ( input )
+# [BlazeLandmark.load_model] Input[ 0 ] Shape :  [  1 256 256   3]  ( input_1 )
 # [BlazeLandmark.load_model] Number of Outputs :  3
-# [BlazeLandmark.load_model] Output[ 0 ] Shape :  [  1 128 128   1]  ( Identity )
-# [BlazeLandmark.load_model] Output[ 1 ] Shape :  [1 1 1 1]  ( Identity_1 )
-# [BlazeLandmark.load_model] Output[ 2 ] Shape :  [  1 124]  ( Identity_2 )
+# [BlazeLandmark.load_model] Output[ 0 ] Shape :  [  1 124]  ( ld_3d )
+# [BlazeLandmark.load_model] Output[ 1 ] Shape :  [1 1]  ( output_poseflag )
+# [BlazeLandmark.load_model] Output[ 2 ] Shape :  [  1 128 128   1]  ( output_segmentation )

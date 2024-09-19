@@ -22,13 +22,6 @@ limitations under the License.
 #      tensorflow
 #    or
 #      tflite_runtime
-#   PyTorch
-#      torch
-#   Vitis-AI 3.5
-#      xir
-#      vitis_ai_library
-#   Hailo
-#      hailo_platform
 #   plots
 #      pyplotly
 #      kaleido
@@ -63,86 +56,9 @@ host = socket.gethostname()
 user_host_descriptor = user+"@"+host
 print("[INFO] user@hosthame : ",user_host_descriptor)
 
-sys.path.append(os.path.abspath('blaze_common/'))
-sys.path.append(os.path.abspath('blaze_tflite/'))
-sys.path.append(os.path.abspath('blaze_pytorch/'))
-sys.path.append(os.path.abspath('blaze_vitisai/'))
-sys.path.append(os.path.abspath('blaze_hailo/'))
-
-supported_targets = {
-    "blaze_tflite": False,
-    "blaze_tflite_quant": False,
-    "blaze_pytorch": False,
-    "blaze_vitisai": False,
-    "blaze_hailo": False
-}
-try:
-    from blaze_tflite.blazedetector import BlazeDetector as BlazeDetector_tflite
-    from blaze_tflite.blazelandmark import BlazeLandmark as BlazeLandmark_tflite
-    print("[INFO] blaze_tflite supported ...")
-    supported_targets["blaze_tflite"] = True
-except:
-    print("[INFO] blaze_tflite NOT supported ...")
-
-try:
-    from blaze_tflite_quant.blazedetector import BlazeDetector as BlazeDetector_tflite_quant
-    from blaze_tflite_quant.blazelandmark import BlazeLandmark as BlazeLandmark_tflite_quant
-    print("[INFO] blaze_tflite_quant supported ...")
-    supported_targets["blaze_tflite_quant"] = True
-except:
-    print("[INFO] blaze_tflite_quant NOT supported ...")
-
-try:
-    from blaze_pytorch.blazedetector import BlazeDetector as BlazeDetector_pytorch
-    from blaze_pytorch.blazelandmark import BlazeLandmark as BlazeLandmark_pytorch
-    print("[INFO] blaze_pytorch supported ...")
-    supported_targets["blaze_pytorch"] = True
-except:
-    print("[INFO] blaze_pytorch NOT supported ...")
-
-try:
-    from blaze_vitisai.blazedetector import BlazeDetector as BlazeDetector_vitisai
-    from blaze_vitisai.blazelandmark import BlazeLandmark as BlazeLandmark_vitisai
-    print("[INFO] blaze_vitisai supported ...")
-    supported_targets["blaze_vitisai"] = True
-    
-    def detect_dpu_architecture():
-        proc = subprocess.run(['xdputil','query'], capture_output=True, encoding='utf8')
-        for line in proc.stdout.splitlines():
-            if 'DPU Arch' in line:
-                # Start by looking for following format :
-                #         "DPU Arch":"DPUCZDX8G_ISA0_B128_01000020E2012208",
-                dpu_re_search = re.search('DPUCZDX8G_ISA0_(.+?)_', line)
-                if dpu_re_search == None:
-                    # else continue looking for following format :
-                    #     "DPU Arch":"DPUCZDX8G_ISA1_B512_0101000016010200",
-                    dpu_re_search = re.search('DPUCZDX8G_ISA1_(.+?)_', line)
-                if dpu_re_search == None:
-                    # else continue looking for following format :
-                    #     "DPU Arch":"DPUCZDX8G_ISA1_B2304",
-                    dpu_re_search = re.search('DPUCZDX8G_ISA1_(.+?)"', line)
-                if dpu_re_search == None:
-                    # else continue looking for following format :
-                    #     "DPU Arch":"DPUCV2DX8G_ISA1_C20B1",
-                    dpu_re_search = re.search('DPUCV2DX8G_ISA1_(.+?)"', line)
-                dpu_arch = dpu_re_search.group(1)
-                return dpu_arch
-            
-    dpu_arch = detect_dpu_architecture()
-    print("[INFO] DPU Architecture : ",dpu_arch)            
-except:
-    print("[INFO] blaze_vitisai NOT supported ...")
-    dpu_arch = "B?"    
-
-try:
-    from blaze_hailo.hailo_inference import HailoInference
-    hailo_infer = HailoInference()
-    from blaze_hailo.blazedetector import BlazeDetector as BlazeDetector_hailo
-    from blaze_hailo.blazelandmark import BlazeLandmark as BlazeLandmark_hailo
-    print("[INFO] blaze_hailo supported ...")
-    supported_targets["blaze_hailo"] = True
-except:
-    print("[INFO] blaze_hailo NOT supported ...")
+sys.path.append(os.path.abspath('../blaze_common/'))
+from blazedetector import BlazeDetector
+from blazelandmark import BlazeLandmark
 
 from visualization import draw_detections, draw_landmarks, draw_roi
 from visualization import HAND_CONNECTIONS, FACE_CONNECTIONS, POSE_FULL_BODY_CONNECTIONS, POSE_UPPER_BODY_CONNECTIONS
@@ -178,10 +94,9 @@ text_lineType = cv2.LINE_AA
 ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
-ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
-ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo", help="Command seperated list of targets (blaze_tflite, blaze_tflite_quant, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo'")
-ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
-ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
+ap.add_argument('-b', '--blaze',  type=str, default="hand", help="Application (hand, face, pose).  Default is hand")
+ap.add_argument('-m', '--model1', type=str, help='Path of blazepalm model. Default is models/palm_detection_without_custom_op.tflite')
+ap.add_argument('-n', '--model2', type=str, help='Path of blazehandlardmark model. Default is models/hand_landmark.tflite')
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
 ap.add_argument('-w', '--withoutview', default=False, action='store_true', help="Disable Output viewing. Default is on")
 ap.add_argument('-z', '--profilelog' , default=False, action='store_true', help="Enable Profile Log (Latency). Default is off")
@@ -194,115 +109,29 @@ print('Command line options:')
 print(' --input       : ', args.input)
 print(' --image       : ', args.image)
 print(' --blaze       : ', args.blaze)
-print(' --target      : ', args.target)
-print(' --pipeline    : ', args.pipeline)
-print(' --list        : ', args.list)
+print(' --model1      : ', args.model1)
+print(' --model2      : ', args.model2)
 print(' --debug       : ', args.debug)
 print(' --withoutview : ', args.withoutview)
 print(' --profilelog  : ', args.profilelog)
 print(' --profileview  : ', args.profileview)
 print(' --fps         : ', args.fps)
 
+nb_blaze_pipelines = 1
 
-blaze_pipelines = [
-#   { "blaze": "hand", "pipeline": "tfl_hand_v0_07"       , "model1": "blaze_tflite/models/palm_detection_v0_07.tflite",             "model2": "blaze_tflite/models/hand_landmark_v0_07.tflite" },
-    { "blaze": "hand", "pipeline": "tfl_hand_v0_07"       , "model1": "blaze_tflite/models/palm_detection_without_custom_op.tflite", "model2": "blaze_tflite/models/hand_landmark_v0_07.tflite" },
-    { "blaze": "hand", "pipeline": "tfl_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",              "model2": "blaze_tflite/models/hand_landmark_lite.tflite" },
-    { "blaze": "hand", "pipeline": "tfl_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
-    { "blaze": "hand", "pipeline": "pyt_hand_v0_07"       , "model1": "blaze_pytorch/models/blazepalm.pth",                          "model2": "blaze_pytorch/models/blazehand_landmark.pth" },
-    { "blaze": "hand", "pipeline": "vai_hand_v0_07"       , "model1": "blaze_vitisai/models/BlazePalm/"+dpu_arch+"/BlazePalm.xmodel","model2": "blaze_vitisai/models/BlazeHandLandmark/"+dpu_arch+"/BlazeHandLandmark.xmodel" },
-    { "blaze": "hand", "pipeline": "hai_hand_v0_07"       , "model1": "blaze_hailo/models/palm_detection_v0_07.hef",                 "model2": "blaze_hailo/models/hand_landmark_v0_07.hef" },
-    { "blaze": "hand", "pipeline": "hai_hand_v0_10_lite"  , "model1": "blaze_hailo/models/palm_detection_lite.hef",                  "model2": "blaze_hailo/models/hand_landmark_lite.hef" },
-    { "blaze": "hand", "pipeline": "hai_hand_v0_10_full"  , "model1": "blaze_hailo/models/palm_detection_full.hef",                  "model2": "blaze_hailo/models/hand_landmark_full.hef" },
-    { "blaze": "face", "pipeline": "tfl_face_v0_07_front" , "model1": "blaze_tflite/models/face_detection_front_v0_07.tflite",       "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
-    { "blaze": "face", "pipeline": "tfl_face_v0_07_back"  , "model1": "blaze_tflite/models/face_detection_back_v0_07.tflite",        "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
-    { "blaze": "face", "pipeline": "tfl_face_v0_10_short" , "model1": "blaze_tflite/models/face_detection_short_range.tflite",       "model2": "blaze_tflite/models/face_landmark.tflite" },
-    { "blaze": "face", "pipeline": "tfl_face_v0_10_full"  , "model1": "blaze_tflite/models/face_detection_full_range.tflite",        "model2": "blaze_tflite/models/face_landmark.tflite" },
-    { "blaze": "face", "pipeline": "tfl_face_v0_10_sparse", "model1": "blaze_tflite/models/face_detection_full_range_sparse.tflite", "model2": "blaze_tflite/models/face_landmark.tflite" },
-    { "blaze": "face", "pipeline": "pyt_face_v0_07_front" , "model1": "blaze_pytorch/models/blazeface.pth",                          "model2": "blaze_pytorch/models/blazeface_landmark.pth" },
-    { "blaze": "face", "pipeline": "pyt_face_v0_07_back"  , "model1": "blaze_pytorch/models/blazefaceback.pth",                      "model2": "blaze_pytorch/models/blazeface_landmark.pth" },
-#    { "blaze": "face", "pipeline": "vai_face_v0_07_front" , "model1": "blaze_vitisai/models/BlazeFace/"+dpu_arch+"/BlazeFace.xmodel","model2": "blaze_vitisai/models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel" },
-#    { "blaze": "face", "pipeline": "vai_face_v0_07_back"  , "model1": "blaze_vitisai/models/BlazeFaceBack/"+dpu_arch+"/BlazeFaceBack.xmodel","model2": "blaze_vitisai/models/BlazeFaceLandmark/"+dpu_arch+"/BlazeFaceLandmark.xmodel" },
-    { "blaze": "face", "pipeline": "hai_face_v0_10_short" , "model1": "blaze_hailo/models/face_detection_short_range.hef",           "model2": "blaze_hailo/models/face_landmark.hef" },
-    { "blaze": "face", "pipeline": "hai_face_v0_10_full"  , "model1": "blaze_hailo/models/face_detection_full_range.hef",            "model2": "blaze_hailo/models/face_landmark.hef" },
-    { "blaze": "pose", "pipeline": "tfl_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_lite.tflite" },
-    { "blaze": "pose", "pipeline": "tfl_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_full.tflite" },
-    { "blaze": "pose", "pipeline": "tfl_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_heavy.tflite" },
-    { "blaze": "pose", "pipeline": "tfl_pose_v0_07_upper" , "model1": "blaze_tflite/models/pose_detection_v0_07.tflite",             "model2": "blaze_tflite/models/pose_landmark_v0_07_upper_body.tflite" },
-    { "blaze": "pose", "pipeline": "tflq_pose_v0_07_upper", "model1": "blaze_tflite_quant/models/pose_detection_128x128_full_integer_quant.tflite","model2": "blaze_tflite_quant/models/pose_landmark_upper_body_256x256_full_integer_quant.tflite" },
-    { "blaze": "pose", "pipeline": "pyt_pose_v0_07"       , "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" },
-    { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" }
-]
-nb_blaze_pipelines = len(blaze_pipelines)
+print("[INFO] Searching for USB camera ...")
+dev_video = get_video_dev_by_name("uvcvideo")
+dev_media = get_media_dev_by_name("uvcvideo")
+print(dev_video)
+print(dev_media)
 
-if args.list:
-   print("")
-   print("List of target pipelines:")
-   for i in range(nb_blaze_pipelines):
-      print("%02d %s %s"%(i,
-         blaze_pipelines[i]["pipeline"].ljust(25),
-         blaze_pipelines[i]["model1"])
-         )
-      print("%s %s"%("".ljust(2+1+25),
-         blaze_pipelines[i]["model2"])
-         )
-   print("")
-   exit()
-
-
-bInputImage = False
-bInputVideo = False
-bInputCamera = True
-
-if os.path.exists(args.input):
-    print("[INFO] Input exists : ",args.input)
-    file_name, file_extension = os.path.splitext(args.input)
-    file_extension = file_extension.lower()
-    print("[INFO] Input type : ",file_extension)
-    if file_extension == ".jpg" or file_extension == ".png" or file_extension == ".tif":
-        bInputImage = True
-        bInputVideo = False
-        bInputCamera = False
-    if file_extension == ".mov" or file_extension == ".mp4":
-        bInputImage = False
-        bInputVideo = True
-        bInputCamera = False
-
-if bInputCamera == True:
-    print("[INFO] Searching for USB camera ...")
-    dev_video = get_video_dev_by_name("uvcvideo")
-    dev_media = get_media_dev_by_name("uvcvideo")
-    print(dev_video)
-    print(dev_media)
-
-    if dev_video == None:
-        input_video = 0
-    elif args.input != "":
-        input_video = args.input 
-    else:
-        input_video = dev_video  
-
-    # Open video
-    cap = cv2.VideoCapture(input_video)
-    frame_width = 640
-    frame_height = 480
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH,frame_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT,frame_height)
-    #frame_width = int(round(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
-    #frame_height = int(round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    print("[INFO] input : camera",input_video," (",frame_width,",",frame_height,")")
-
-if bInputVideo == True:
-    # Open video file
-    cap = cv2.VideoCapture(args.input)
-    frame_width = int(round(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
-    frame_height = int(round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    print("[INFO] input : video ",args.input," (",frame_width,",",frame_height,")")
-
-if bInputImage == True:
-    image = cv2.imread(args.input)
-    frame_height,frame_width,_ = image.shape
-    print("[INFO] input : image ",args.input," (",frame_width,",",frame_height,")")
+if dev_video == None:
+    input_video = 0
+elif args.input != "":
+    input_video = args.input 
+else:
+    input_video = dev_video  
+print("[INFO] Input Video : ",input_video)
 
 output_dir = './captured-images'
 
@@ -318,85 +147,56 @@ else:
 if not os.path.exists(output_dir):      
     os.mkdir(output_dir)            # Create the output directory if it doesn't already exist
 
+# Open video
+cap = cv2.VideoCapture(input_video)
+frame_width = 640
+frame_height = 480
+cap.set(cv2.CAP_PROP_FRAME_WIDTH,frame_width)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT,frame_height)
+#frame_width = int(round(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+#frame_height = int(round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+print("camera",input_video," (",frame_width,",",frame_height,")")
 
-nb_active_pipelines = 0
-for i in range(nb_blaze_pipelines):
-    blaze    = blaze_pipelines[i]["blaze"]
-    pipeline = blaze_pipelines[i]["pipeline"]
-    model1   = blaze_pipelines[i]["model1"]
-    model2   = blaze_pipelines[i]["model2"]
-   
-    blaze_pipelines[i]["supported"] = False # until proven otherwise
-    blaze_pipelines[i]["selected"] = False # until proven otherwise
-    
-    target1 = re.search('(.+?)/', model1).group(1) 
-    target2 = re.search('(.+?)/', model2).group(1)
-    
-    if blaze in args.blaze and target1 in args.target and target2 in args.target and (pipeline in args.pipeline or args.pipeline == "all"):
-        blaze_pipelines[i]["selected"] = True
-        if args.debug:
-            print("[blaze_detect_live] Pipeline ",pipeline," selected.")
-    
-    if supported_targets[target1]==True and supported_targets[target2]==True and blaze_pipelines[i]["selected"] == True:
-        if blaze=="hand":
-            detector_type = "blazepalm"
-            landmark_type = "blazehandlandmark"
-        elif blaze=="face":
-            detector_type = "blazeface"
-            landmark_type = "blazefacelandmark"
-        elif blaze=="pose":
-            detector_type = "blazepose"
-            landmark_type = "blazeposelandmark"
-        else:
-            print("[ERROR] Invalid Blaze application : ",blaze,".  MUST be one of hand,face,pose.")
 
-        if target1=="blaze_tflite":
-            blaze_detector = BlazeDetector_tflite(detector_type)
-        elif target1=="blaze_tflite_quant":
-            blaze_detector = BlazeDetector_tflite_quant(detector_type)
-        elif target1=="blaze_pytorch":
-            blaze_detector = BlazeDetector_pytorch(detector_type)
-        elif target1=="blaze_vitisai":
-            blaze_detector = BlazeDetector_vitisai(detector_type)
-        elif target1=="blaze_hailo":
-            blaze_detector = BlazeDetector_hailo(detector_type,hailo_infer)
-        else:
-            print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
-        blaze_detector.set_debug(debug=args.debug)
-        blaze_detector.display_scores(debug=False)
-        blaze_detector.load_model(model1)
- 
-        if target2=="blaze_tflite":
-            blaze_landmark = BlazeLandmark_tflite(landmark_type)
-        elif target2=="blaze_tflite_quant":
-            blaze_landmark = BlazeLandmark_tflite_quant(landmark_type)
-        elif target2=="blaze_pytorch":
-            blaze_landmark = BlazeLandmark_pytorch(landmark_type)
-        elif target2=="blaze_vitisai":
-            blaze_landmark = BlazeLandmark_vitisai(landmark_type)
-        elif target2=="blaze_hailo":
-            blaze_landmark = BlazeLandmark_hailo(landmark_type,hailo_infer)
-        else:
-            print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
-        blaze_landmark.set_debug(debug=args.debug)
-        blaze_landmark.load_model(model2)
-       
-        blaze_pipelines[i]["supported"]     = True
-        blaze_pipelines[i]["detector_type"] = detector_type
-        blaze_pipelines[i]["detector"]      = blaze_detector
-        blaze_pipelines[i]["landmark_type"] = landmark_type
-        blaze_pipelines[i]["landmark"]      = blaze_landmark
+if args.blaze == "hand":
+   blaze_detector_type = "blazepalm"
+   blaze_landmark_type = "blazehandlandmark"
+   blaze_title = "BlazeHandLandmark"
+   default_detector_model='models/palm_detection_lite.tflite'
+   default_landmark_model='models/hand_landmark_lite.tflite'
+elif args.blaze == "face":
+   blaze_detector_type = "blazeface"
+   blaze_landmark_type = "blazefacelandmark"
+   blaze_title = "BlazeFaceLandmark"
+   default_detector_model='models/face_detection_short_range.tflite'
+   default_landmark_model='models/face_landmark.tflite'
+elif args.blaze == "pose":
+   blaze_detector_type = "blazepose"
+   blaze_landmark_type = "blazeposelandmark"
+   blaze_title = "BlazePoseLandmark"
+   #default_detector_model='models/pose_detection.tflite'
+   #default_landmark_model='models/pose_landmark_full.tflite'
+   #default_detector_model='models/pose_detection_full_quant.tflite'
+   default_detector_model='models/pose_detection_128x128_full_integer_quant.tflite'
+   default_landmark_model='models/pose_landmark_full_quant.tflite'
+else:
+   print("[ERROR] Invalid Blaze application : ",args.blaze,".  MUST be one of hand,face,pose.")
 
-        if args.debug:
-            print("[blaze_detect_live] Pipeline ",pipeline," supported and initialized.")
+if args.model1 == None:
+   args.model1 = default_detector_model
+if args.model2 == None:
+   args.model2 = default_landmark_model
 
-        nb_active_pipelines += 1
-        
+blaze_detector = BlazeDetector(blaze_detector_type)
+blaze_detector.set_debug(debug=args.debug)
+blaze_detector.display_scores(debug=False)
+blaze_detector.load_model(args.model1)
 
-if nb_active_pipelines == 0:
-    print("[ERROR] no pipelines selected !")
-    exit()        
-        
+blaze_landmark = BlazeLandmark(blaze_landmark_type)
+blaze_landmark.set_debug(debug=args.debug)
+blaze_landmark.load_model(args.model2)
+
+
 print("================================================================")
 print("Blaze Detect Live Demo")
 print("================================================================")
@@ -431,23 +231,15 @@ bProfileView = args.profileview
 def ignore(x):
     pass
 
-for pipeline_id in range(nb_blaze_pipelines):
+if bViewOutput:
+    app_main_title = blaze_title+" Demo"
+    app_ctrl_title = blaze_title+" Demo"
+    app_debug_title = blaze_title+" Debug"
+    cv2.namedWindow(app_main_title)
 
-    if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
-
-        blaze_detector_type = blaze_pipelines[pipeline_id]["detector_type"]
-        blaze_landmark_type = blaze_pipelines[pipeline_id]["landmark_type"]
-        blaze_title = blaze_pipelines[pipeline_id]["pipeline"]
-                
-        app_main_title = blaze_title+" Demo"
-        app_ctrl_title = blaze_title+" Demo"
-        
-        if bViewOutput:
-            cv2.namedWindow(app_main_title)
-
-            thresh_min_score = blaze_detector.min_score_thresh
-            thresh_min_score_prev = thresh_min_score
-            cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
+    thresh_min_score = blaze_detector.min_score_thresh
+    thresh_min_score_prev = thresh_min_score
+    cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
 
 image = []
 output = []
@@ -471,14 +263,9 @@ while True:
     frame_count = frame_count + 1
 
     if bUseImage:
-        frame = cv2.imread('woman_hands.jpg')
+        frame = cv2.imread('../woman_hands.jpg')
         if not (type(frame) is np.ndarray):
             print("[ERROR] cv2.imread('woman_hands.jpg') FAILED !")
-            break;
-    elif bInputImage:
-        frame = cv2.imread(args.input)
-        if not (type(frame) is np.ndarray):
-            print("[ERROR] cv2.imread(",args.input,") FAILED !")
             break;
     else:
         flag, frame = cap.read()
@@ -500,23 +287,12 @@ while True:
         #
         prof_total          = np.zeros(nb_blaze_pipelines)
         prof_fps            = np.zeros(nb_blaze_pipelines)
-    
-    for pipeline_id in range(nb_blaze_pipelines):
 
-        if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
-
+    if True:    
+        pipeline_id = 0
+        if True:
             image = frame.copy()
-            
-            blaze_detector_type = blaze_pipelines[pipeline_id]["detector_type"]
-            blaze_landmark_type = blaze_pipelines[pipeline_id]["landmark_type"]
-            blaze_title = blaze_pipelines[pipeline_id]["pipeline"]
-            blaze_detector = blaze_pipelines[pipeline_id]["detector"]
-            blaze_landmark = blaze_pipelines[pipeline_id]["landmark"]
-            
-            app_main_title = blaze_title+" Demo"
-            app_ctrl_title = blaze_title+" Demo"
-            app_debug_title = blaze_title+" Debug"
-            
+
             # Get trackbar values
             if bViewOutput:
                 thresh_min_score = cv2.getTrackbarPos('threshMinScore', app_ctrl_title)
@@ -663,13 +439,13 @@ while True:
             
     if bProfileLog:            
         timestamp = datetime.now()
-        for pipeline_id in range(nb_blaze_pipelines):
-            if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
+        pipeline_id = 0
+        if True:
                 csv_str = \
                     str(timestamp)+","+\
                     str(user)+","+\
                     str(host)+","+\
-                    blaze_pipelines[pipeline_id]["pipeline"]+","+\
+                    "blaze_tflite"+","+\
                     str(prof_resize[pipeline_id])+","+\
                     str(prof_detector_pre[pipeline_id])+","+\
                     str(prof_detector_model[pipeline_id])+","+\
@@ -805,11 +581,7 @@ while True:
     if key == 100: # 'd'
         bShowDebugImage = not bShowDebugImage  
         if not bShowDebugImage:
-            for pipeline_id in range(nb_blaze_pipelines):
-                if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
-                    blaze_title = blaze_pipelines[pipeline_id]["pipeline"]
-                    app_debug_title = blaze_title+" Debug"
-                    cv2.destroyWindow(app_debug_title)
+           cv2.destroyWindow(app_debug_title)
            
     if key == 101: # 'e'
         bShowScores = not bShowScores
@@ -822,13 +594,8 @@ while True:
 
     if key == 118: # 'v'
         bVerbose = not bVerbose
-        for pipeline_id in range(nb_blaze_pipelines):
-            if blaze_pipelines[pipeline_id]["supported"] and blaze_pipelines[pipeline_id]["selected"]:
-                blaze_detector = blaze_pipelines[pipeline_id]["detector"]
-                blaze_landmark = blaze_pipelines[pipeline_id]["landmark"]
-                
-                blaze_detector.set_debug(debug=bVerbose) 
-                blaze_landmark.set_debug(debug=bVerbose)
+        blaze_detector.set_debug(debug=bVerbose) 
+        blaze_landmark.set_debug(debug=bVerbose)
 
     if key == 122: # 'z'
         bProfileLog = not bProfileLog
