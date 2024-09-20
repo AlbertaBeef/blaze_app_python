@@ -41,10 +41,12 @@ class BlazeLandmark(BlazeLandmarkBase):
         if self.DEBUG:
            print("[BlazeLandmark.load_model] Number of Inputs : ",self.num_inputs)
            for i in range(self.num_inputs):
-               print("[BlazeLandmark.load_model] Input[",i,"] Shape : ",self.input_details[i]['shape']," (",self.input_details[i]['name'],")")          
+               print("[BlazeLandmark.load_model] Input[",i,"] Details : ",self.input_details[i])
+               print("[BlazeLandmark.load_model] Input[",i,"] Shape : ",self.input_details[i]['shape']," (",self.input_details[i]['name'],") Quantization : ",self.input_details[i]['quantization'])          
            print("[BlazeLandmark.load_model] Number of Outputs : ",self.num_outputs)
            for i in range(self.num_outputs):
-               print("[BlazeLandmark.load_model] Output[",i,"] Shape : ",self.output_details[i]['shape']," (",self.output_details[i]['name'],")")           
+               print("[BlazeLandmark.load_model] Output[",i,"] Details : ",self.output_details[i])
+               print("[BlazeLandmark.load_model] Output[",i,"] Shape : ",self.output_details[i]['shape']," (",self.output_details[i]['name'],") Quantization : ",self.output_details[i]['quantization'])          
                 
         self.in_idx = self.input_details[0]['index']
         self.out_landmark_idx = self.output_details[0]['index']
@@ -132,8 +134,9 @@ class BlazeLandmark(BlazeLandmarkBase):
         flag = np.asarray(out1_list)
         landmarks = np.asarray(out2_list)        
 
-        #if self.DEBUG:
-        #    print("[BlazeLandmark] flag ",flag.shape,flag.dtype)
-        #    print("[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
-
+        if self.DEBUG:
+            print("[BlazeLandmark] flag ",flag.shape,flag.dtype)
+            print("[BlazeLandmark] flag Min/Max: ",np.amin(flag),np.amax(flag))
+            print("[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
+            print("[BlazeLandmark] landmarks Min/Max: ",np.amin(landmarks),np.amax(landmarks))
         return flag,landmarks

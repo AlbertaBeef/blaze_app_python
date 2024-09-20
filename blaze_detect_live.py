@@ -230,6 +230,7 @@ blaze_pipelines = [
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_heavy.tflite" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_07_upper" , "model1": "blaze_tflite/models/pose_detection_v0_07.tflite",             "model2": "blaze_tflite/models/pose_landmark_v0_07_upper_body.tflite" },
     { "blaze": "pose", "pipeline": "tflq_pose_v0_07_upper", "model1": "blaze_tflite_quant/models/pose_detection_128x128_full_integer_quant.tflite","model2": "blaze_tflite_quant/models/pose_landmark_upper_body_256x256_full_integer_quant.tflite" },
+    { "blaze": "pose", "pipeline": "tflh_pose_v0_07_upper", "model1": "blaze_tflite/models/pose_detection_v0_07.tflite","model2": "blaze_tflite_quant/models/pose_landmark_upper_body_256x256_full_integer_quant.tflite" },
     { "blaze": "pose", "pipeline": "pyt_pose_v0_07"       , "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" },
     { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" }
 ]

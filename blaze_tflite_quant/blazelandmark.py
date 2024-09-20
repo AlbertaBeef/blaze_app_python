@@ -24,7 +24,7 @@ class BlazeLandmark(BlazeLandmarkBase):
     def load_model(self, model_path):
 
         if self.DEBUG:
-           print("[BlazeLandmark.load_model] Model File : ",model_path)
+           print("q[BlazeLandmark.load_model] Model File : ",model_path)
            
         if bUseTfliteRuntime:
             self.interp_landmark = Interpreter(model_path)
@@ -39,24 +39,32 @@ class BlazeLandmark(BlazeLandmarkBase):
         self.num_inputs = len(self.input_details)
         self.num_outputs = len(self.output_details)       
         if self.DEBUG:
-           print("[BlazeLandmark.load_model] Number of Inputs : ",self.num_inputs)
+           print("q[BlazeLandmark.load_model] Number of Inputs : ",self.num_inputs)
            for i in range(self.num_inputs):
-               print("[BlazeLandmark.load_model] Input[",i,"] Shape : ",self.input_details[i]['shape']," (",self.input_details[i]['name'],")")          
-           print("[BlazeLandmark.load_model] Number of Outputs : ",self.num_outputs)
+               print("q[BlazeLandmark.load_model] Input[",i,"] Details : ",self.input_details[i])
+               print("q[BlazeLandmark.load_model] Input[",i,"] Shape : ",self.input_details[i]['shape']," (",self.input_details[i]['name'],") Quantization : ",self.input_details[i]['quantization'])          
+               #print("q[BlazeLandmark.load_model] Input[",i,"] Quantization Parameters : ",self.input_details[i]['quantization_parameters'])          
+           print("q[BlazeLandmark.load_model] Number of Outputs : ",self.num_outputs)
            for i in range(self.num_outputs):
-               print("[BlazeLandmark.load_model] Output[",i,"] Shape : ",self.output_details[i]['shape']," (",self.output_details[i]['name'],")")           
+               print("q[BlazeLandmark.load_model] Output[",i,"] Details : ",self.output_details[i])
+               print("q[BlazeLandmark.load_model] Output[",i,"] Shape : ",self.output_details[i]['shape']," (",self.output_details[i]['name'],") Quantization : ",self.output_details[i]['quantization'])          
+               #print("q[BlazeLandmark.load_model] Output[",i,"] Quantization Parameters : ",self.output_details[i]['quantization_parameters'])          
                 
         self.in_idx = self.input_details[0]['index']
         self.out_landmark_idx = self.output_details[2]['index']
         self.out_flag_idx = self.output_details[1]['index']
 
+        self.in_quantization = self.input_details[0]['quantization']
+        self.out_landmark_quantization = self.output_details[2]['quantization']
+        self.out_flag_quantization = self.output_details[1]['quantization']
+        
         self.in_shape = self.input_details[0]['shape']
         self.out_landmark_shape = self.output_details[2]['shape']
         self.out_flag_shape = self.output_details[1]['shape']
-        #if self.DEBUG:
-        #   print("[BlazeLandmark.load_model] Input Shape : ",self.in_shape)
-        #   print("[BlazeLandmark.load_model] Output1 Shape : ",self.out_landmark_shape)
-        #   print("[BlazeLandmark.load_model] Output2 Shape : ",self.out_flag_shape)
+        if self.DEBUG:
+           print("q[BlazeLandmark.load_model] Input Shape : ",self.in_shape)
+           print("q[BlazeLandmark.load_model] Output1 Shape : ",self.out_landmark_shape)
+           print("q[BlazeLandmark.load_model] Output2 Shape : ",self.out_flag_shape)
 
         self.resolution = self.in_shape[1]
 
@@ -103,25 +111,47 @@ class BlazeLandmark(BlazeLandmarkBase):
 
             start = timer()  
 
+            out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
+            out1_scale = self.out_flag_quantization[0]
+            out1_offset = self.out_flag_quantization[1]
+
+            out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
+            out2_scale = self.out_landmark_quantization[0]
+            out2_offset = self.out_landmark_quantization[1]
+
+            if self.DEBUG:
+                print("q[BlazeLandmark] flag Scale/Offset  ",out1_scale,out1_offset)
+                print("q[BlazeLandmark] landmark Scale/Offset  ",out2_scale,out2_offset)
+
             if self.blaze_app == "blazehandlandmark":
-                out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
-                out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
                 out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] / 63 => [1,21,3]
-                out2 = out2/self.resolution
                 #out3 = np.zeros(out1.shape,out1.dtype) # tflite model not returning handedness
             elif self.blaze_app == "blazefacelandmark":
-                out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
                 out1 = out1.reshape(1,1)
-                out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
                 out2 = out2.reshape(1,-1,3) # 1404 => [1,356,2]
-                out2 = out2/self.resolution            
             elif self.blaze_app == "blazeposelandmark":
-                out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
-                out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
-                out2 = out2.reshape(1,-1,4) # 124 => [1,31,4]
-                out2 = out2/self.resolution
+                if out2.shape[1] == 124:
+                    out2 = out2.reshape(1,-1,4) # v0.07 upper : 124 => [1,31,4]
+                else:
+                    out2 = out2.reshape(1,-1,5) # v0.10 full  : 195 => [1,39,5]
                 #out3 = np.asarray(self.interp_poselandmark.get_tensor(self.out_seg_idx))
 
+            # name: Identity_1
+            # tensor: uint8[-1,1,1,1]
+            # quantization: linear
+            # 0.00390625 * q
+            out1 = out1.astype(np.float32)
+            out1 = out1_scale * (out1 - out1_offset)    
+    
+            # name: Identity_2
+            # tensor: uint8[1,124]
+            # quantization: linear
+            # 11.609466552734375 * (q - 114) 
+            out2 = out2.astype(np.float32)
+            out2 = out2_scale * (out2 - out2_offset)    
+                
+
+            out2 = out2/self.resolution
 
             out1_list.append(out1.squeeze(0))
             out2_list.append(out2.squeeze(0))
@@ -132,8 +162,10 @@ class BlazeLandmark(BlazeLandmarkBase):
         flag = np.asarray(out1_list)
         landmarks = np.asarray(out2_list)        
 
-        #if self.DEBUG:
-        #    print("[BlazeLandmark] flag ",flag.shape,flag.dtype)
-        #    print("[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
-
+        if self.DEBUG:
+            print("q[BlazeLandmark] flag ",flag.shape,flag.dtype)
+            print("q[BlazeLandmark] flag Min/Max: ",np.amin(flag),np.amax(flag))
+            print("q[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
+            print("q[BlazeLandmark] landmarks Min/Max: ",np.amin(landmarks),np.amax(landmarks))
+            
         return flag,landmarks
