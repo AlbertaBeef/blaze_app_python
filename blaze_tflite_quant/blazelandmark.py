@@ -119,9 +119,9 @@ class BlazeLandmark(BlazeLandmarkBase):
             out2_scale = self.out_landmark_quantization[0]
             out2_offset = self.out_landmark_quantization[1]
 
-            if self.DEBUG:
-                print("q[BlazeLandmark] flag Scale/Offset  ",out1_scale,out1_offset)
-                print("q[BlazeLandmark] landmark Scale/Offset  ",out2_scale,out2_offset)
+            #if self.DEBUG:
+            #    print("q[BlazeLandmark] flag Scale/Offset  ",out1_scale,out1_offset)
+            #    print("q[BlazeLandmark] landmark Scale/Offset  ",out2_scale,out2_offset)
 
             if self.blaze_app == "blazehandlandmark":
                 out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] / 63 => [1,21,3]
@@ -136,12 +136,25 @@ class BlazeLandmark(BlazeLandmarkBase):
                     out2 = out2.reshape(1,-1,5) # v0.10 full  : 195 => [1,39,5]
                 #out3 = np.asarray(self.interp_poselandmark.get_tensor(self.out_seg_idx))
 
+            if self.DEBUG:
+                print("q[BlazeLandmark] Input   : ",x.shape, x.dtype) #, x)
+                print("q[BlazeLandmark] Input Min/Max: ",np.amin(x),np.amax(x))
+                print("q[BlazeLandmark] Output1 : ",out1.shape, out1.dtype) #, out1)
+                print("q[BlazeLandmark] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
+                print("q[BlazeLandmark] Output2 : ",out2.shape, out2.dtype) #, out2)
+                print("q[BlazeLandmark] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
+
             # name: Identity_1
             # tensor: uint8[-1,1,1,1]
             # quantization: linear
             # 0.00390625 * q
             out1 = out1.astype(np.float32)
             out1 = out1_scale * (out1 - out1_offset)    
+
+            if self.DEBUG:
+                print("q[BlazeLandmark] Output1 Scale/Offset : ",out1_scale,out1_offset)
+                print("q[BlazeLandmark] Output1 : ",out1.shape, out1.dtype) #, out1)
+                print("q[BlazeLandmark] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
     
             # name: Identity_2
             # tensor: uint8[1,124]
@@ -150,6 +163,10 @@ class BlazeLandmark(BlazeLandmarkBase):
             out2 = out2.astype(np.float32)
             out2 = out2_scale * (out2 - out2_offset)    
                 
+            if self.DEBUG:
+                print("q[BlazeLandmark] Output2 Scale/Offset : ",out2_scale,out2_offset)
+                print("q[BlazeLandmark] Output2 : ",out2.shape, out2.dtype) #, out2)
+                print("q[BlazeLandmark] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
 
             out2 = out2/self.resolution
 

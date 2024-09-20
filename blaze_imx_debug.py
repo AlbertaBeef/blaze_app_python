@@ -65,29 +65,13 @@ sys.path.append(os.path.abspath('blaze_pytorch/'))
 sys.path.append(os.path.abspath('blaze_vitisai/'))
 sys.path.append(os.path.abspath('blaze_hailo/'))
 
-supported_targets = {
-    "blaze_tflite": False,
-    "blaze_tflite_quant": False,
-    "blaze_pytorch": False,
-    "blaze_vitisai": False,
-    "blaze_hailo": False
-}
+from blaze_tflite.blazedetector import BlazeDetector as BlazeDetector_tflite
+from blaze_tflite.blazelandmark import BlazeLandmark as BlazeLandmark_tflite
+print("[INFO] blaze_tflite supported ...")
 
-try:
-    from blaze_tflite.blazedetector import BlazeDetector as BlazeDetector_tflite
-    from blaze_tflite.blazelandmark import BlazeLandmark as BlazeLandmark_tflite
-    print("[INFO] blaze_tflite supported ...")
-    supported_targets["blaze_tflite"] = True
-except:
-    print("[INFO] blaze_tflite NOT supported ...")
-
-try:
-    from blaze_tflite_quant.blazedetector import BlazeDetector as BlazeDetector_tflite_quant
-    from blaze_tflite_quant.blazelandmark import BlazeLandmark as BlazeLandmark_tflite_quant
-    print("[INFO] blaze_tflite_quant supported ...")
-    supported_targets["blaze_tflite_quant"] = True
-except:
-    print("[INFO] blaze_tflite_quant NOT supported ...")
+from blaze_tflite_quant.blazedetector import BlazeDetector as BlazeDetector_tflite_quant
+from blaze_tflite_quant.blazelandmark import BlazeLandmark as BlazeLandmark_tflite_quant
+print("[INFO] blaze_tflite_quant supported ...")
 
 try:
     from blaze_pytorch.blazedetector import BlazeDetector as BlazeDetector_pytorch
@@ -403,61 +387,79 @@ while True:
                 
             #image = cv2.resize(image,(0,0), fx=scale, fy=scale) 
             output = image.copy()
+            output2 = image.copy()
             
             # BlazePalm pipeline
             
-            start = timer()
             image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
             img1,scale1,pad1=blaze_detector.resize_pad(image)
-            profile_resize = timer()-start
 
             if bShowDebugImage:
                 # show the resized input image
                 debug_img = img1.astype(np.float32)/255.0
-                debug_img = cv2.resize(debug_img,(blaze_landmark.resolution,blaze_landmark.resolution))
+                debug_img = cv2.resize(debug_img2,(blaze_landmark.resolution,blaze_landmark.resolution))
+                #
+                debug_img2 = img1.astype(np.float32)/255.0
+                debug_img2 = cv2.resize(debug_img2,(blaze_landmark2.resolution,blaze_landmark2.resolution))
+
             
-            
-            out1_reference,out2_reference = blaze_detector.predict_subset(np.expand_dims(img1, axis=0))
-            out1_debug,out2_debug = blaze_detector2.predict_subset(np.expand_dims(img1, axis=0))
-            #print(out1_reference.shape, out2_reference.shape)
-            #print(out1_debug.shape, out2_debug.shape)            
+            out1_reference,out2_reference = blaze_detector.predict_core(np.expand_dims(img1, axis=0))
+            detection_boxes_reference = blaze_detector._decode_boxes(out2_reference, blaze_detector.anchors)
+            #thresh = blaze_detector.score_clipping_thresh
+            #clipped_score_tensor = np.clip(out1_reference,-thresh,thresh)
+            #detection_scores = 1/(1 + np.exp(-clipped_score_tensor))
+            detection_scores = 1/(1 + np.exp(-out1_reference))
+            detection_scores_reference = np.squeeze(detection_scores, axis=-1)        
+
+            out1_debug,out2_debug = blaze_detector2.predict_core(np.expand_dims(img1, axis=0))
+            detection_boxes_debug = blaze_detector2._decode_boxes(out2_debug, blaze_detector2.anchors)
+            #thresh = blaze_detector2.score_clipping_thresh
+            #clipped_score_tensor = np.clip(out1_debug,-thresh,thresh)
+            #detection_scores = 1/(1 + np.exp(-clipped_score_tensor))
+            detection_scores = 1/(1 + np.exp(-out1_debug))
+            detection_scores_debug = np.squeeze(detection_scores, axis=-1)        
             
 
             Y1 = out1_reference.reshape(-1)
             Y2 = out1_debug.reshape(-1)
             X12 = range(0,len(Y1))
             #
-            Y3 = out2_reference.reshape(-1)
-            Y4 = out2_debug.reshape(-1)
+            Y3 = detection_scores_reference.reshape(-1)
+            Y4 = detection_scores_debug.reshape(-1)
             X34 = range(0,len(Y3))
             #
-            figure, axis = plt.subplots(2, 2)
+            Y5 = out2_reference.reshape(-1)
+            Y6 = out2_debug.reshape(-1)
+            X56 = range(0,len(Y5))
+            #
+            figure, axis = plt.subplots(2, 3)
             axis[0, 0].plot(X12, Y1)
             axis[0, 0].set_title("Scores (reference)")
             axis[1, 0].plot(X12, Y2)
             axis[1, 0].set_title("Scores (debug)")
             axis[0, 1].plot(X34, Y3)
-            axis[0, 1].set_title("BBoxes (reference)")
+            axis[0, 1].set_title("Sigmoid (reference)")
             axis[1, 1].plot(X34, Y4)
-            axis[1, 1].set_title("BBoxes (debug)")
+            axis[1, 1].set_title("Sigmoid (debug)")
+            axis[0, 2].plot(X56, Y5)
+            axis[0, 2].set_title("BBoxes (reference)")
+            axis[1, 2].plot(X56, Y6)
+            axis[1, 2].set_title("BBoxes (debug)")
             plt.show()            
             
             normalized_detections = blaze_detector.predict_on_image(img1)
             if len(normalized_detections) > 0:
   
-                start = timer()          
                 detections = blaze_detector.denormalize_detections(normalized_detections,scale1,pad1)
                     
                 xc,yc,scale,theta = blaze_detector.detection2roi(detections)
                 roi_img,roi_affine,roi_box = blaze_landmark.extract_roi(image,xc,yc,theta,scale)
-                profile_extract = timer()-start
 
                 flags, normalized_landmarks = blaze_landmark.predict(roi_img)
 
                 if bShowDebugImage:
                     # show the ROIs
                     for i in range(roi_img.shape[0]):
-                        #roi_landmarks = np.expand_dims(normalized_landmarks[i,:,:].copy(), axis=0)
                         roi_landmarks = normalized_landmarks[i,:,:].copy()
                         roi_landmarks = roi_landmarks*blaze_landmark.resolution
                         if blaze_landmark_type == "blazehandlandmark":
@@ -471,7 +473,6 @@ while True:
                                 draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
                         debug_img = cv2.hconcat([debug_img,roi_img[i]])
 
-                start = timer() 
                 landmarks = blaze_landmark.denormalize_landmarks(normalized_landmarks, roi_affine)
 
                 for i in range(len(flags)):
@@ -489,7 +490,6 @@ while True:
                    
                 draw_roi(output,roi_box)
                 draw_detections(output,detections)
-                profile_annotate = timer()-start
 
             if bShowDebugImage:
                 if debug_img.shape[0] == debug_img.shape[1]:
@@ -497,6 +497,60 @@ while True:
                     debug_img = cv2.hconcat([debug_img,zero_img])
                 debug_img = cv2.cvtColor(debug_img,cv2.COLOR_RGB2BGR)
                 cv2.imshow(app_debug_title, debug_img)
+
+            # skip, otherwise stuck in endless loop
+            #normalized_detections2 = blaze_detector2.predict_on_image(img1)
+            # use floating-point results instead (for now) ... 
+            normalized_detections2 = blaze_detector.predict_on_image(img1)
+            if len(normalized_detections2) > 0:
+  
+                detections2 = blaze_detector2.denormalize_detections(normalized_detections2,scale1,pad1)
+                    
+                xc,yc,scale,theta = blaze_detector2.detection2roi(detections2)
+                roi_img2,roi_affine2,roi_box2 = blaze_landmark2.extract_roi(image,xc,yc,theta,scale)
+
+                flags2, normalized_landmarks2 = blaze_landmark2.predict(roi_img2)
+
+                if bShowDebugImage:
+                    # show the ROIs
+                    for i in range(roi_img.shape[0]):
+                        roi_landmarks = normalized_landmarks2[i,:,:].copy()
+                        roi_landmarks = roi_landmarks*blaze_landmark2.resolution
+                        if blaze_landmark_type == "blazehandlandmark":
+                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2)
+                        elif blaze_landmark_type == "blazefacelandmark":
+                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], FACE_CONNECTIONS, size=1)                                    
+                        elif blaze_landmark_type == "blazeposelandmark":
+                            if roi_landmarks.shape[1] > 33:
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
+                            else:
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+                        debug_img = cv2.hconcat([debug_img,roi_img[i]])
+
+                landmarks2 = blaze_landmark.denormalize_landmarks(normalized_landmarks2, roi_affine2)
+
+                for i in range(len(flags)):
+                    landmark, flag = landmarks2[i], flags2[i]
+                    #if True: #flag>.5:
+                    if blaze_landmark_type == "blazehandlandmark":
+                        draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2)
+                    elif blaze_landmark_type == "blazefacelandmark":
+                        draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, size=1)                                    
+                    elif blaze_landmark_type == "blazeposelandmark":
+                        if landmarks.shape[1] > 33:
+                            draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
+                        else:
+                            draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+                   
+                draw_roi(output2,roi_box2)
+                draw_detections(output2,detections2)
+
+            if bShowDebugImage:
+                if debug_img2.shape[0] == debug_img2.shape[1]:
+                    zero_img2 = np.full_like(debug_img2,0.0)
+                    debug_img2 = cv2.hconcat([debug_img2,zero_img2])
+                debug_img2 = cv2.cvtColor(debug_img2,cv2.COLOR_RGB2BGR)
+                cv2.imshow(app_debug_title2, debug_img2)
                 
             # display real-time FPS counter (if valid)
             if rt_fps_valid == True and bShowFPS:
@@ -505,6 +559,7 @@ while True:
             if bViewOutput:                
                 # show the output image
                 cv2.imshow(app_main_title, output)
+                cv2.imshow(app_main_title2, output2)
 
             if False:
                if len(normalized_detections) == 0:
