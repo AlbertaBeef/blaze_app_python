@@ -231,6 +231,7 @@ blaze_pipelines = [
     { "blaze": "pose", "pipeline": "tfl_pose_v0_07_upper" , "model1": "blaze_tflite/models/pose_detection_v0_07.tflite",             "model2": "blaze_tflite/models/pose_landmark_v0_07_upper_body.tflite" },
     { "blaze": "pose", "pipeline": "tflq_pose_v0_07_upper", "model1": "blaze_tflite_quant/models/pose_detection_128x128_full_integer_quant.tflite","model2": "blaze_tflite_quant/models/pose_landmark_upper_body_256x256_full_integer_quant.tflite" },
     { "blaze": "pose", "pipeline": "tflh_pose_v0_07_upper", "model1": "blaze_tflite/models/pose_detection_v0_07.tflite","model2": "blaze_tflite_quant/models/pose_landmark_upper_body_256x256_full_integer_quant.tflite" },
+    { "blaze": "pose", "pipeline": "tflq_pose_v0_10_upper", "model1": "blaze_tflite_quant/models/pose_detection_full_quant.tflite",  "model2": "blaze_tflite_quant/models/pose_landmark_full_quant.tflite" },
     { "blaze": "pose", "pipeline": "pyt_pose_v0_07"       , "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" },
     { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" }
 ]
@@ -449,7 +450,11 @@ for pipeline_id in range(nb_blaze_pipelines):
             thresh_min_score = blaze_detector.min_score_thresh
             thresh_min_score_prev = thresh_min_score
             cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
-
+            
+            thresh_nms = blaze_detector.min_suppression_threshold
+            thresh_nms_prev = thresh_nms
+            cv2.createTrackbar('threshNMS', app_ctrl_title, int(thresh_nms*100), 100, ignore)
+            
 image = []
 output = []
 
@@ -528,6 +533,15 @@ while True:
                 if thresh_min_score != thresh_min_score_prev:
                     blaze_detector.min_score_thresh = thresh_min_score
                     thresh_min_score_prev = thresh_min_score
+
+                thresh_nms = cv2.getTrackbarPos('threshNMS', app_ctrl_title)
+                if thresh_nms < 10:
+                    thresh_nms = 10
+                    cv2.setTrackbarPos('threshNMS', app_ctrl_title,thresh_nms)
+                thresh_nms = thresh_nms*(1/100)
+                if thresh_nms != thresh_nms_prev:
+                    blaze_detector.min_suppression_threshold = thresh_nms
+                    thresh_nms_prev = thresh_nms
                 
                 
             #image = cv2.resize(image,(0,0), fx=scale, fy=scale) 

@@ -6,8 +6,8 @@ from blazebase import BlazeLandmarkBase
 bUseTfliteRuntime = False
 try:
     import tensorflow as tf
-    import tensorflow.lite
-
+    #import tensorflow.lite
+    import tf.contrib
 except:
     from tflite_runtime.interpreter import Interpreter
     bUseTfliteRuntime = True
@@ -29,7 +29,8 @@ class BlazeLandmark(BlazeLandmarkBase):
         if bUseTfliteRuntime:
             self.interp_landmark = Interpreter(model_path)
         else:
-            self.interp_landmark = tf.lite.Interpreter(model_path)
+            #self.interp_landmark = tf.lite.Interpreter(model_path)
+            self.interp_landmark = tf.contrib.lite.Interpreter(model_path)
 
         self.interp_landmark.allocate_tensors()
 

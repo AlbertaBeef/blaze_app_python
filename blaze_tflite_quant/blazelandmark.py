@@ -6,8 +6,8 @@ from blazebase import BlazeLandmarkBase
 bUseTfliteRuntime = False
 try:
     import tensorflow as tf
-    import tensorflow.lite
-
+    #import tensorflow.lite
+    import tf.contrib
 except:
     from tflite_runtime.interpreter import Interpreter
     bUseTfliteRuntime = True
@@ -29,7 +29,8 @@ class BlazeLandmark(BlazeLandmarkBase):
         if bUseTfliteRuntime:
             self.interp_landmark = Interpreter(model_path)
         else:
-            self.interp_landmark = tf.lite.Interpreter(model_path)
+            #self.interp_landmark = tf.lite.Interpreter(model_path)
+            self.interp_landmark = tf.contrib.lite.Interpreter(model_path)
 
         self.interp_landmark.allocate_tensors()
 
@@ -51,15 +52,15 @@ class BlazeLandmark(BlazeLandmarkBase):
                #print("q[BlazeLandmark.load_model] Output[",i,"] Quantization Parameters : ",self.output_details[i]['quantization_parameters'])          
                 
         self.in_idx = self.input_details[0]['index']
-        self.out_landmark_idx = self.output_details[2]['index']
+        self.out_landmark_idx = self.output_details[3]['index']
         self.out_flag_idx = self.output_details[1]['index']
 
         self.in_quantization = self.input_details[0]['quantization']
-        self.out_landmark_quantization = self.output_details[2]['quantization']
+        self.out_landmark_quantization = self.output_details[3]['quantization']
         self.out_flag_quantization = self.output_details[1]['quantization']
         
         self.in_shape = self.input_details[0]['shape']
-        self.out_landmark_shape = self.output_details[2]['shape']
+        self.out_landmark_shape = self.output_details[3]['shape']
         self.out_flag_shape = self.output_details[1]['shape']
         if self.DEBUG:
            print("q[BlazeLandmark.load_model] Input Shape : ",self.in_shape)

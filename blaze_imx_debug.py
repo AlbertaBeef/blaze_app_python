@@ -240,11 +240,11 @@ if not os.path.exists(output_dir):
 
 
 
-default_detector_model = "blaze_tflite/models/pose_detection_v0_07.tflite"
-default_landmark_model = "blaze_tflite/models/pose_landmark_v0_07_upper_body.tflite"
+default_detector_model = "blaze_tflite/models/pose_detection.tflite"
+default_landmark_model = "blaze_tflite/models/pose_landmark_full.tflite"
 
-debug_detector_model = "blaze_tflite_quant/models/pose_detection_128x128_full_integer_quant.tflite"
-debug_landmark_model = "blaze_tflite_quant/models/pose_landmark_upper_body_256x256_full_integer_quant.tflite"
+debug_detector_model = "blaze_tflite_quant/models/pose_detection_full_quant.tflite"
+debug_landmark_model = "blaze_tflite_quant/models/pose_landmark_full_quant.tflite"
 
 blaze_detector_type = "blazepose"
 blaze_landmark_type = "blazeposelandmark"
@@ -314,6 +314,10 @@ if bViewOutput:
     thresh_min_score_prev = thresh_min_score
     cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
 
+    thresh_nms = blaze_detector.min_suppression_threshold
+    thresh_nms_prev = thresh_nms
+    cv2.createTrackbar('threshNMS', app_ctrl_title, int(thresh_nms*100), 100, ignore)
+
     app_main_title2 = blaze_title+" Debug"
     app_ctrl_title2 = blaze_title+" Debug"
     app_debug_title2 = blaze_title+" Debug ROIs"
@@ -322,6 +326,10 @@ if bViewOutput:
     thresh_min_score2 = blaze_detector2.min_score_thresh
     thresh_min_score2_prev = thresh_min_score2
     cv2.createTrackbar('threshMinScore', app_ctrl_title2, int(thresh_min_score2*100), 100, ignore)
+
+    thresh_nms2 = blaze_detector2.min_suppression_threshold
+    thresh_nms2_prev = thresh_nms2
+    cv2.createTrackbar('threshNMS', app_ctrl_title2, int(thresh_nms2*100), 100, ignore)
 
 image = []
 output = []
@@ -375,6 +383,15 @@ while True:
                     blaze_detector.min_score_thresh = thresh_min_score
                     thresh_min_score_prev = thresh_min_score
 
+                thresh_nms = cv2.getTrackbarPos('threshNMS', app_ctrl_title)
+                if thresh_nms < 10:
+                    thresh_nms = 10
+                    cv2.setTrackbarPos('threshNMS', app_ctrl_title,thresh_nms)
+                thresh_nms = thresh_nms*(1/100)
+                if thresh_nms != thresh_nms_prev:
+                    blaze_detector.min_suppression_threshold = thresh_nms
+                    thresh_nms_prev = thresh_nms
+
                 thresh_min_score2 = cv2.getTrackbarPos('threshMinScore', app_ctrl_title2)
                 if thresh_min_score2 < 10:
                     thresh_min_score2 = 10
@@ -383,7 +400,15 @@ while True:
                 if thresh_min_score2 != thresh_min_score2_prev:
                     blaze_detector2.min_score_thresh = thresh_min_score2
                     thresh_min_score2_prev = thresh_min_score2
-                
+
+                thresh_nms2 = cv2.getTrackbarPos('threshNMS', app_ctrl_title2)
+                if thresh_nms2 < 10:
+                    thresh_nms2 = 10
+                    cv2.setTrackbarPos('threshNMS', app_ctrl_title2,thresh_nms2)
+                thresh_nms2 = thresh_nms2*(1/100)
+                if thresh_nms2 != thresh_nms2_prev:
+                    blaze_detector2.min_suppression_threshold = thresh_nms2
+                    thresh_nms2_prev = thresh_nms2                
                 
             #image = cv2.resize(image,(0,0), fx=scale, fy=scale) 
             output = image.copy()
@@ -498,10 +523,7 @@ while True:
                 debug_img = cv2.cvtColor(debug_img,cv2.COLOR_RGB2BGR)
                 cv2.imshow(app_debug_title, debug_img)
 
-            # skip, otherwise stuck in endless loop
-            #normalized_detections2 = blaze_detector2.predict_on_image(img1)
-            # use floating-point results instead (for now) ... 
-            normalized_detections2 = blaze_detector.predict_on_image(img1)
+            normalized_detections2 = blaze_detector2.predict_on_image(img1)
             if len(normalized_detections2) > 0:
   
                 detections2 = blaze_detector2.denormalize_detections(normalized_detections2,scale1,pad1)

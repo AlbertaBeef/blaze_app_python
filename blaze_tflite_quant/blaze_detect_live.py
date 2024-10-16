@@ -94,7 +94,7 @@ text_lineType = cv2.LINE_AA
 ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
-ap.add_argument('-b', '--blaze',  type=str, default="hand", help="Application (hand, face, pose).  Default is hand")
+ap.add_argument('-b', '--blaze',  type=str, default="pose", help="Application (hand, face, pose).  Default is pose")
 ap.add_argument('-m', '--model1', type=str, help='Path of blazepalm model. Default is models/palm_detection_without_custom_op.tflite')
 ap.add_argument('-n', '--model2', type=str, help='Path of blazehandlardmark model. Default is models/hand_landmark.tflite')
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
@@ -177,7 +177,7 @@ elif args.blaze == "pose":
    #default_detector_model='models/pose_detection.tflite'
    #default_landmark_model='models/pose_landmark_full.tflite'
    #default_detector_model='models/pose_detection_full_quant.tflite'
-   default_detector_model='models/pose_detection_128x128_full_integer_quant.tflite'
+   default_detector_model='models/pose_detection_full_quant.tflite'
    default_landmark_model='models/pose_landmark_full_quant.tflite'
 else:
    print("[ERROR] Invalid Blaze application : ",args.blaze,".  MUST be one of hand,face,pose.")
@@ -241,6 +241,10 @@ if bViewOutput:
     thresh_min_score_prev = thresh_min_score
     cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
 
+    thresh_nms = blaze_detector.min_suppression_threshold
+    thresh_nms_prev = thresh_nms
+    cv2.createTrackbar('threshNMS', app_ctrl_title, int(thresh_nms*100), 100, ignore)
+
 image = []
 output = []
 
@@ -303,6 +307,15 @@ while True:
                 if thresh_min_score != thresh_min_score_prev:
                     blaze_detector.min_score_thresh = thresh_min_score
                     thresh_min_score_prev = thresh_min_score
+
+                thresh_nms = cv2.getTrackbarPos('threshNMS', app_ctrl_title)
+                if thresh_nms < 10:
+                    thresh_nms = 10
+                    cv2.setTrackbarPos('threshNMS', app_ctrl_title,thresh_nms)
+                thresh_nms = thresh_nms*(1/100)
+                if thresh_nms != thresh_nms_prev:
+                    blaze_detector.min_suppression_threshold = thresh_nms
+                    thresh_nms_prev = thresh_nms
                 
                 
             #image = cv2.resize(image,(0,0), fx=scale, fy=scale) 

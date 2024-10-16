@@ -6,7 +6,8 @@ from blazebase import BlazeDetectorBase
 bUseTfliteRuntime = False
 try:
     import tensorflow as tf
-    import tensorflow.lite
+    #import tensorflow.lite
+    import tf.contrib
 except:
     from tflite_runtime.interpreter import Interpreter
     bUseTfliteRuntime = True
@@ -29,7 +30,8 @@ class BlazeDetector(BlazeDetectorBase):
         if bUseTfliteRuntime:
             self.interp_detector = Interpreter(model_path)
         else:
-            self.interp_detector = tf.lite.Interpreter(model_path)
+            #self.interp_detector = tf.lite.Interpreter(model_path)
+            self.interp_detector = tf.contrib.lite.Interpreter(model_path)
         self.interp_detector.allocate_tensors()
 
         # reading tflite model paramteres
