@@ -174,8 +174,22 @@ elif args.blaze == "pose":
    blaze_detector_type = "blazepose"
    blaze_landmark_type = "blazeposelandmark"
    blaze_title = "BlazePoseLandmark"
-   default_detector_model='models/pose_detection.tflite'
-   default_landmark_model='models/pose_landmark_full.tflite'
+#    default_detector_model='models/pose_detection.tflite'
+#    default_landmark_model='models/pose_landmark_full.tflite'
+#    default_detector_model = "models/pose_detection_quant_floatinputs.tflite"
+#    default_landmark_model = "models/pose_landmark_full_quant_floatinputs.tflite"
+
+##NXP Models ===
+#    default_detector_model = "models/pose_detection_quant.tflite"
+#    default_landmark_model = "models/pose_landmark_lite_quant.tflite"
+##======
+   default_detector_model = "models/pose_detection_quant_floatinputs_vela.tflite"
+   default_landmark_model = "models/pose_landmark_full_quant_floatinputs_vela.tflite"
+#    default_landmark_model = "models/pose_detection_quant_floatinputs_sramonly_vela.tflite"
+   #    default_detector_model = "models/pose_detection_128x128_integer_quant.tflite" #doesn't detect anything
+   #default_landmark_model = "models/pose_landmark_upper_body_256x256_integer_quant.tflite"
+   #    default_detector_model = "models/pose_detection_128x128_integer_quant_vela.tflite" #doesn't detect anything
+   #default_landmark_model = "models/pose_landmark_upper_body_256x256_integer_quant_vela.tflite"
 else:
    print("[ERROR] Invalid Blaze application : ",args.blaze,".  MUST be one of hand,face,pose.")
 
@@ -221,10 +235,12 @@ bShowDebugImage = False
 bShowScores = False
 bShowFPS = args.fps
 bVerbose = args.debug
-bViewOutput = not args.withoutview
-bProfileLog = args.profilelog
-bProfileView = args.profileview
-
+# bViewOutput = not args.withoutview
+# bProfileLog = args.profilelog
+# bProfileView = args.profileview
+bViewOutput = False
+bProfileLog = True
+bProfileView = False
 def ignore(x):
     pass
 
@@ -389,6 +405,7 @@ while True:
                prof_detector_model[pipeline_id] = blaze_detector.profile_model
                prof_detector_post[pipeline_id]  = blaze_detector.profile_post
                if len(normalized_detections) > 0:
+                   print("len(normalized_detections): ", len(normalized_detections))
                    prof_extract_roi[pipeline_id]    = profile_extract
                    prof_landmark_pre[pipeline_id]   = blaze_landmark.profile_pre
                    prof_landmark_model[pipeline_id] = blaze_landmark.profile_model
@@ -549,64 +566,64 @@ while True:
             cv2.imwrite(os.path.join(output_dir,filename),profile_fps_img)
             
 
-    if bStep == True:
-        key = cv2.waitKey(0)
-    elif bPause == True:
-        key = cv2.waitKey(0)
-    else:
-        key = cv2.waitKey(1)
+    # if bStep == True:
+    #     key = cv2.waitKey(0)
+    # elif bPause == True:
+    #     key = cv2.waitKey(0)
+    # else:
+    #     key = cv2.waitKey(1)
 
-    #print(key)
+    # #print(key)
     
-    bWrite = False
-    if key == 119: # 'w'
-        bWrite = True
+    # bWrite = False
+    # if key == 119: # 'w'
+    #     bWrite = True
 
-    if key == 115: # 's'
-        bStep = True    
+    # if key == 115: # 's'
+    #     bStep = True    
     
-    if key == 112: # 'p'
-        bPause = not bPause
+    # if key == 112: # 'p'
+    #     bPause = not bPause
 
-    if key == 99: # 'c'
-        bStep = False
-        bPause = False
+    # if key == 99: # 'c'
+    #     bStep = False
+    #     bPause = False
         
-    if key == 116: # 't'
-        bUseImage = not bUseImage  
+    # if key == 116: # 't'
+    #     bUseImage = not bUseImage  
 
-    if key == 100: # 'd'
-        bShowDebugImage = not bShowDebugImage  
-        if not bShowDebugImage:
-           cv2.destroyWindow(app_debug_title)
+    # if key == 100: # 'd'
+    #     bShowDebugImage = not bShowDebugImage  
+    #     if not bShowDebugImage:
+    #        cv2.destroyWindow(app_debug_title)
            
-    if key == 101: # 'e'
-        bShowScores = not bShowScores
-        blaze_detector.display_scores(debug=bShowScores)
-        if not bShowScores:
-           cv2.destroyWindow("Detection Scores (sigmoid)")
+    # if key == 101: # 'e'
+    #     bShowScores = not bShowScores
+    #     blaze_detector.display_scores(debug=bShowScores)
+    #     if not bShowScores:
+    #        cv2.destroyWindow("Detection Scores (sigmoid)")
 
-    if key == 102: # 'f'
-        bShowFPS = not bShowFPS
+    # if key == 102: # 'f'
+    #     bShowFPS = not bShowFPS
 
-    if key == 118: # 'v'
-        bVerbose = not bVerbose
-        blaze_detector.set_debug(debug=bVerbose) 
-        blaze_landmark.set_debug(debug=bVerbose)
+    # if key == 118: # 'v'
+    #     bVerbose = not bVerbose
+    #     blaze_detector.set_debug(debug=bVerbose) 
+    #     blaze_landmark.set_debug(debug=bVerbose)
 
-    if key == 122: # 'z'
-        bProfileLog = not bProfileLog
+    # if key == 122: # 'z'
+    #     bProfileLog = not bProfileLog
 
-    if key == 90: # 'Z'
-        bProfileView = not bProfileView 
-        blaze_detector.set_profile(profile=bProfileView) 
-        blaze_landmark.set_profile(profile=bProfileView)
-        if not bProfileView:
-            cv2.destroyWindow(profile_latency_title)
-            cv2.destroyWindow(profile_fps_title)
+    # if key == 90: # 'Z'
+    #     bProfileView = not bProfileView 
+    #     blaze_detector.set_profile(profile=bProfileView) 
+    #     blaze_landmark.set_profile(profile=bProfileView)
+    #     if not bProfileView:
+    #         cv2.destroyWindow(profile_latency_title)
+    #         cv2.destroyWindow(profile_fps_title)
 
-    if key == 27 or key == 113: # ESC or 'q':
-        break
+    # if key == 27 or key == 113: # ESC or 'q':
+    #     break
 
     # Update the real-time FPS counter
     rt_fps_count = rt_fps_count + 1

@@ -25,11 +25,13 @@ class BlazeLandmark(BlazeLandmarkBase):
 
         if self.DEBUG:
            print("[BlazeLandmark.load_model] Model File : ",model_path)
-           
+        delegate_path = "/usr/lib/libethosu_delegate.so"   
         if bUseTfliteRuntime:
             self.interp_landmark = Interpreter(model_path)
         else:
-            self.interp_landmark = tf.lite.Interpreter(model_path)
+            ext_delegate = [tf.lite.load_delegate(delegate_path)]
+            self.interp_detector = tf.lite.Interpreter(model_path, experimental_delegates=ext_delegate)
+            #self.interp_landmark = tf.lite.Interpreter(model_path)
 
         self.interp_landmark.allocate_tensors()
 
@@ -48,13 +50,33 @@ class BlazeLandmark(BlazeLandmarkBase):
                print("[BlazeLandmark.load_model] Output[",i,"] Details : ",self.output_details[i])
                print("[BlazeLandmark.load_model] Output[",i,"] Shape : ",self.output_details[i]['shape']," (",self.output_details[i]['name'],") Quantization : ",self.output_details[i]['quantization'])          
                 
+         ## use these for pose_detection.tflite + pose_landmark_full.tflite, pose_detection_quant_floatinputs_sramonly_vela.tflite
+        # self.in_idx = self.input_details[0]['index']
+        # self.out_landmark_idx = self.output_details[0]['index']
+        # self.out_flag_idx = self.output_details[1]['index']
+
+        # self.in_shape = self.input_details[0]['shape']
+        # self.out_landmark_shape = self.output_details[0]['shape']
+        # self.out_flag_shape = self.output_details[1]['shape']
+
+        ## use these for []quant_floatinputs.tfllite models
         self.in_idx = self.input_details[0]['index']
-        self.out_landmark_idx = self.output_details[0]['index']
+        self.out_landmark_idx = self.output_details[3]['index']
         self.out_flag_idx = self.output_details[1]['index']
 
         self.in_shape = self.input_details[0]['shape']
-        self.out_landmark_shape = self.output_details[0]['shape']
+        self.out_landmark_shape = self.output_details[3]['shape']
         self.out_flag_shape = self.output_details[1]['shape']
+
+        # use these for pose_detection.tflite + pose_landmark_full.tflite, []quant_floatinputs_vela.tflite models
+        # self.in_idx = self.input_details[0]['index']
+        # self.out_landmark_idx = self.output_details[1]['index']
+        # self.out_flag_idx = self.output_details[2]['index']   
+        
+        # self.in_shape = self.input_details[0]['shape']
+        # self.out_landmark_shape = self.output_details[1]['shape']
+        # self.out_flag_shape = self.output_details[2]['shape']   
+        
         #if self.DEBUG:
         #   print("[BlazeLandmark.load_model] Input Shape : ",self.in_shape)
         #   print("[BlazeLandmark.load_model] Output1 Shape : ",self.out_landmark_shape)

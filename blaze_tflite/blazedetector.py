@@ -25,11 +25,13 @@ class BlazeDetector(BlazeDetectorBase):
 
         if self.DEBUG:
            print("[BlazeDetector.load_model] Model File : ",model_path)
-           
+        delegate_path = "/usr/lib/libethosu_delegate.so"   
         if bUseTfliteRuntime:
             self.interp_detector = Interpreter(model_path)
         else:
-            self.interp_detector = tf.lite.Interpreter(model_path)
+            ext_delegate = [tf.lite.load_delegate(delegate_path)]
+            self.interp_detector = tf.lite.Interpreter(model_path, experimental_delegates=ext_delegate)
+            #self.interp_landmark = tf.lite.Interpreter(model_path)
         self.interp_detector.allocate_tensors()
 
         # reading tflite model paramteres
@@ -47,13 +49,23 @@ class BlazeDetector(BlazeDetectorBase):
                print("[BlazeDetector.load_model] Output[",i,"] Details : ",self.output_details[i])
                print("[BlazeDetector.load_model] Output[",i,"] Shape : ",self.output_details[i]['shape']," (",self.output_details[i]['name'],") Quantization : ",self.output_details[i]['quantization'])
 
-        self.in_idx = self.input_details[0]['index']
-        self.out_reg_idx = self.output_details[0]['index']
-        self.out_clf_idx = self.output_details[1]['index']
+        ## use these for pose_detection.tflite
+        # self.in_idx = self.input_details[0]['index']
+        # self.out_reg_idx = self.output_details[0]['index']
+        # self.out_clf_idx = self.output_details[1]['index']
 
+        # self.in_shape = self.input_details[0]['shape']
+        # self.out_reg_shape = self.output_details[0]['shape']
+        # self.out_clf_shape = self.output_details[1]['shape']
+
+        ##use just these for []quant_floatinputs_vela.tflite models (no additional landmark adjusting needed)
+        self.in_idx = self.input_details[0]['index']
+        self.out_reg_idx = self.output_details[1]['index']
+        self.out_clf_idx = self.output_details[0]['index']
+        
         self.in_shape = self.input_details[0]['shape']
-        self.out_reg_shape = self.output_details[0]['shape']
-        self.out_clf_shape = self.output_details[1]['shape']
+        self.out_reg_shape = self.output_details[1]['shape']
+        self.out_clf_shape = self.output_details[0]['shape']
         #if self.DEBUG:
         #   print("[BlazeDetector.load_model] Input Shape : ",self.in_shape)
         #   print("[BlazeDetector.load_model] Output1 Shape : ",self.out_reg_shape)

@@ -278,6 +278,7 @@ class BlazeDetectorBase(BlazeBase):
 
         thresh = self.score_clipping_thresh
         clipped_score_tensor = np.clip(raw_score_tensor,-thresh,thresh)
+        #print("clipped_score_tensor shape: ", clipped_score_tensor)
 
         detection_scores = 1/(1 + np.exp(-clipped_score_tensor))
         detection_scores = np.squeeze(detection_scores, axis=-1)        
@@ -370,6 +371,8 @@ class BlazeDetectorBase(BlazeBase):
         """
         if len(detections) == 0: 
            return []
+        elif len(detections) > 3:
+            detections = detections[:3]
 
         output_detections = []
 

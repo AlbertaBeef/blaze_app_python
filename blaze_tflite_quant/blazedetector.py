@@ -79,8 +79,8 @@ class BlazeDetector(BlazeDetectorBase):
     def preprocess(self, x):
         """Converts the image pixels to the range [-1, 1]."""
         """Converts the image pixels to defined input scale."""
-        #x = (x / 255.0)
-        #x = x.astype(np.float32)
+        # x = (x / 255.0)
+        # x = x.astype(np.float32)
         """Converts the image pixels to UINT8 in the range [0,255]."""
         x = x.astype(np.uint8)
        
