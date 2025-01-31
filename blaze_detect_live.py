@@ -29,6 +29,8 @@ limitations under the License.
 #      vitis_ai_library
 #   Hailo
 #      hailo_platform
+#   MemryX
+#      memryx
 #   plots
 #      pyplotly
 #      kaleido
@@ -54,7 +56,10 @@ import re
 import sys
 
 from datetime import datetime
-import plotly.graph_objects as go
+try:
+   import plotly.graph_objects as go
+except:
+    print("[INFO] plotly NOT supported ...")
 
 import getpass
 import socket
@@ -68,13 +73,16 @@ sys.path.append(os.path.abspath('blaze_tflite/'))
 sys.path.append(os.path.abspath('blaze_pytorch/'))
 sys.path.append(os.path.abspath('blaze_vitisai/'))
 sys.path.append(os.path.abspath('blaze_hailo/'))
+sys.path.append(os.path.abspath('blaze_memryx/'))
 
 supported_targets = {
     "blaze_tflite": False,
     "blaze_pytorch": False,
     "blaze_vitisai": False,
-    "blaze_hailo": False
+    "blaze_hailo": False,
+    "blaze_memryx": False
 }
+
 try:
     from blaze_tflite.blazedetector import BlazeDetector as BlazeDetector_tflite
     from blaze_tflite.blazelandmark import BlazeLandmark as BlazeLandmark_tflite
@@ -135,6 +143,20 @@ try:
 except:
     print("[INFO] blaze_hailo NOT supported ...")
 
+try:
+    import memryx
+    mix_home = os.getenv("MIX_HOME")
+    if not mix_home:
+        print("[WARNING] Install MemryX SDK or clone MIX and source setup_env.sh")
+    else:
+        sys.path.append(mix_home)
+    from blaze_memryx.blazedetector import BlazeDetector as BlazeDetector_memryx
+    from blaze_memryx.blazelandmark import BlazeLandmark as BlazeLandmark_memryx
+    print("[INFO] blaze_memryx supported ...")
+    supported_targets["blaze_memryx"] = True
+except:
+    print("[INFO] blaze_memryx NOT supported ...")
+
 from visualization import draw_detections, draw_landmarks, draw_roi
 from visualization import HAND_CONNECTIONS, FACE_CONNECTIONS, POSE_FULL_BODY_CONNECTIONS, POSE_UPPER_BODY_CONNECTIONS
 
@@ -170,7 +192,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
 ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
-ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo", help="Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo'")
+ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_memryx", help="Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai, blaze_hailo, blaze_memryx).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_memryx'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
 ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
@@ -220,7 +242,22 @@ blaze_pipelines = [
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_full.tflite" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_heavy.tflite" },
     { "blaze": "pose", "pipeline": "pyt_pose_v0_06"       , "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" },
-    { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" }
+    { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" },
+    # NOTE : Due to the structure of my codthe memryx models can only be run one at a time
+    #        Attempting to open more than once instance will result in following error:
+    #           RuntimeError: Failed to acquire lock; mxa:dev0 is busy.
+    { "blaze": "hand", "pipeline": "mx3_palm_v0_07"       , "model1": "blaze_memryx/models/palm_detection_v0_07.dfp",                "model2": "blaze_tflite/models/hand_landmark_v0_07.tflite" },
+    { "blaze": "hand", "pipeline": "mx3_hand_v0_07"       , "model1": "blaze_tflite/models/palm_detection_without_custom_op.tflite", "model2": "blaze_memryx/models/hand_landmark_v0_07.dfp" },
+    { "blaze": "hand", "pipeline": "mx3_palm_v0_10_lite"  , "model1": "blaze_memryx/models/palm_detection_lite.dfp",                 "model2": "blaze_tflite/models/hand_landmark_lite.tflite" },
+    { "blaze": "hand", "pipeline": "mx3_palm_v0_10_full"  , "model1": "blaze_memryx/models/palm_detection_full.dfp",                 "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
+    { "blaze": "hand", "pipeline": "mx3_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",              "model2": "blaze_memryx/models/hand_landmark_lite.dfp" },
+    { "blaze": "hand", "pipeline": "mx3_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_memryx/models/hand_landmark_full.dfp" },
+    { "blaze": "face", "pipeline": "mx3_face_v0_10_short" , "model1": "blaze_memryx/models/face_detection_short_range.dfp",          "model2": "blaze_tflite/models/face_landmark.tflite" },
+    { "blaze": "face", "pipeline": "mx3_face_v0_10_full"  , "model1": "blaze_memryx/models/face_detection_full_range.dfp",           "model2": "blaze_tflite/models/face_landmark.tflite" },
+    { "blaze": "face", "pipeline": "mx3_face_v0_10_lm"    , "model1": "blaze_tflite/models/face_detection_short_range.tflite",       "model2": "blaze_memryx/models/face_landmark.dfp" },
+    { "blaze": "pose", "pipeline": "mx3_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_memryx/models/pose_landmark_lite.dfp" },
+    { "blaze": "pose", "pipeline": "mx3_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_memryx/models/pose_landmark_full.dfp" },
+    { "blaze": "pose", "pipeline": "mx3_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_memryx/models/pose_landmark_heavy.dfp" }
 ]
 nb_blaze_pipelines = len(blaze_pipelines)
 
@@ -347,6 +384,8 @@ for i in range(nb_blaze_pipelines):
             blaze_detector = BlazeDetector_vitisai(detector_type)
         elif target1=="blaze_hailo":
             blaze_detector = BlazeDetector_hailo(detector_type,hailo_infer)
+        elif target1=="blaze_memryx":
+            blaze_detector = BlazeDetector_memryx(detector_type,None)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
         blaze_detector.set_debug(debug=args.debug)
@@ -361,6 +400,8 @@ for i in range(nb_blaze_pipelines):
             blaze_landmark = BlazeLandmark_vitisai(landmark_type)
         elif target2=="blaze_hailo":
             blaze_landmark = BlazeLandmark_hailo(landmark_type,hailo_infer)
+        elif target2=="blaze_memryx":
+            blaze_landmark = BlazeLandmark_memryx(landmark_type,None)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
         blaze_landmark.set_debug(debug=args.debug)
