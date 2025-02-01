@@ -154,6 +154,8 @@ try:
     from blaze_memryx.blazelandmark import BlazeLandmark as BlazeLandmark_memryx
     print("[INFO] blaze_memryx supported ...")
     supported_targets["blaze_memryx"] = True
+    mx3_dfp  = None
+    mx3_accl = None
 except:
     print("[INFO] blaze_memryx NOT supported ...")
 
@@ -243,21 +245,32 @@ blaze_pipelines = [
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_heavy.tflite" },
     { "blaze": "pose", "pipeline": "pyt_pose_v0_06"       , "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" },
     { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" },
-    # NOTE : Due to the structure of my codthe memryx models can only be run one at a time
-    #        Attempting to open more than once instance will result in following error:
-    #           RuntimeError: Failed to acquire lock; mxa:dev0 is busy.
-    { "blaze": "hand", "pipeline": "mx3_palm_v0_07"       , "model1": "blaze_memryx/models/palm_detection_v0_07.dfp",                "model2": "blaze_tflite/models/hand_landmark_v0_07.tflite" },
-    { "blaze": "hand", "pipeline": "mx3_hand_v0_07"       , "model1": "blaze_tflite/models/palm_detection_without_custom_op.tflite", "model2": "blaze_memryx/models/hand_landmark_v0_07.dfp" },
-    { "blaze": "hand", "pipeline": "mx3_palm_v0_10_lite"  , "model1": "blaze_memryx/models/palm_detection_lite.dfp",                 "model2": "blaze_tflite/models/hand_landmark_lite.tflite" },
-    { "blaze": "hand", "pipeline": "mx3_palm_v0_10_full"  , "model1": "blaze_memryx/models/palm_detection_full.dfp",                 "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
-    { "blaze": "hand", "pipeline": "mx3_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",              "model2": "blaze_memryx/models/hand_landmark_lite.dfp" },
-    { "blaze": "hand", "pipeline": "mx3_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_memryx/models/hand_landmark_full.dfp" },
-    { "blaze": "face", "pipeline": "mx3_face_v0_10_short" , "model1": "blaze_memryx/models/face_detection_short_range.dfp",          "model2": "blaze_tflite/models/face_landmark.tflite" },
-    { "blaze": "face", "pipeline": "mx3_face_v0_10_full"  , "model1": "blaze_memryx/models/face_detection_full_range.dfp",           "model2": "blaze_tflite/models/face_landmark.tflite" },
-    { "blaze": "face", "pipeline": "mx3_face_v0_10_lm"    , "model1": "blaze_tflite/models/face_detection_short_range.tflite",       "model2": "blaze_memryx/models/face_landmark.dfp" },
-    { "blaze": "pose", "pipeline": "mx3_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_memryx/models/pose_landmark_lite.dfp" },
-    { "blaze": "pose", "pipeline": "mx3_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_memryx/models/pose_landmark_full.dfp" },
-    { "blaze": "pose", "pipeline": "mx3_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_memryx/models/pose_landmark_heavy.dfp" }
+    #
+    # Single inference pipelines
+    #
+    #{ "blaze": "hand", "pipeline": "mx3_palm_v0_07"       , "model1": "blaze_memryx/models/palm_detection_v0_07.dfp:0",              "model2": "blaze_tflite/models/hand_landmark_v0_07.tflite" },
+    #{ "blaze": "hand", "pipeline": "mx3_hand_v0_07"       , "model1": "blaze_tflite/models/palm_detection_without_custom_op.tflite", "model2": "blaze_memryx/models/hand_landmark_v0_07.dfp:0" },
+    { "blaze": "hand", "pipeline": "mx3_palm_v0_10_lite"  , "model1": "blaze_memryx/models/palm_detection_lite.dfp:0",               "model2": "blaze_tflite/models/hand_landmark_lite.tflite" },
+    { "blaze": "hand", "pipeline": "mx3_palm_v0_10_full"  , "model1": "blaze_memryx/models/palm_detection_full.dfp:0",               "model2": "blaze_tflite/models/hand_landmark_full.tflite" },
+    { "blaze": "hand", "pipeline": "mx3_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",              "model2": "blaze_memryx/models/hand_landmark_lite.dfp:0" },
+    { "blaze": "hand", "pipeline": "mx3_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_memryx/models/hand_landmark_full.dfp:0" },
+    { "blaze": "face", "pipeline": "mx3_face_v0_10_short" , "model1": "blaze_memryx/models/face_detection_short_range.dfp:0",        "model2": "blaze_tflite/models/face_landmark.tflite" },
+    { "blaze": "face", "pipeline": "mx3_face_v0_10_full"  , "model1": "blaze_memryx/models/face_detection_full_range.dfp:0",         "model2": "blaze_tflite/models/face_landmark.tflite" },
+    { "blaze": "face", "pipeline": "mx3_face_v0_10_lm"    , "model1": "blaze_tflite/models/face_detection_short_range.tflite",       "model2": "blaze_memryx/models/face_landmark.dfp:0" },
+    { "blaze": "pose", "pipeline": "mx3_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_memryx/models/pose_landmark_lite.dfp:0" },
+    { "blaze": "pose", "pipeline": "mx3_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_memryx/models/pose_landmark_full.dfp:0" },
+    { "blaze": "pose", "pipeline": "mx3_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_memryx/models/pose_landmark_heavy.dfp:0" },
+    #
+    # Dual inference pipelines
+    #
+    { "blaze": "hand", "pipeline": "mx3_hand_v0_07"       , "model1": "blaze_memryx/models/hand_v0_07.dfp:0",                        "model2": "blaze_memryx/models/hand_v0_07.dfp:1" }
+    #{ "blaze": "hand", "pipeline": "mx3_hand_v0_10_lite"  , "model1": "blaze_memryx/models/hand_v0_10_lite.dfp:0",                   "model2": "blaze_memryx/models/hand_v0_10_lite.dfp:1" },
+    #{ "blaze": "hand", "pipeline": "mx3_hand_v0_10_full"  , "model1": "blaze_memryx/models/hand_v0_10_full.dfp:0",                   "model2": "blaze_memryx/models/hand_v0_10_full.dfp:1" },
+    #{ "blaze": "face", "pipeline": "mx3_face_v0_10_short" , "model1": "blaze_memryx/models/face_v0_10_short.dfp:0",                  "model2": "blaze_memryx/models/face_v0_10_short.dfp:1" },
+    #{ "blaze": "face", "pipeline": "mx3_face_v0_10_full"  , "model1": "blaze_memryx/models/face_v0_10_full.dfp:0",                   "model2": "blaze_memryx/models/face_v0_10_full.dfp:1" },
+    #{ "blaze": "pose", "pipeline": "mx3_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_v0_10_lite.dfp:0",                   "model2": "blaze_memryx/models/pose_v0_10_lite.dfp:1" },
+    #{ "blaze": "pose", "pipeline": "mx3_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_v0_10_full.dfp:0",                   "model2": "blaze_memryx/models/pose_v0_10_full.dfp:1" },
+    #{ "blaze": "pose", "pipeline": "mx3_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_v0_10_heavy.dfp:0",                  "model2": "blaze_memryx/models/pose_v0_10_heavy.dfp:1" },
 ]
 nb_blaze_pipelines = len(blaze_pipelines)
 
@@ -385,7 +398,15 @@ for i in range(nb_blaze_pipelines):
         elif target1=="blaze_hailo":
             blaze_detector = BlazeDetector_hailo(detector_type,hailo_infer)
         elif target1=="blaze_memryx":
-            blaze_detector = BlazeDetector_memryx(detector_type,None)
+            model1_name,model1_id = model1.split(":")
+            print("[INFO] model1 : ",model1_name," [",model1_id,"]")
+            if mx3_dfp == None:
+               mx3_dfp = model1_name
+               print("[INFO] mx3_dfp : ",mx3_dfp)
+               mx3_accl = memryx.SyncAccl(mx3_dfp)
+               blaze_detector = BlazeDetector_memryx(detector_type,mx3_accl)
+            else:
+               print("[ERROR] MX3 already used for ",mx3_dfp," Cannot also use for ",model1_name)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
         blaze_detector.set_debug(debug=args.debug)
@@ -401,7 +422,17 @@ for i in range(nb_blaze_pipelines):
         elif target2=="blaze_hailo":
             blaze_landmark = BlazeLandmark_hailo(landmark_type,hailo_infer)
         elif target2=="blaze_memryx":
-            blaze_landmark = BlazeLandmark_memryx(landmark_type,None)
+            model2_name,model2_id = model2.split(":")
+            print("[INFO] model2 : ",model2_name," [",model2_id,"]")
+            if mx3_dfp == None:
+               mx3_dfp = model2_name
+               print("[INFO] mx3_dfp : ",mx3_dfp)
+               mx3_accl = memryx.SyncAccl(mx3_dfp)
+               blaze_landmark = BlazeLandmark_memryx(landmark_type,mx3_accl)
+            elif mx3_dfp == model2_name:
+               blaze_landmark = BlazeLandmark_memryx(landmark_type,mx3_accl)
+            else:
+               print("[ERROR] MX3 already used for ",mx3_dfp," Cannot also use for ",model2_name)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
         blaze_landmark.set_debug(debug=args.debug)

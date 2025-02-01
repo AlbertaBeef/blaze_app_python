@@ -4,7 +4,9 @@ import cv2
 from blazebase import BlazeLandmarkBase
 
 
-# Reference : https://developer.memryx.com/tutorials/basic_inf/classification_accl.html
+# References : 
+#    https://developer.memryx.com/api/accelerator/python.html
+#    https://developer.memryx.com/api/dfp.html
 
 from memryx import Dfp,SyncAccl
 
@@ -13,44 +15,52 @@ from timeit import default_timer as timer
 class BlazeLandmark(BlazeLandmarkBase):
     
     #def __init__(self,blaze_app="blazehandlandmark"):
-    def __init__(self,blaze_app,memryx_context):
+    def __init__(self,blaze_app,mx3_accl):
         super(BlazeLandmark, self).__init__()
 
         self.blaze_app = blaze_app
-        self.memryx_context = memryx_context        
+        self.accl = mx3_accl        
 
     def load_model(self, model_path):
 
-        self.model_path = model_path
+        model_name,model_id = model_path.split(":")
+        self.model_name = model_name
+        self.model_id   = int(model_id)
         if self.DEBUG:
-            print("[BlazeLandmark.load_model] Model File : ",self.model_path)
+            print("[BlazeLandmark.load_model] Model File : ",self.model_name)
+            print("[BlazeLandmark.load_model] Model ID   : ",self.model_id)
 
-        self.model_path = model_path
-        self.dfp  = Dfp(self.model_path)
-        self.accl = SyncAccl(self.model_path)
+        self.dfp  = Dfp(self.model_name)
+        self.num_models = len(self.dfp.models)
+        if self.DEBUG:
+            print("[BlazeLandmark.load_model] num_models : ",self.num_models)
+            
+            print("[BlazeLandmark.load_model] dfp.input_ports : ",self.dfp.input_ports)
+            print("[BlazeLandmark.load_model] dfp.output_ports : ",self.dfp.output_ports)
+            print("[BlazeLandmark.load_model] dfp.input_shapes : ",self.dfp.input_shapes)
+            print("[BlazeLandmark.load_model] dfp.output_shapes : ",self.dfp.output_shapes)
+
+
+        #self.accl = SyncAccl(self.model_path)
 
 
         if True:
-            self.inport_assignment = self.accl.inport_assignment(0)
-            self.outport_assignment = self.accl.outport_assignment(0)
-            self.input_shapes = self.dfp.input_shapes
-            self.output_shapes = self.dfp.output_shapes
+            self.inport_assignment = self.accl.inport_assignment(model_idx=self.model_id)
+            self.outport_assignment = self.accl.outport_assignment(model_idx=self.model_id)
+            self.inport_indices = [*self.inport_assignment]
+            self.outport_indices = [*self.outport_assignment]
             if self.DEBUG:
-                print("[BlazeLandmark.load_model] inport_assignment : ",self.inport_assignment)
-                print("[BlazeLandmark.load_model] outport_assignment : ",self.outport_assignment)
-                print("[BlazeLandmark.load_model] input_shapes : ",self.input_shapes)
-                print("[BlazeLandmark.load_model] output_shapes : ",self.output_shapes)
+                print("[BlazeLandmark.load_model] self.inport_assignment : ",self.inport_assignment)
+                print("[BlazeLandmark.load_model] self.outport_assignment : ",self.outport_assignment)
+                print("[BlazeLandmark.load_model] self.inport_indices : ",self.inport_indices)
+                print("[BlazeLandmark.load_model] self.outport_indices : ",self.outport_indices)
 
-            # Get input/output tensors dimensions
-            self.num_inputs = len(self.input_shapes)
-            self.num_outputs = len(self.output_shapes)
+
+            self.input_shapes = [self.dfp.input_shapes[i] for i in self.inport_indices]
+            self.output_shapes = [self.dfp.output_shapes[i] for i in self.outport_indices]
             if self.DEBUG:
-                print("[BlazeLandmark.load_model] Number of Inputs : ",self.num_inputs)
-                for i in range(self.num_inputs):
-                    print("[BlazeLandmark.load_model] Input[",i,"] Shape : ",tuple(self.input_shapes[i])," Name : ",self.inport_assignment[i])
-                print("[BlazeLandmark.load_model] Number of Outputs : ",self.num_outputs)
-                for i in range(self.num_outputs):
-                    print("[BlazeLandmark.load_model] Output[",i,"] Shape : ",tuple(self.output_shapes[i])," Name : ",self.outport_assignment[i])
+                print("[BlazeLandmark.load_model] self.input_shapes : ",self.input_shapes)
+                print("[BlazeLandmark.load_model] self.output_shapes : ",self.output_shapes)
 
             self.inputShape = self.input_shapes[0]
 
@@ -129,7 +139,7 @@ class BlazeLandmark(BlazeLandmarkBase):
             # 2. Run the neural network:
             start = timer()  
             """ Execute model on Hailo-8 """
-            infer_results = self.accl.run(input_data)
+            infer_results = self.accl.run(input_data,model_idx=self.model_id)
             self.profile_model += timer()-start
 
             start = timer()  
