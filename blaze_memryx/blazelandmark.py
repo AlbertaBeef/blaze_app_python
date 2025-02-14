@@ -23,6 +23,9 @@ class BlazeLandmark(BlazeLandmarkBase):
 
     def load_model(self, model_path):
 
+        if self.DEBUG:
+            print("[BlazeLandmark.load_model] blaze app  : ",self.blaze_app)
+
         model_name,model_id = model_path.split(":")
         self.model_name = model_name
         self.model_id   = int(model_id)
@@ -65,14 +68,12 @@ class BlazeLandmark(BlazeLandmarkBase):
             self.inputShape = self.input_shapes[0]
 
             if self.blaze_app == "blazehandlandmark":
-                if self.inputShape[1] == 224: # hand_landmark_v0_07
+                if self.inputShape[1] == 224: # hand_landmark_v0_07                
                     self.outputShape1 = tuple((1,1))
                     self.outputShape2 = tuple((1,63))
                 else: # hand_landmark_lite/hand_landmark_full
                     self.outputShape1 = tuple(self.output_shapes[2])
                     self.outputShape2 = tuple(self.output_shapes[0])
-                    #self.outputShape1 = tuple((1,1))
-                    #self.outputShape2 = tuple((1,63))
 
             if self.blaze_app == "blazefacelandmark":
                 self.outputShape1 = tuple(self.output_shapes[0])
@@ -176,9 +177,14 @@ class BlazeLandmark(BlazeLandmarkBase):
                 #[BlazeLandmark.load_model] Output[ 1 ] Shape :  (1,)
                 #[BlazeLandmark.load_model] Output[ 2 ] Shape :  (1,)
                 #[BlazeLandmark.load_model] Output[ 3 ] Shape :  (63,)
-                out1 = infer_results[2]
-                handedness = infer_results[3] 
-                out2 = infer_results[0]
+                #                
+                #MPU 3 output port 0: {'model_index': 0, 'layer_name': 'model_1/model/conv_handedness/MatMul;model_1/model/conv_handedness/BiasAdd', 'shape': [1, 1, 1, 1]}
+                #MPU 3 output port 1: {'model_index': 0, 'layer_name': 'model_1/model/conv_handflag/MatMul;model_1/model/conv_handflag/BiasAdd', 'shape': [1, 1, 1, 1]}
+                #MPU 3 output port 2: {'model_index': 0, 'layer_name': 'Identity', 'shape': [1, 1, 1, 63]}
+                #MPU 3 output port 3: {'model_index': 0, 'layer_name': 'Identity_3', 'shape': [1, 1, 1, 63]}
+                out1 = infer_results[1]
+                handedness = infer_results[0] 
+                out2 = infer_results[2]
                 out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] | 63 => [1,21,3]
                 out2 = out2/self.resolution
             elif self.blaze_app == "blazefacelandmark":

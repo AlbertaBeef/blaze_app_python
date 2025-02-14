@@ -27,6 +27,9 @@ class BlazeDetector(BlazeDetectorBase):
 
     def load_model(self, model_path):
 
+        if self.DEBUG:
+            print("[BlazeDetector.load_model] blaze app  : ",self.blaze_app)
+
         model_name,model_id = model_path.split(":")
         self.model_name = model_name
         self.model_id   = int(model_id)
@@ -70,11 +73,11 @@ class BlazeDetector(BlazeDetectorBase):
             self.num_outputs = len(self.output_shapes)
             if self.DEBUG:
                 print("[BlazeDetector.load_model] Number of Inputs : ",self.num_inputs)
-                for i in range(self.num_inputs):
-                    print("[BlazeDetector.load_model] Input[",i,"] Shape : ",tuple(self.input_shapes[i])," Name : ",self.inport_assignment[i])
+                #for i in range(self.num_inputs):
+                #    print("[BlazeDetector.load_model] Input[",i,"] Shape : ",tuple(self.input_shapes[i])," Name : ",self.inport_assignment[i])
                 print("[BlazeDetector.load_model] Number of Outputs : ",self.num_outputs)
-                for i in range(self.num_outputs):
-                    print("[BlazeDetector.load_model] Output[",i,"] Shape : ",tuple(self.output_shapes[i])," Name : ",self.outport_assignment[i])
+                #for i in range(self.num_outputs):
+                #    print("[BlazeDetector.load_model] Output[",i,"] Shape : ",tuple(self.output_shapes[i])," Name : ",self.outport_assignment[i])
 
             self.inputShape = self.input_shapes[0]
 
@@ -112,16 +115,21 @@ class BlazeDetector(BlazeDetectorBase):
                 self.outputShape1 = tuple((1,2304,1))
                 self.outputShape2 = tuple((1,2304,16))
 
+            # pose_detection
+            if self.blaze_app == "blazepose" and self.num_outputs == 6:
+                self.outputShape1 = tuple((1,2254,1))
+                self.outputShape2 = tuple((1,2254,12))
+
         if self.DEBUG:
             print("[BlazeDetector.load_model] Input Shape : ",self.inputShape)
             print("[BlazeDetector.load_model] Output1 Shape : ",self.outputShape1)
             print("[BlazeDetector.load_model] Output2 Shape : ",self.outputShape2)
 
             
-        self.x_scale = self.inputShape[1]
-        self.y_scale = self.inputShape[2]
-        self.h_scale = self.inputShape[1]
-        self.w_scale = self.inputShape[2]
+        self.x_scale = self.inputShape[0]
+        self.y_scale = self.inputShape[1]
+        self.h_scale = self.inputShape[0]
+        self.w_scale = self.inputShape[1]
 
         self.num_anchors = self.outputShape2[1]
 
@@ -231,12 +239,12 @@ class BlazeDetector(BlazeDetectorBase):
         # palm_detection_v0_07/conv48 [1x32x32x36] =reshape=> [1x2048x18]  //
         if self.blaze_app == "blazepalm" and self.num_outputs == 6:
             transpose_1_8_8_6 = infer_results[2]
-            transport_16_16_2 = infer_results[1]
-            transport_32_32_2 = infer_results[0]
+            transpose_1_16_16_2 = infer_results[1]
+            transpose_1_32_32_2 = infer_results[0]
             
             reshape_1_384_1 = transpose_1_8_8_6.reshape(1,384,1)
-            reshape_1_512_1 = transport_16_16_2.reshape(1,512,1)
-            reshape_1_2048_1 = transport_32_32_2.reshape(1,2048,1)
+            reshape_1_512_1 = transpose_1_16_16_2.reshape(1,512,1)
+            reshape_1_2048_1 = transpose_1_32_32_2.reshape(1,2048,1)
 
             concat_1_2944_1 = np.concatenate((reshape_1_2048_1,reshape_1_512_1,reshape_1_384_1),axis=1)
 
@@ -246,12 +254,12 @@ class BlazeDetector(BlazeDetectorBase):
             #    print("[BlazeDetector.load_model] Output1 : ",out1.shape,out1.dtype)
             
             transpose_1_8_8_108 = infer_results[5]
-            transport_16_16_36 = infer_results[4]
-            transport_32_32_36 = infer_results[3]
+            transpose_1_16_16_36 = infer_results[4]
+            transpose_1_32_32_36 = infer_results[3]
 
             reshape_1_384_18 = transpose_1_8_8_108.reshape(1,384,18)
-            reshape_1_512_18 = transport_16_16_36.reshape(1,512,18)
-            reshape_1_2048_18 = transport_32_32_36.reshape(1,2048,18)
+            reshape_1_512_18 = transpose_1_16_16_36.reshape(1,512,18)
+            reshape_1_2048_18 = transpose_1_32_32_36.reshape(1,2048,18)
             
             concat_1_2944_18 = np.concatenate((reshape_1_2048_18,reshape_1_512_18,reshape_1_384_18),axis=1)
             
@@ -269,7 +277,7 @@ class BlazeDetector(BlazeDetectorBase):
         #                                                                             => [1x2016x18]
         # palm_detection_lite/conv25 [1x12x12x108] =reshape=> [1x864x18]  //
         if self.blaze_app == "blazepalm" and self.num_outputs == 4:
-            conv_1_24_24_2 = infer_results[1]
+            conv_1_24_24_2 = infer_results[2]
             conv_12_12_6 = infer_results[0]
             if False: #self.DEBUG:
                 print("[BlazeDetector.predict_on_batch] conv_1_24_24_2 Shape : ",tuple(conv_1_24_24_2.shape))
@@ -293,7 +301,7 @@ class BlazeDetector(BlazeDetectorBase):
             out1 = concat_1_2016_1.astype(np.float32)
 
             conv_1_24_24_36 = infer_results[3]
-            conv_12_12_108 = infer_results[2]
+            conv_12_12_108 = infer_results[1]
             if False: #self.DEBUG:
                 print("[BlazeDetector.predict_on_batch] conv_1_24_24_36 Shape : ",tuple(conv_1_24_24_36.shape))
                 print("[BlazeDetector.predict_on_batch] conv_12_12_108 Shape : ",tuple(conv_12_12_108.shape))
@@ -329,20 +337,20 @@ class BlazeDetector(BlazeDetectorBase):
         #[BlazeDetector.load_model] Output[ 3 ] Shape :  (16, 16, 2)  Name :  face_detection_short_range/conv13
         if self.blaze_app == "blazeface" and self.num_outputs == 4:
             transpose_1_16_16_2 = infer_results[3]
-            transport_1_8_8_6 = infer_results[2]
+            transpose_1_8_8_6 = infer_results[2]
             
             reshape_1_512_1 = transpose_1_16_16_2.reshape(1,512,1)
-            reshape_1_384_1 = transport_1_8_8_6.reshape(1,384,1)
+            reshape_1_384_1 = transpose_1_8_8_6.reshape(1,384,1)
 
             concat_1_896_1 = np.concatenate((reshape_1_512_1,reshape_1_384_1),axis=1)
 
             out1 = concat_1_896_1.astype(np.float32)
 
             transpose_1_16_16_32 = infer_results[1]
-            transport_8_8_96 = infer_results[0]
+            transpose_8_8_96 = infer_results[0]
             
             reshape_1_512_16 = transpose_1_16_16_32.reshape(1,512,16)
-            reshape_1_384_16 = transport_8_8_96.reshape(1,384,16)
+            reshape_1_384_16 = transpose_8_8_96.reshape(1,384,16)
 
             concat_1_896_16 = np.concatenate((reshape_1_512_16,reshape_1_384_16),axis=1)
 
@@ -367,6 +375,57 @@ class BlazeDetector(BlazeDetectorBase):
         
             out1 = reshape_1_2304_1.astype(np.float32)
             out2 = reshape_1_2304_16.astype(np.float32)
+            
+            #MPU 3 output port 0: {'model_index': 0, 'layer_name': 'model_1/model/classifier_person_8_NO_PRUNING/BiasAdd;model_1/model/classifier_person_16_NO_PRUNING/Conv2D;model_1/model/classifier_person_8_NO_PRUNING/Conv2D;model_1/model/classifier_person_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1', 'shape': [28, 28, 1, 2]}
+            #MPU 3 output port 1: {'model_index': 0, 'layer_name': 'model_1/model/regressor_person_8_NO_PRUNING/BiasAdd;model_1/model/regressor_person_16_NO_PRUNING/Conv2D;model_1/model/regressor_person_8_NO_PRUNING/Conv2D;model_1/model/regressor_person_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1', 'shape': [28, 28, 1, 24]}
+            #MPU 3 output port 2: {'model_index': 0, 'layer_name': 'model_1/model/classifier_person_16_NO_PRUNING/BiasAdd;model_1/model/classifier_person_16_NO_PRUNING/Conv2D;model_1/model/classifier_person_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1', 'shape': [14, 14, 1, 2]}
+            #MPU 3 output port 3: {'model_index': 0, 'layer_name': 'model_1/model/regressor_person_16_NO_PRUNING/BiasAdd;model_1/model/regressor_person_16_NO_PRUNING/Conv2D;model_1/model/regressor_person_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1', 'shape': [14, 14, 1, 24]}
+            #MPU 3 output port 4: {'model_index': 0, 'layer_name': 'model_1/model/classifier_person_32_NO_PRUNING/BiasAdd;model_1/model/classifier_person_32_NO_PRUNING/Conv2D;model_1/model/classifier_person_32_NO_PRUNING/BiasAdd/ReadVariableOp/resource1', 'shape': [7, 7, 1, 6]}
+            #MPU 3 output port 5: {'model_index': 0, 'layer_name': 'model_1/model/regressor_person_32_NO_PRUNING/BiasAdd;model_1/model/regressor_person_32_NO_PRUNING/Conv2D1', 'shape': [7, 7, 1, 72]}
+            #
+            #model_1/model/classifier_person_32_NO_PRUNING/BiasAdd;model_1/model/classifier_person_32_NO_PRUNING/Conv2D;model_1/model/classifier_person_32_NO_PRUNING/BiasAdd/ReadVariableOp/resource1
+            #model_1/model/classifier_person_16_NO_PRUNING/BiasAdd;model_1/model/classifier_person_16_NO_PRUNING/Conv2D;model_1/model/classifier_person_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1,
+            #model_1/model/classifier_person_8_NO_PRUNING/BiasAdd;model_1/model/classifier_person_16_NO_PRUNING/Conv2D;model_1/model/classifier_person_8_NO_PRUNING/Conv2D;model_1/model/classifier_person_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1
+            # [7,7,1,6]
+            # [14,14,1,2]
+            # [28,28,1,2]
+            #
+            #model_1/model/regressor_person_32_NO_PRUNING/BiasAdd;model_1/model/regressor_person_32_NO_PRUNING/Conv2D1
+            #model_1/model/regressor_person_16_NO_PRUNING/BiasAdd;model_1/model/regressor_person_16_NO_PRUNING/Conv2D;model_1/model/regressor_person_16_NO_PRUNING/BiasAdd/ReadVariableOp/resource1
+            #model_1/model/regressor_person_8_NO_PRUNING/BiasAdd;model_1/model/regressor_person_16_NO_PRUNING/Conv2D;model_1/model/regressor_person_8_NO_PRUNING/Conv2D;model_1/model/regressor_person_8_NO_PRUNING/BiasAdd/ReadVariableOp/resource1
+            # [7,7,1,72]
+            # [14,14,1,24]
+            # [28,28,1,24]
+        if self.blaze_app == "blazepose" and self.num_outputs ==  6:
+            transpose_1_7_7_6 = infer_results[0]
+            transpose_1_14_14_2 = infer_results[1]
+            transpose_1_28_28_2 = infer_results[2]
+            
+            reshape_1_294_1 = transpose_1_7_7_6.reshape(1,294,1)
+            reshape_1_392_1 = transpose_1_14_14_2.reshape(1,392,1)
+            reshape_1_1568_1 = transpose_1_28_28_2.reshape(1,1568,1)
+
+            concat_1_2254_1 = np.concatenate((reshape_1_1568_1,reshape_1_392_1,reshape_1_294_1),axis=1)
+
+            out1 = concat_1_2254_1.astype(np.float32)
+
+            #if self.DEBUG:
+            #    print("[BlazeDetector.load_model] Output1 : ",out1.shape,out1.dtype)
+            
+            transpose_1_7_7_72 = infer_results[3]
+            transpose_1_14_14_24 = infer_results[4]
+            transpose_1_32_32_36 = infer_results[5]
+
+            reshape_1_294_12 = transpose_1_7_7_72.reshape(1,294,12)
+            reshape_1_392_12 = transpose_1_14_14_24.reshape(1,392,12)
+            reshape_1_1568_12 = transpose_1_32_32_36.reshape(1,1568,12)
+            
+            concat_1_2254_12 = np.concatenate((reshape_1_1568_12,reshape_1_392_12,reshape_1_294_12),axis=1)
+            
+            out2 = concat_1_2254_12.astype(np.float32)
+                         
+            #if self.DEBUG:
+            #    print("[BlazeDetector.load_model] Output2 : ",out2.shape,out2.dtype)
            
             
         #if self.DEBUG:
