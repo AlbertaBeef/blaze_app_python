@@ -276,7 +276,7 @@ pose_detect_v0_10_model_config = {
     "num_classes": 1,
     "num_anchors": 2254,
     "num_coords": 12,
-    "score_clipping_thresh": 100.0, #was 100. change for small hardware
+    "score_clipping_thresh": 10.0, #was 100. change for small hardware
     "x_scale": 224.0,
     "y_scale": 224.0,
     "h_scale": 224.0,
