@@ -7,4 +7,11 @@ blaze_vitisai/__pycache__/
 blaze_tflite/models/*.tflite
 blaze_pytorch/models/*.pth
 blaze_vitisai/models/blaze*/*/*
-
+blaze_tflite_imx/models/*.tflite
+blaze_tflite_quant_imx/models/*.tflite
+blaze_tflite_imx/models/output/*.tflite
+blaze_tflite_quant_imx/models/output/*.tflite
+blaze_tflite_imx/output/*.tflite
+blaze_tflite_quant_imx/output/*.tflite
+blaze_tflite_imx/*.csv
+blaze_tflite_quant_imx/*.csv
