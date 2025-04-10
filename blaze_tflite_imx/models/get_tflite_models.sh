@@ -83,3 +83,15 @@ wget https://storage.googleapis.com/mediapipe-assets/pose_landmark_heavy.tflite
 # [BlazePoseLandmark.load_model] Output[ 3 ] Shape :  [ 1 64 64 39]  ( Identity_3 )
 # [BlazePoseLandmark.load_model] Output[ 4 ] Shape :  [  1 117]  ( Identity_4 )
 
+## QUANTIZED MODELS
+# face_detection_short_range_quant.tflite
+wget https://github.com/zebular13/MediaPipeTfliteQuantization/blob/main/quantized_models/face/face_detection_short_range_quant.tflite
+
+# face_landmark_quant.tflite
+wget https://github.com/zebular13/MediaPipeTfliteQuantization/raw/refs/heads/main/quantized_models/face/face_landmark_quant.tflite
+
+# pose_detection_quant.tflite
+wget https://github.com/zebular13/MediaPipeTfliteQuantization/raw/refs/heads/main/quantized_models/pose/pose_detection_quant.tflite
+
+# pose_landmark_lite_quant.tflite
+wget https://github.com/zebular13/MediaPipeTfliteQuantization/raw/refs/heads/main/quantized_models/pose/pose_landmark_lite_quant.tflite
