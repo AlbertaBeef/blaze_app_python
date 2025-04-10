@@ -233,13 +233,13 @@ elif args.blaze == "pose":
    blaze_landmark_type = "blazeposelandmark"
    blaze_title = "BlazePoseLandmark"
    default_detector_model = "models/pose_detection.tflite"
-   default_landmark_model = "models/pose_landmark_full.tflite"
+   default_landmark_model = "models/pose_landmark_lite.tflite"
 ### Quantized models
 #    default_detector_model='models/pose_detection_quant.tflite'
-#    default_landmark_model='models/pose_landmark_full_quant.tflite'
+#    default_landmark_model='models/pose_landmark_lite_quant.tflite'
 ### Vela converted models
 #    default_detector_model='models/pose_detection_quant_vela.tflite'
-#    default_landmark_model='models/pose_landmark_full_quant_vela.tflite'
+#    default_landmark_model='models/pose_landmark_lite_quant_vela.tflite'
 else:
    print("[ERROR] Invalid Blaze application : ", args.blaze, ". MUST be one of hand,face,pose.")
 
