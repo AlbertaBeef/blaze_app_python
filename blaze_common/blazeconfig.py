@@ -289,7 +289,7 @@ pose_detect_v0_10_model_config = {
     "kp1": 2,
     "kp2": 3,
     "theta0": 90 * np.pi / 180,
-    "dscale": 1.5,
+    "dscale": 2.5,
     "dy": 0.,
 }
 
