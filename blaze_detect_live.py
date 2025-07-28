@@ -71,6 +71,7 @@ sys.path.append(os.path.abspath('blaze_hailo/'))
 
 supported_targets = {
     "blaze_tflite": False,
+    "blaze_tflite_quant": False,
     "blaze_pytorch": False,
     "blaze_vitisai": False,
     "blaze_hailo": False
@@ -82,6 +83,14 @@ try:
     supported_targets["blaze_tflite"] = True
 except:
     print("[INFO] blaze_tflite NOT supported ...")
+
+try:
+    from blaze_tflite_quant.blazedetector import BlazeDetector as BlazeDetector_tflite_quant
+    from blaze_tflite_quant.blazelandmark import BlazeLandmark as BlazeLandmark_tflite_quant
+    print("[INFO] blaze_tflite_quant supported ...")
+    supported_targets["blaze_tflite_quant"] = True
+except:
+    print("[INFO] blaze_tflite_quant NOT supported ...")
 
 try:
     from blaze_pytorch.blazedetector import BlazeDetector as BlazeDetector_pytorch
@@ -170,7 +179,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--image'      , default=False, action='store_true', help="Use 'womand_hands.jpg' image as input. Default is usbcam")
 ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
-ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo", help="Command seperated list of targets (blaze_tflite, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_pytorch,blaze_vitisai,blaze_hailo'")
+ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo", help="Command seperated list of targets (blaze_tflite, blaze_tflite_quant, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
 ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
@@ -219,7 +228,11 @@ blaze_pipelines = [
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_lite.tflite" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_full.tflite" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_heavy.tflite" },
-    { "blaze": "pose", "pipeline": "pyt_pose_v0_06"       , "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" },
+    { "blaze": "pose", "pipeline": "tfl_pose_v0_07_upper" , "model1": "blaze_tflite/models/pose_detection_v0_07.tflite",             "model2": "blaze_tflite/models/pose_landmark_v0_07_upper_body.tflite" },
+    { "blaze": "pose", "pipeline": "tflq_pose_v0_07_upper", "model1": "blaze_tflite_quant/models/pose_detection_128x128_full_integer_quant.tflite","model2": "blaze_tflite_quant/models/pose_landmark_upper_body_256x256_full_integer_quant.tflite" },
+    { "blaze": "pose", "pipeline": "tflh_pose_v0_07_upper", "model1": "blaze_tflite/models/pose_detection_v0_07.tflite","model2": "blaze_tflite_quant/models/pose_landmark_upper_body_256x256_full_integer_quant.tflite" },
+    { "blaze": "pose", "pipeline": "tflq_pose_v0_10_upper", "model1": "blaze_tflite_quant/models/pose_detection_full_quant.tflite",  "model2": "blaze_tflite_quant/models/pose_landmark_full_quant.tflite" },
+    { "blaze": "pose", "pipeline": "pyt_pose_v0_07"       , "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" },
     { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" }
 ]
 nb_blaze_pipelines = len(blaze_pipelines)
@@ -341,6 +354,8 @@ for i in range(nb_blaze_pipelines):
 
         if target1=="blaze_tflite":
             blaze_detector = BlazeDetector_tflite(detector_type)
+        elif target1=="blaze_tflite_quant":
+            blaze_detector = BlazeDetector_tflite_quant(detector_type)
         elif target1=="blaze_pytorch":
             blaze_detector = BlazeDetector_pytorch(detector_type)
         elif target1=="blaze_vitisai":
@@ -355,6 +370,8 @@ for i in range(nb_blaze_pipelines):
  
         if target2=="blaze_tflite":
             blaze_landmark = BlazeLandmark_tflite(landmark_type)
+        elif target2=="blaze_tflite_quant":
+            blaze_landmark = BlazeLandmark_tflite_quant(landmark_type)
         elif target2=="blaze_pytorch":
             blaze_landmark = BlazeLandmark_pytorch(landmark_type)
         elif target2=="blaze_vitisai":
@@ -433,7 +450,11 @@ for pipeline_id in range(nb_blaze_pipelines):
             thresh_min_score = blaze_detector.min_score_thresh
             thresh_min_score_prev = thresh_min_score
             cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
-
+            
+            thresh_nms = blaze_detector.min_suppression_threshold
+            thresh_nms_prev = thresh_nms
+            cv2.createTrackbar('threshNMS', app_ctrl_title, int(thresh_nms*100), 100, ignore)
+            
 image = []
 output = []
 
@@ -512,6 +533,15 @@ while True:
                 if thresh_min_score != thresh_min_score_prev:
                     blaze_detector.min_score_thresh = thresh_min_score
                     thresh_min_score_prev = thresh_min_score
+
+                thresh_nms = cv2.getTrackbarPos('threshNMS', app_ctrl_title)
+                if thresh_nms < 10:
+                    thresh_nms = 10
+                    cv2.setTrackbarPos('threshNMS', app_ctrl_title,thresh_nms)
+                thresh_nms = thresh_nms*(1/100)
+                if thresh_nms != thresh_nms_prev:
+                    blaze_detector.min_suppression_threshold = thresh_nms
+                    thresh_nms_prev = thresh_nms
                 
                 
             #image = cv2.resize(image,(0,0), fx=scale, fy=scale) 

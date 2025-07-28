@@ -6,8 +6,8 @@ from blazebase import BlazeLandmarkBase
 bUseTfliteRuntime = False
 try:
     import tensorflow as tf
-    import tensorflow.lite
-
+    #import tensorflow.lite
+    import tf.contrib
 except:
     from tflite_runtime.interpreter import Interpreter
     bUseTfliteRuntime = True
@@ -29,7 +29,8 @@ class BlazeLandmark(BlazeLandmarkBase):
         if bUseTfliteRuntime:
             self.interp_landmark = Interpreter(model_path)
         else:
-            self.interp_landmark = tf.lite.Interpreter(model_path)
+            #self.interp_landmark = tf.lite.Interpreter(model_path)
+            self.interp_landmark = tf.contrib.lite.Interpreter(model_path)
 
         self.interp_landmark.allocate_tensors()
 
@@ -41,10 +42,12 @@ class BlazeLandmark(BlazeLandmarkBase):
         if self.DEBUG:
            print("[BlazeLandmark.load_model] Number of Inputs : ",self.num_inputs)
            for i in range(self.num_inputs):
-               print("[BlazeLandmark.load_model] Input[",i,"] Shape : ",self.input_details[i]['shape']," (",self.input_details[i]['name'],")")          
+               print("[BlazeLandmark.load_model] Input[",i,"] Details : ",self.input_details[i])
+               print("[BlazeLandmark.load_model] Input[",i,"] Shape : ",self.input_details[i]['shape']," (",self.input_details[i]['name'],") Quantization : ",self.input_details[i]['quantization'])          
            print("[BlazeLandmark.load_model] Number of Outputs : ",self.num_outputs)
            for i in range(self.num_outputs):
-               print("[BlazeLandmark.load_model] Output[",i,"] Shape : ",self.output_details[i]['shape']," (",self.output_details[i]['name'],")")           
+               print("[BlazeLandmark.load_model] Output[",i,"] Details : ",self.output_details[i])
+               print("[BlazeLandmark.load_model] Output[",i,"] Shape : ",self.output_details[i]['shape']," (",self.output_details[i]['name'],") Quantization : ",self.output_details[i]['quantization'])          
                 
         self.in_idx = self.input_details[0]['index']
         self.out_landmark_idx = self.output_details[0]['index']
@@ -115,7 +118,10 @@ class BlazeLandmark(BlazeLandmarkBase):
             elif self.blaze_app == "blazeposelandmark":
                 out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
                 out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
-                out2 = out2.reshape(1,-1,5) # 195 => [1,39,5]
+                if out2.shape[1] == 124:
+                    out2 = out2.reshape(1,-1,4) # v0.07 upper : 124 => [1,31,4]
+                else:
+                    out2 = out2.reshape(1,-1,5) # v0.10 full  : 195 => [1,39,5]
                 out2 = out2/self.resolution
                 #out3 = np.asarray(self.interp_poselandmark.get_tensor(self.out_seg_idx))
 
@@ -129,8 +135,9 @@ class BlazeLandmark(BlazeLandmarkBase):
         flag = np.asarray(out1_list)
         landmarks = np.asarray(out2_list)        
 
-        #if self.DEBUG:
-        #    print("[BlazeLandmark] flag ",flag.shape,flag.dtype)
-        #    print("[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
-
+        if self.DEBUG:
+            print("[BlazeLandmark] flag ",flag.shape,flag.dtype)
+            print("[BlazeLandmark] flag Min/Max: ",np.amin(flag),np.amax(flag))
+            print("[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
+            print("[BlazeLandmark] landmarks Min/Max: ",np.amin(landmarks),np.amax(landmarks))
         return flag,landmarks

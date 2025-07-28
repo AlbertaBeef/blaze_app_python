@@ -6,7 +6,8 @@ from blazebase import BlazeDetectorBase
 bUseTfliteRuntime = False
 try:
     import tensorflow as tf
-    import tensorflow.lite
+    #import tensorflow.lite
+    import tf.contrib
 except:
     from tflite_runtime.interpreter import Interpreter
     bUseTfliteRuntime = True
@@ -29,7 +30,8 @@ class BlazeDetector(BlazeDetectorBase):
         if bUseTfliteRuntime:
             self.interp_detector = Interpreter(model_path)
         else:
-            self.interp_detector = tf.lite.Interpreter(model_path)
+            #self.interp_detector = tf.lite.Interpreter(model_path)
+            self.interp_detector = tf.contrib.lite.Interpreter(model_path)
         self.interp_detector.allocate_tensors()
 
         # reading tflite model paramteres
@@ -40,10 +42,12 @@ class BlazeDetector(BlazeDetectorBase):
         if self.DEBUG:
            print("[BlazeDetector.load_model] Number of Inputs : ",self.num_inputs)
            for i in range(self.num_inputs):
-               print("[BlazeDetector.load_model] Input[",i,"] Shape : ",self.input_details[i]['shape']," (",self.input_details[i]['name'],")")
+               print("[BlazeDetector.load_model] Input[",i,"] Details : ",self.input_details[i])
+               print("[BlazeDetector.load_model] Input[",i,"] Shape : ",self.input_details[i]['shape']," (",self.input_details[i]['name'],") Quantization : ",self.input_details[i]['quantization'])
            print("[BlazeDetector.load_model] Number of Outputs : ",self.num_outputs)
            for i in range(self.num_outputs):
-               print("[BlazeDetector.load_model] Output[",i,"] Shape : ",self.output_details[i]['shape']," (",self.output_details[i]['name'],")")
+               print("[BlazeDetector.load_model] Output[",i,"] Details : ",self.output_details[i])
+               print("[BlazeDetector.load_model] Output[",i,"] Shape : ",self.output_details[i]['shape']," (",self.output_details[i]['name'],") Quantization : ",self.output_details[i]['quantization'])
 
         self.in_idx = self.input_details[0]['index']
         self.out_reg_idx = self.output_details[0]['index']
@@ -128,38 +132,8 @@ class BlazeDetector(BlazeDetectorBase):
         assert x.shape[3] == 3
         assert x.shape[1] == self.y_scale
         assert x.shape[2] == self.x_scale
-
-        # 1. Preprocess the images into tensors:
-        start = timer()
-        x = self.preprocess(x)
-        self.interp_detector.set_tensor(self.in_idx, x)
-        self.profile_pre = timer()-start
-                               
-        # 2. Run the neural network:
-        start = timer()
-        self.interp_detector.invoke()
-        self.profile_model = timer()-start
-
-        start = timer()                
-        """
-        out_clf shape is [number of anchors]
-        it is the classification score if there is a hand for each anchor box
-        """
-        out1 = self.interp_detector.get_tensor(self.out_clf_idx)
-        """
-        out_reg shape is [number of anchors, 18]
-        Second dimension 0 - 4 are bounding box offset, width and height: dx, dy, w ,h
-        Second dimension 4 - 18 are 7 hand keypoint x and y coordinates: x1,y1,x2,y2,...x7,y7
-        """
-        out2 = self.interp_detector.get_tensor(self.out_reg_idx)
-
-        #if self.DEBUG:
-        #    print("[BlazeDetector.load_model] Input   : ",x.shape, x.dtype, x)
-        #    print("[BlazeDetector.load_model] Input Min/Max: ",np.amin(x),np.amax(x))
-        #    print("[BlazeDetector.load_model] Output1 : ",out1.shape, out1.dtype, out1)
-        #    print("[BlazeDetector.load_model] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
-        #    print("[BlazeDetector.load_model] Output2 : ",out2.shape, out2.dtype, out2)
-        #    print("[BlazeDetector.load_model] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
+        
+        out1, out2 = self.predict_core(x)
 
         assert out1.shape[0] == 1 # batch
         assert out1.shape[1] == self.num_anchors
@@ -168,6 +142,8 @@ class BlazeDetector(BlazeDetectorBase):
         assert out2.shape[0] == 1 # batch
         assert out2.shape[1] == self.num_anchors
         assert out2.shape[2] == self.num_coords
+
+        start = timer()                
 
         # 3. Postprocess the raw predictions:
         detections = self._tensors_to_detections(out2, out1, self.anchors)
@@ -187,3 +163,37 @@ class BlazeDetector(BlazeDetectorBase):
 
 
 
+    def predict_core(self, x):
+
+        # 1. Preprocess the images into tensors:
+        start = timer()
+        x = self.preprocess(x)
+        self.interp_detector.set_tensor(self.in_idx, x)
+        self.profile_pre = timer()-start
+                               
+        # 2. Run the neural network:
+        start = timer()
+        self.interp_detector.invoke()
+        self.profile_model = timer()-start
+
+        """
+        out_clf shape is [number of anchors]
+        it is the classification score if there is a hand for each anchor box
+        """
+        out1 = self.interp_detector.get_tensor(self.out_clf_idx)
+        """
+        out_reg shape is [number of anchors, 18]
+        Second dimension 0 - 4 are bounding box offset, width and height: dx, dy, w ,h
+        Second dimension 4 - 18 are 7 hand keypoint x and y coordinates: x1,y1,x2,y2,...x7,y7
+        """
+        out2 = self.interp_detector.get_tensor(self.out_reg_idx)
+
+        if self.DEBUG:
+            print("[BlazeDetector] Input   : ",x.shape, x.dtype) #, x)
+            print("[BlazeDetector] Input Min/Max: ",np.amin(x),np.amax(x))
+            print("[BlazeDetector] Output1 : ",out1.shape, out1.dtype) #, out1)
+            print("[BlazeDetector] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
+            print("[BlazeDetector] Output2 : ",out2.shape, out2.dtype) #, out2)
+            print("[BlazeDetector] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
+
+        return out1, out2
