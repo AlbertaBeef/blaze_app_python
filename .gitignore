@@ -1,10 +1,12 @@
-# __pycache__
-blaze_common/__pycache__/
-blaze_tflite/__pycache__/
-blaze_pytorch/__pycache__/
-blaze_vitisai/__pycache__/
+blaze_detect_live.csv
+
+# blaze_*/__pycache__
+__pycache__/
+
 # models
+*.zip
 blaze_tflite/models/*.tflite
+blaze_tflite_quant/models/*.tflite
 blaze_pytorch/models/*.pth
 blaze_vitisai/models/blaze*/*/*
 
