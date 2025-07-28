@@ -146,10 +146,10 @@ class BlazeLandmark(BlazeLandmarkBase):
                 #[BlazeLandmark.load_model] Input Resolution :  256
                 out1 = infer_results[self.output_vstream_infos[1].name]
                 out1 = out1.reshape(1,1)
-                handedness = infer_results[self.output_vstream_infos[2].name] 
                 out2 = infer_results[self.output_vstream_infos[0].name]
                 out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] | 63 => [1,21,3]
                 out2 = out2/self.resolution
+                out3 = infer_results[self.output_vstream_infos[2].name] 
             elif self.blaze_app == "blazehandlandmark" and self.resolution == 224:
                 #[BlazeLandmark.load_model] Model File :  blaze_hailo/models/hand_landmark_lite.hef
                 #[BlazeLandmark.load_model] Input VStream Infos :  [VStreamInfo("hand_landmark_lite/input_layer1")]
@@ -161,11 +161,11 @@ class BlazeLandmark(BlazeLandmarkBase):
                 #[BlazeLandmark.load_model] Output[ 1 ] Shape :  (1,)
                 #[BlazeLandmark.load_model] Output[ 2 ] Shape :  (1,)
                 #[BlazeLandmark.load_model] Output[ 3 ] Shape :  (63,)
-                out1 = infer_results[self.output_vstream_infos[2].name]
-                handedness = infer_results[self.output_vstream_infos[3].name] 
+                out1 = infer_results[self.output_vstream_infos[1].name]
                 out2 = infer_results[self.output_vstream_infos[0].name]
                 out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] | 63 => [1,21,3]
                 out2 = out2/self.resolution
+                out3 = infer_results[self.output_vstream_infos[2].name] 
             elif self.blaze_app == "blazefacelandmark":
                 #[BlazeLandmark.load_model] Model File :  blaze_hailo/models/face_landmark.hef
                 #[BlazeLandmark.load_model] Input VStream Infos :  [VStreamInfo("face_landmark/input_layer1")]
@@ -204,14 +204,21 @@ class BlazeLandmark(BlazeLandmarkBase):
 
             out1_list.append(out1.squeeze(0))
             out2_list.append(out2.squeeze(0))
+            if self.blaze_app == "blazehandlandmark":
+               out3_list.append(out3.squeeze(0))
             self.profile_post += timer()-start
 
 
         flag = np.asarray(out1_list)
         landmarks = np.asarray(out2_list)        
-
+        if self.blaze_app == "blazehandlandmark":
+            handedness = np.asarray(out3_list)
+            
         #if self.DEBUG:
         #    print("[BlazeLandmark] flag ",flag.shape,flag.dtype)
         #    print("[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
 
-        return flag,landmarks
+        if self.blaze_app == "blazehandlandmark":
+            return flag,landmarks,handedness
+        else:            
+            return flag,landmarks

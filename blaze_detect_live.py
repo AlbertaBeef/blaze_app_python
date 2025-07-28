@@ -569,7 +569,11 @@ while True:
                 roi_img,roi_affine,roi_box = blaze_landmark.extract_roi(image,xc,yc,theta,scale)
                 profile_extract = timer()-start
 
-                flags, normalized_landmarks = blaze_landmark.predict(roi_img)
+                landmark_results = blaze_landmark.predict(roi_img)
+                if len(landmark_results) == 3:
+                    flags, normalized_landmarks, handedness = landmark_results
+                else:
+                    flags, normalized_landmarks = landmark_results
 
                 if bShowDebugImage:
                     # show the ROIs

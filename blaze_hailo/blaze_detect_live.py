@@ -240,6 +240,10 @@ if bViewOutput:
     thresh_min_score_prev = thresh_min_score
     cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
 
+    thresh_nms = blaze_detector.min_suppression_threshold
+    thresh_nms_prev = thresh_nms
+    cv2.createTrackbar('threshNMS', app_ctrl_title, int(thresh_nms*100), 100, ignore)
+
 image = []
 output = []
 
@@ -302,6 +306,15 @@ while True:
                 if thresh_min_score != thresh_min_score_prev:
                     blaze_detector.min_score_thresh = thresh_min_score
                     thresh_min_score_prev = thresh_min_score
+
+                thresh_nms = cv2.getTrackbarPos('threshNMS', app_ctrl_title)
+                if thresh_nms < 10:
+                    thresh_nms = 10
+                    cv2.setTrackbarPos('threshNMS', app_ctrl_title,thresh_nms)
+                thresh_nms = thresh_nms*(1/100)
+                if thresh_nms != thresh_nms_prev:
+                    blaze_detector.min_suppression_threshold = thresh_nms
+                    thresh_nms_prev = thresh_nms
                 
                 
             #image = cv2.resize(image,(0,0), fx=scale, fy=scale) 
@@ -329,7 +342,11 @@ while True:
                 roi_img,roi_affine,roi_box = blaze_landmark.extract_roi(image,xc,yc,theta,scale)
                 profile_extract = timer()-start
 
-                flags, normalized_landmarks = blaze_landmark.predict(roi_img)
+                landmark_results = blaze_landmark.predict(roi_img)
+                if len(landmark_results) == 3:
+                    flags, normalized_landmarks, handedness = landmark_results
+                else:
+                    flags, normalized_landmarks = landmark_results
 
                 if bShowDebugImage:
                     # show the ROIs

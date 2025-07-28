@@ -90,6 +90,7 @@ class BlazeLandmark(BlazeLandmarkBase):
         if self.blaze_app == "blazehandlandmark":
             flag = out[0].cpu().numpy()
             landmarks = out[2].cpu().numpy()
+            handedness = out[1].cpu().numpy()
         elif self.blaze_app == "blazefacelandmark":
             flag = out[0].cpu().numpy()
             landmarks = out[1].cpu().numpy()
@@ -107,5 +108,10 @@ class BlazeLandmark(BlazeLandmarkBase):
         #    print("[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
 
         self.profile_post = timer()-start
+
+        if self.blaze_app == "blazehandlandmark":        
+            return flag,landmarks,handedness
+        else:
+            return flag,landmarks
         
         return flag,landmarks

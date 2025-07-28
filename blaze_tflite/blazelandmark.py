@@ -52,10 +52,15 @@ class BlazeLandmark(BlazeLandmarkBase):
         self.in_idx = self.input_details[0]['index']
         self.out_landmark_idx = self.output_details[0]['index']
         self.out_flag_idx = self.output_details[1]['index']
+        if self.blaze_app == "blazehandlandmark":
+            self.out_handedness_idx = self.output_details[2]['index']
 
         self.in_shape = self.input_details[0]['shape']
         self.out_landmark_shape = self.output_details[0]['shape']
         self.out_flag_shape = self.output_details[1]['shape']
+        if self.blaze_app == "blazehandlandmark":        
+            self.out_handedness_shape = self.output_details[2]['shape']
+        
         #if self.DEBUG:
         #   print("[BlazeLandmark.load_model] Input Shape : ",self.in_shape)
         #   print("[BlazeLandmark.load_model] Output1 Shape : ",self.out_landmark_shape)
@@ -78,7 +83,7 @@ class BlazeLandmark(BlazeLandmarkBase):
 
         out1_list = []
         out2_list = []
-        #out3_list = []
+        out3_list = []
 
         #print("[BlazeLandmark] x ",x.shape,x.dtype)
         start = timer()        
@@ -109,6 +114,7 @@ class BlazeLandmark(BlazeLandmarkBase):
                 out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] / 63 => [1,21,3]
                 out2 = out2/self.resolution
                 #out3 = np.zeros(out1.shape,out1.dtype) # tflite model not returning handedness
+                out3 = np.asarray(self.interp_landmark.get_tensor(self.out_handedness_idx))
             elif self.blaze_app == "blazefacelandmark":
                 out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
                 out1 = out1.reshape(1,1)
@@ -128,16 +134,23 @@ class BlazeLandmark(BlazeLandmarkBase):
 
             out1_list.append(out1.squeeze(0))
             out2_list.append(out2.squeeze(0))
-            #out3_list.append(out3.squeeze(0))
+            if self.blaze_app == "blazehandlandmark":
+                out3_list.append(out3.squeeze(0))
             self.profile_post += timer()-start
 
 
         flag = np.asarray(out1_list)
         landmarks = np.asarray(out2_list)        
+        if self.blaze_app == "blazehandlandmark":
+            handedness_scores = np.asarray(out3_list)
 
         if self.DEBUG:
             print("[BlazeLandmark] flag ",flag.shape,flag.dtype)
             print("[BlazeLandmark] flag Min/Max: ",np.amin(flag),np.amax(flag))
             print("[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
             print("[BlazeLandmark] landmarks Min/Max: ",np.amin(landmarks),np.amax(landmarks))
-        return flag,landmarks
+
+        if self.blaze_app == "blazehandlandmark":
+            return flag,landmarks,handedness_scores
+        else:
+            return flag,landmarks
