@@ -113,11 +113,7 @@ class BlazeDetectorBase(BlazeBase):
 
     def __init__(self):
         super(BlazeDetectorBase, self).__init__()
-        self.DISPLAY_SCORES = False
     
-    def display_scores(self, debug=True):
-        self.DISPLAY_SCORES = debug 
-            
     def config_model(self,blaze_app):
         # Get anchor options
         self.anchor_options = get_anchor_options(blaze_app,self.x_scale,self.y_scale,self.num_anchors)
@@ -282,27 +278,7 @@ class BlazeDetectorBase(BlazeBase):
         detection_scores = 1/(1 + np.exp(-clipped_score_tensor))
         detection_scores = np.squeeze(detection_scores, axis=-1)        
 
-        if self.DISPLAY_SCORES:
-            x = range(self.num_anchors)
-            y = detection_scores[0,:]
-
-            plot = np.zeros((500,500))
-            xdiv = int((self.num_anchors / 500)+1)
-            for i in range(1,self.num_anchors):
-                x1 = int((i-1)/xdiv);
-                y1 = int(500 - y[i-1]*500);
-                x2 = int((i)/xdiv);
-                y2 = int(500 - y[i]*500);
-                cv2.line(plot, (x1,y1), (x2,y2), 255, 1);
-
-            # draw threshold level
-            x1=0
-            x2=499
-            y1=int(500-self.min_score_thresh*500)
-            y2=y1
-            cv2.line(plot, (x1,y1), (x2,y2), 255, 1);
-                
-            cv2.imshow("Detection Scores (sigmoid)",plot)
+        self.detection_scores = detection_scores.copy()
         
         # Note: we stripped off the last dimension from the scores tensor
         # because there is only has one class. Now we can simply use a mask

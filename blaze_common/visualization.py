@@ -1,3 +1,4 @@
+
 import numpy as np
 import cv2
 #import torch
@@ -127,3 +128,154 @@ FACE_CONNECTIONS = [
     (162, 21), (21, 54), (54, 103), (103, 67), (67, 109),
     (109, 10)
 ]
+
+
+
+def draw_detection_scores(detection_scores, min_score_thresh):
+    num_anchors = detection_scores.shape[1]
+    
+    x = range(num_anchors)
+    y = detection_scores[0,:]
+
+    plot = np.zeros((500,500))
+    xdiv = int((num_anchors / 500)+1)
+    for i in range(1,num_anchors):
+        x1 = int((i-1)/xdiv);
+        y1 = int(500 - y[i-1]*500);
+        x2 = int((i)/xdiv);
+        y2 = int(500 - y[i]*500);
+        cv2.line(plot, (x1,y1), (x2,y2), 255, 1);
+
+    # draw threshold level
+    x1=0
+    x2=499
+    y1=int(500-min_score_thresh*500)
+    y2=y1
+    cv2.line(plot, (x1,y1), (x2,y2), 255, 1);
+        
+    #cv2.imshow("Detection Scores (sigmoid)",plot)
+    return plot
+
+
+# Colors for each bar (BGR)
+stacked_bar_generic_colors = [
+    (255, 0, 0),     # Blue
+    (0, 255, 0),     # Green
+    (0, 0, 255),     # Red
+    (255, 255, 0),   # Cyan
+    (255, 0, 255),   # Magenta
+    (0, 255, 255),   # Yellow
+    (128, 128, 128), # Gray
+    (0, 128, 255),   # Orange
+    (0, 0, 0),       # Black
+    (255, 255, 255)  # White
+]
+
+stacked_bar_latency_colors = [
+    (255,   0,   0), # resize         : blue 
+    (0,   255,   0), # detector_pre   : green
+    (255,   0, 255), # detector_model : magenta
+    (255, 255,   0), # detector_post  : cyan
+    (255,   0,   0), # extract_roi    : blue
+    (0,   255,   0), # landmark_pre   : green
+    (255,   0, 255), # landmark_model : magenta
+    (255, 255,   0), # landmark_post  : cyan
+    (0,     0,   0), # annotate       : black
+]
+
+stacked_bar_performance_colors = [
+    (255, 0, 255),  # pipeline_fps : magenta
+]
+
+# Example usage for labels
+#component_labels = [
+#    "resize",
+#    "detector[pre]",
+#    "detector[model]",
+#    "detector[post]",
+#    "extract_roi",
+#    "landmark[pre]",
+#    "landmark[model]",
+#    "landmark[post]",
+#    "annotate"
+#]
+
+def draw_stacked_bar_chart(
+    pipeline_titles,
+    component_labels,
+    component_values,  # [component][pipeline]
+    component_colors,
+    chart_name
+):
+    pipelines = len(pipeline_titles)
+    components = len(component_labels)
+
+    # Find max stacked bar value (sum of components for each pipeline)
+    max_stacked = 0.0
+    for i in range(pipelines):
+        sum_val = sum(component_values[j][i] for j in range(components))
+        if sum_val > max_stacked:
+            max_stacked = sum_val
+
+    # Chart size
+    chart_width = 800
+    legend_spacing = 10
+    max_legend_per_line = 4
+    legend_lines = (components + max_legend_per_line - 1) // max_legend_per_line
+    legend_line_height = 28
+    chart_height = 40 * pipelines + 80 + legend_spacing + legend_lines * legend_line_height
+    left_margin = 160
+    bar_height = 28
+    spacing = 12
+
+    chart = np.full((chart_height, chart_width, 3), 255, dtype=np.uint8)
+    cv2.putText(chart, chart_name, (left_margin, 36),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (40,40,40), 2, cv2.LINE_AA)
+
+    # Draw y labels (pipeline names)
+    for i in range(pipelines):
+        y = 60 + i * (bar_height + spacing) + bar_height//2 + 5
+        cv2.putText(chart, pipeline_titles[i], (8, y),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (40,40,40), 1, cv2.LINE_AA)
+
+    # Draw bars (stacked, normalized so max stacked bar fits in chart)
+    for i in range(pipelines):
+        y = 60 + i * (bar_height + spacing)
+        x = left_margin
+        sum_val = sum(component_values[j][i] for j in range(components))
+        norm_factor = ((chart_width - left_margin - 100) / max_stacked) if max_stacked > 0.0 else 0.0
+        x_local = x
+        for j in range(components):
+            val = component_values[j][i]
+            bar_w = int(val * norm_factor) if norm_factor > 0.0 else 0
+            if bar_w > 0:
+                start_point = (x_local, y)
+                end_point = (x_local+bar_w, y+bar_height)
+                cv2.rectangle(chart, start_point, end_point, component_colors[j], -1)
+                # Optionally draw value
+                if val >= 0.001:
+                    cv2.putText(chart, f"{val:.3f}", (x_local+4, y+bar_height-8),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1, cv2.LINE_AA)
+            x_local += bar_w
+        # draw total
+        cv2.putText(chart, f"{sum_val:.3f}", (x_local+4, y+bar_height-8),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (40,40,40), 1, cv2.LINE_AA)
+
+    # Draw legend on multiple lines, max 4 per line
+    legend_start_x = left_margin
+    legend_start_y = chart_height - legend_lines * legend_line_height + 6
+    legend_item_width = (chart_width - left_margin - 30) // max_legend_per_line
+    for line in range(legend_lines):
+        leg_y = legend_start_y + line * legend_line_height
+        for j in range(max_legend_per_line):
+            idx = line * max_legend_per_line + j
+            if idx >= components:
+                break
+            leg_x = legend_start_x + j * legend_item_width
+            start_point = (leg_x, leg_y)
+            end_point = (leg_x+20, leg_y+18)            
+            cv2.rectangle(chart, start_point, end_point, component_colors[idx], -1)
+            cv2.putText(chart, component_labels[idx], (leg_x + 28, leg_y + 16),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (40,40,40), 1, cv2.LINE_AA)
+
+    return chart
