@@ -95,7 +95,7 @@ print(' --model2      : ', args.model2)
 print(' --debug       : ', args.debug)
 print(' --withoutview : ', args.withoutview)
 print(' --profilelog  : ', args.profilelog)
-print(' --profileview  : ', args.profileview)
+print(' --profileview : ', args.profileview)
 print(' --fps         : ', args.fps)
 
 nb_blaze_pipelines = 1
@@ -207,6 +207,14 @@ blaze_landmark = BlazeLandmark(blaze_landmark_type,hailo_infer)
 blaze_landmark.set_debug(debug=args.debug)
 blaze_landmark.load_model(args.model2)
 
+thresh_min_score = blaze_detector.min_score_thresh
+thresh_min_score_prev = thresh_min_score
+
+thresh_nms = blaze_detector.min_suppression_threshold
+thresh_nms_prev = thresh_nms
+
+thresh_confidence = 0.5
+thresh_confidence_prev = thresh_confidence
 
 print("================================================================")
 print("Blaze Detect Live Demo")
@@ -248,13 +256,14 @@ if bViewOutput:
     app_debug_title = blaze_title+" Debug"
     cv2.namedWindow(app_main_title)
 
-    thresh_min_score = blaze_detector.min_score_thresh
-    thresh_min_score_prev = thresh_min_score
     cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
+    print("[INFO] thresh_min_score=",thresh_min_score)
 
-    thresh_nms = blaze_detector.min_suppression_threshold
-    thresh_nms_prev = thresh_nms
     cv2.createTrackbar('threshNMS', app_ctrl_title, int(thresh_nms*100), 100, ignore)
+    print("[INFO] thresh_nms=",thresh_nms)
+
+    cv2.createTrackbar('threshConfidence', app_ctrl_title, int(thresh_confidence*100), 100, ignore)
+    print("[INFO] thresh_confidence=",thresh_confidence)
 
 image = []
 output = []
@@ -332,16 +341,22 @@ while True:
                     print("[INFO] thresh_min_score=",thresh_min_score)
 
                 thresh_nms = cv2.getTrackbarPos('threshNMS', app_ctrl_title)
-                if thresh_nms < 10:
-                    thresh_nms = 10
+                if thresh_nms > 99:
+                    thresh_nms = 99
                     cv2.setTrackbarPos('threshNMS', app_ctrl_title,thresh_nms)
                 thresh_nms = thresh_nms*(1/100)
                 if thresh_nms != thresh_nms_prev:
                     blaze_detector.min_suppression_threshold = thresh_nms
                     thresh_nms_prev = thresh_nms
                     print("[INFO] thresh_nms=",thresh_nms)
-                
-                
+
+                thresh_confidence = cv2.getTrackbarPos('threshConfidence', app_ctrl_title)
+                thresh_confidence = thresh_confidence*(1/100)
+                if thresh_confidence != thresh_confidence_prev:
+                    thresh_confidence_prev = thresh_confidence
+                    print("[INFO] thresh_confidence=",thresh_confidence)
+
+
             #image = cv2.resize(image,(0,0), fx=scale, fy=scale) 
             output = image.copy()
             
@@ -402,16 +417,16 @@ while True:
 
                 for i in range(len(flags)):
                     landmark, flag = landmarks[i], flags[i]
-                    #if True: #flag>.5:
-                    if blaze_landmark_type == "blazehandlandmark":
-                        draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2)
-                    elif blaze_landmark_type == "blazefacelandmark":
-                        draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, size=1)                                    
-                    elif blaze_landmark_type == "blazeposelandmark":
-                        if landmarks.shape[1] > 33:
-                            draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
-                        else:
-                            draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+                    if flag > thresh_confidence:
+                        if blaze_landmark_type == "blazehandlandmark":
+                            draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2)
+                        elif blaze_landmark_type == "blazefacelandmark":
+                            draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, size=1)                                    
+                        elif blaze_landmark_type == "blazeposelandmark":
+                            if landmarks.shape[1] > 33:
+                                draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
+                            else:
+                                draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
                    
                 draw_roi(output,roi_box)
                 draw_detections(output,detections)
