@@ -443,17 +443,14 @@ for pipeline_id in range(nb_blaze_pipelines):
             thresh_min_score = blaze_detector.min_score_thresh
             thresh_min_score_prev = thresh_min_score
             cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
-            print("[INFO] thresh_min_score=",thresh_min_score)
             
             thresh_nms = blaze_detector.min_suppression_threshold
             thresh_nms_prev = thresh_nms
             cv2.createTrackbar('threshNMS', app_ctrl_title, int(thresh_nms*100), 100, ignore)
-            print("[INFO] thresh_nms=",thresh_nms)
 
             thresh_confidence = blaze_pipelines[pipeline_id]["thresh_confidence"] 
             thresh_confidence_prev = thresh_confidence
             cv2.createTrackbar('threshConfidence', app_ctrl_title, int(thresh_confidence*100), 100, ignore)
-            print("[INFO] thresh_confidence=",thresh_confidence)
             
 image = []
 output = []
@@ -629,11 +626,11 @@ while True:
                         roi_landmarks = roi_landmarks*blaze_landmark.resolution
                         if blaze_landmark_type == "blazehandlandmark":
                             if len(handedness_results) == 0:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (default color)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (RGB format)
                             elif handedness_results[i] == "left":
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (left hand)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (RGB format)
                             else:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 0, 255)) # blue (right hand)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 161, 190)) # aqua (RGB format)
                         elif blaze_landmark_type == "blazefacelandmark":
                             draw_landmarks(roi_img[i], roi_landmarks[:,:2], FACE_CONNECTIONS, size=1)                                    
                         elif blaze_landmark_type == "blazeposelandmark":
@@ -652,11 +649,11 @@ while True:
                         if flag > thresh_confidence:
                             if blaze_landmark_type == "blazehandlandmark":
                                 if len(handedness_results) == 0:
-                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (default color)
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (BGR format)
                                 elif handedness_results[i] == "left":                                    
-                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (left hand)
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (BGR format)
                                 else:
-                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(255, 0, 0)) # blue (right hand)
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(190, 161, 0)) # aqua (BGR format)
                             elif blaze_landmark_type == "blazefacelandmark":
                                 draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, size=1)                                    
                             elif blaze_landmark_type == "blazeposelandmark":

@@ -1,51 +1,26 @@
 
 import numpy as np
 import cv2
-#import torch
 
-def draw_detections(img, detections, with_keypoints=True):
-    n_keypoints = detections.shape[1] // 2 - 2
+#
+# Tria color palette
+#
 
-    for i in range(detections.shape[0]):
-        ymin = detections[i, 0]
-        xmin = detections[i, 1]
-        ymax = detections[i, 2]
-        xmax = detections[i, 3]
-        
-        start_point = (int(xmin), int(ymin))
-        end_point = (int(xmax), int(ymax))
-        img = cv2.rectangle(img, start_point, end_point, (255, 0, 0), 1) 
+# Primary Palette (BGR format)
+tria_blue   = ( 99,  31,   0); # TRIA BLUE
+tria_pink   = (163,   0, 255); # TRIA PINK
+tria_white  = (255, 255, 255); # WHITE
 
-        if with_keypoints:
-            for k in range(n_keypoints):
-                kp_x = int(detections[i, 4 + k*2    ])
-                kp_y = int(detections[i, 4 + k*2 + 1])
-                cv2.circle(img, (kp_x, kp_y), 2, (0, 0, 255), thickness=2)
+# Secondary Palette (BGR format)
+tria_gray11 = ( 90,  86,  83); # COOL GRAY 11
+tria_gray7  = (155, 153, 151); # COOL GRAY 11
+tria_gray3  = (199, 201, 200); # COOL GRAY 11
 
-
-def draw_roi(img, roi):
-    for i in range(roi.shape[0]):
-        (x1,x2,x3,x4), (y1,y2,y3,y4) = roi[i]
-        cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), (0,0,0), 2)
-        cv2.line(img, (int(x1), int(y1)), (int(x3), int(y3)), (0,255,0), 2)
-        cv2.line(img, (int(x2), int(y2)), (int(x4), int(y4)), (0,0,0), 2)
-        cv2.line(img, (int(x3), int(y3)), (int(x4), int(y4)), (0,0,0), 2)
-
-
-
-def draw_landmarks(img, points, connections=[], color=(0, 255, 0), size=2):
-    points = points[:,:2]
-    for point in points:
-        x, y = point
-        x, y = int(x), int(y)
-        cv2.circle(img, (x, y), size, color, thickness=size)
-    for connection in connections:
-        x0, y0 = points[connection[0]]
-        x1, y1 = points[connection[1]]
-        x0, y0 = int(x0), int(y0)
-        x1, y1 = int(x1), int(y1)
-        cv2.line(img, (x0, y0), (x1, y1), (0,0,0), size)
-
+# Tertiary Palette (BGR format)
+tria_purple = (157,  83, 107); # TRIA PURPLE
+tria_yellow = ( 80, 201, 235); # TRIA YELLOW
+tria_aqua   = (190, 161,   0); # TRIA AQUA
+tria_black  = (  0,   0,   0); # BLACK
 
 
 # https://github.com/metalwhale/hand_tracking/blob/b2a650d61b4ab917a2367a05b85765b81c0564f2/run.py
@@ -129,6 +104,49 @@ FACE_CONNECTIONS = [
     (109, 10)
 ]
 
+def draw_detections(img, detections, with_keypoints=True):
+    n_keypoints = detections.shape[1] // 2 - 2
+
+    for i in range(detections.shape[0]):
+        ymin = detections[i, 0]
+        xmin = detections[i, 1]
+        ymax = detections[i, 2]
+        xmax = detections[i, 3]
+        
+        start_point = (int(xmin), int(ymin))
+        end_point = (int(xmax), int(ymax))
+        img = cv2.rectangle(img, start_point, end_point, tria_blue, 1) 
+
+        if with_keypoints:
+            for k in range(n_keypoints):
+                kp_x = int(detections[i, 4 + k*2    ])
+                kp_y = int(detections[i, 4 + k*2 + 1])
+                cv2.circle(img, (kp_x, kp_y), 2, tria_pink, thickness=2)
+
+
+def draw_roi(img, roi):
+    for i in range(roi.shape[0]):
+        (x1,x2,x3,x4), (y1,y2,y3,y4) = roi[i]
+        cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), tria_blue, 2)
+        cv2.line(img, (int(x1), int(y1)), (int(x3), int(y3)), tria_pink, 2)
+        cv2.line(img, (int(x2), int(y2)), (int(x4), int(y4)), tria_blue, 2)
+        cv2.line(img, (int(x3), int(y3)), (int(x4), int(y4)), tria_blue, 2)
+
+
+
+def draw_landmarks(img, points, connections=[], color=(0, 255, 0), size=2):
+    points = points[:,:2]
+    for point in points:
+        x, y = point
+        x, y = int(x), int(y)
+        cv2.circle(img, (x, y), size, color, thickness=size)
+    for connection in connections:
+        x0, y0 = points[connection[0]]
+        x1, y1 = points[connection[1]]
+        x0, y0 = int(x0), int(y0)
+        x1, y1 = int(x1), int(y1)
+        cv2.line(img, (x0, y0), (x1, y1), tria_black, size)
+
 
 
 def draw_detection_scores(detection_scores, min_score_thresh):
@@ -137,21 +155,21 @@ def draw_detection_scores(detection_scores, min_score_thresh):
     x = range(num_anchors)
     y = detection_scores[0,:]
 
-    plot = np.zeros((500,500))
+    plot = np.full((500,500, 3), 0, dtype=np.uint8)
     xdiv = int((num_anchors / 500)+1)
     for i in range(1,num_anchors):
         x1 = int((i-1)/xdiv);
         y1 = int(500 - y[i-1]*500);
         x2 = int((i)/xdiv);
         y2 = int(500 - y[i]*500);
-        cv2.line(plot, (x1,y1), (x2,y2), 255, 1);
+        cv2.line(plot, (x1,y1), (x2,y2), tria_pink, 1);
 
     # draw threshold level
     x1=0
     x2=499
     y1=int(500-min_score_thresh*500)
     y2=y1
-    cv2.line(plot, (x1,y1), (x2,y2), 255, 1);
+    cv2.line(plot, (x1,y1), (x2,y2), tria_white, 1);
         
     #cv2.imshow("Detection Scores (sigmoid)",plot)
     return plot
@@ -159,32 +177,32 @@ def draw_detection_scores(detection_scores, min_score_thresh):
 
 # Colors for each bar (BGR)
 stacked_bar_generic_colors = [
-    (255, 0, 0),     # Blue
-    (0, 255, 0),     # Green
-    (0, 0, 255),     # Red
-    (255, 255, 0),   # Cyan
-    (255, 0, 255),   # Magenta
-    (0, 255, 255),   # Yellow
+    (255,   0,   0), # Blue
+    (  0, 255,   0), # Green
+    (  0,   0, 255), # Red
+    (255, 255,   0), # Cyan
+    (255,   0, 255), # Magenta
+    (  0, 255, 255), # Yellow
     (128, 128, 128), # Gray
-    (0, 128, 255),   # Orange
-    (0, 0, 0),       # Black
+    (  0, 128, 255), # Orange
+    (  0,   0,   0), # Black
     (255, 255, 255)  # White
 ]
 
 stacked_bar_latency_colors = [
-    (255,   0,   0), # resize         : blue 
-    (0,   255,   0), # detector_pre   : green
-    (255,   0, 255), # detector_model : magenta
-    (255, 255,   0), # detector_post  : cyan
-    (255,   0,   0), # extract_roi    : blue
-    (0,   255,   0), # landmark_pre   : green
-    (255,   0, 255), # landmark_model : magenta
-    (255, 255,   0), # landmark_post  : cyan
-    (0,     0,   0), # annotate       : black
+    tria_blue  , # resize
+    tria_yellow, # detector_pre
+    tria_pink  , # detector_model
+    tria_aqua  , # detector_post
+    tria_blue  , # extract_roi
+    tria_yellow, # landmark_pre
+    tria_pink  , # landmark_model
+    tria_aqua  , # landmark_post
+    tria_blue  , # annotate
 ]
 
 stacked_bar_performance_colors = [
-    (255, 0, 255),  # pipeline_fps : magenta
+    tria_pink  ,  # pipeline_fps
 ]
 
 # Example usage for labels
@@ -230,13 +248,13 @@ def draw_stacked_bar_chart(
 
     chart = np.full((chart_height, chart_width, 3), 255, dtype=np.uint8)
     cv2.putText(chart, chart_name, (left_margin, 36),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (40,40,40), 2, cv2.LINE_AA)
+                cv2.FONT_HERSHEY_SIMPLEX, 0.8, tria_gray11, 2, cv2.LINE_AA)
 
     # Draw y labels (pipeline names)
     for i in range(pipelines):
         y = 60 + i * (bar_height + spacing) + bar_height//2 + 5
         cv2.putText(chart, pipeline_titles[i], (8, y),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (40,40,40), 1, cv2.LINE_AA)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, tria_gray11, 1, cv2.LINE_AA)
 
     # Draw bars (stacked, normalized so max stacked bar fits in chart)
     for i in range(pipelines):
@@ -255,11 +273,11 @@ def draw_stacked_bar_chart(
                 # Optionally draw value
                 if val >= 0.001:
                     cv2.putText(chart, f"{val:.3f}", (x_local+4, y+bar_height-8),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1, cv2.LINE_AA)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, tria_white, 1, cv2.LINE_AA)
             x_local += bar_w
         # draw total
         cv2.putText(chart, f"{sum_val:.3f}", (x_local+4, y+bar_height-8),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (40,40,40), 1, cv2.LINE_AA)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, tria_gray11, 1, cv2.LINE_AA)
 
     # Draw legend on multiple lines, max 4 per line
     legend_start_x = left_margin
@@ -276,6 +294,6 @@ def draw_stacked_bar_chart(
             end_point = (leg_x+20, leg_y+18)            
             cv2.rectangle(chart, start_point, end_point, component_colors[idx], -1)
             cv2.putText(chart, component_labels[idx], (leg_x + 28, leg_y + 16),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (40,40,40), 1, cv2.LINE_AA)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, tria_gray11, 1, cv2.LINE_AA)
 
     return chart
