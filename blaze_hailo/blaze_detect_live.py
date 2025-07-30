@@ -266,13 +266,10 @@ if bViewOutput:
     cv2.namedWindow(app_main_title)
 
     cv2.createTrackbar('threshMinScore', app_ctrl_title, int(thresh_min_score*100), 100, ignore)
-    print("[INFO] thresh_min_score=",thresh_min_score)
 
     cv2.createTrackbar('threshNMS', app_ctrl_title, int(thresh_nms*100), 100, ignore)
-    print("[INFO] thresh_nms=",thresh_nms)
 
     cv2.createTrackbar('threshConfidence', app_ctrl_title, int(thresh_confidence*100), 100, ignore)
-    print("[INFO] thresh_confidence=",thresh_confidence)
 
 image = []
 output = []
