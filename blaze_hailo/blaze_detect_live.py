@@ -226,19 +226,28 @@ print("\tPress 'c' to continue ...")
 print("\tPress 's' to step one frame at a time ...")
 print("\tPress 'w' to take a photo ...")
 print("----------------------------------------------------------------")
-print("\tPress 't' to toggle between image and live video")
+print("\tPress 't' to toggle between test image and live video")
+print("\tPress 'h' to toggle horizontal mirror on input")
+print("\tPress 'a' to toggle detection overlay on/off")
+print("\tPress 'b' to toggle roi overlay on/off")
+print("\tPress 'l' to toggle landmarks overlay on/off")
 print("\tPress 'd' to toggle debug image on/off")
 print("\tPress 'e' to toggle scores image on/off")
 print("\tPress 'f' to toggle FPS display on/off")
 print("\tPress 'v' to toggle verbose on/off")
 print("\tPress 'z' to toggle profiling log on/off")
-print("\tPress 'Z' to toggle profiling view on/off")
+print("\tPress 'y' to toggle profiling view on/off")
 print("================================================================")
 
 bStep = False
 bPause = False
 bWrite = False
+
 bUseImage = args.testimage
+bMirrorImage = False
+bShowDetection = True
+bShowExtractROI = True
+bShowLandmarks = True
 bShowDebugImage = False
 bShowScores = False
 bShowFPS = args.fps
@@ -301,6 +310,10 @@ while True:
         if not flag:
             print("[ERROR] cap.read() FAILEd !")
             break
+
+    if bMirrorImage:
+        # Mirror horizontally for selfie-mode
+        frame = cv2.flip(frame, 1) 
 
     if bProfileLog or bProfileView:
         prof_title          = ['']*nb_blaze_pipelines
@@ -390,8 +403,21 @@ while True:
                 profile_extract = timer()-start
 
                 landmark_results = blaze_landmark.predict(roi_img)
+                handedness_results = []
                 if len(landmark_results) == 3:
                     flags, normalized_landmarks, handedness = landmark_results
+                    # process handedness
+                    for i in range(len(handedness)):
+                        # mediapipe expects mirror image, need to invert result otherwise
+                        if bMirrorImage == False:
+                            handedness[i] = 1.0 - handedness[i]
+                        # handedness 
+                        if handedness[i] > 0.5:
+                            # left => 1.0
+                            handedness_results.append("left")
+                        else:
+                            # right => 0.0
+                            handedness_results.append("right")
                 else:
                     flags, normalized_landmarks = landmark_results
 
@@ -402,7 +428,12 @@ while True:
                         roi_landmarks = normalized_landmarks[i,:,:].copy()
                         roi_landmarks = roi_landmarks*blaze_landmark.resolution
                         if blaze_landmark_type == "blazehandlandmark":
-                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2)
+                            if len(handedness_results) == 0:
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (default color)
+                            elif handedness_results[i] == "left":
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (left hand)
+                            else:
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 0, 255)) # blue (right hand)
                         elif blaze_landmark_type == "blazefacelandmark":
                             draw_landmarks(roi_img[i], roi_landmarks[:,:2], FACE_CONNECTIONS, size=1)                                    
                         elif blaze_landmark_type == "blazeposelandmark":
@@ -415,21 +446,29 @@ while True:
                 start = timer() 
                 landmarks = blaze_landmark.denormalize_landmarks(normalized_landmarks, roi_affine)
 
-                for i in range(len(flags)):
-                    landmark, flag = landmarks[i], flags[i]
-                    if flag > thresh_confidence:
-                        if blaze_landmark_type == "blazehandlandmark":
-                            draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2)
-                        elif blaze_landmark_type == "blazefacelandmark":
-                            draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, size=1)                                    
-                        elif blaze_landmark_type == "blazeposelandmark":
-                            if landmarks.shape[1] > 33:
-                                draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
-                            else:
-                                draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
-                   
-                draw_roi(output,roi_box)
-                draw_detections(output,detections)
+                if bShowLandmarks:
+                    for i in range(len(flags)):
+                        landmark, flag = landmarks[i], flags[i]
+                        if flag > thresh_confidence:
+                            if blaze_landmark_type == "blazehandlandmark":
+                                if len(handedness_results) == 0:
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (default color)
+                                elif handedness_results[i] == "left":                                    
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (left hand)
+                                else:
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(255, 0, 0)) # blue (right hand)
+                            elif blaze_landmark_type == "blazefacelandmark":
+                                draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, size=1)                                    
+                            elif blaze_landmark_type == "blazeposelandmark":
+                                if landmarks.shape[1] > 33:
+                                    draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
+                                else:
+                                    draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+
+                if bShowExtractROI:
+                    draw_roi(output,roi_box)
+                if bShowDetection:
+                    draw_detections(output,detections)
                 profile_annotate = timer()-start
 
             if bShowDebugImage:
@@ -625,6 +664,22 @@ while True:
     if key == 116: # 't'
         bUseImage = not bUseImage  
         print("[INFO] bUseImage=",bUseImage)
+
+    if key == 104: # 'h'
+        bMirrorImage = not bMirrorImage  
+        print("[INFO] bMirrorImage=",bMirrorImage)
+
+    if key == 97: # 'a'
+        bShowDetection = not bShowDetection  
+        print("[INFO] bShowDetection=",bShowDetection)
+
+    if key == 98: # 'b'
+        bShowExtractROI = not bShowExtractROI  
+        print("[INFO] bShowExtractROI=",bShowExtractROI)
+
+    if key == 108: # 'l'
+        bShowLandmarks = not bShowLandmarks  
+        print("[INFO] bShowLandmarks=",bShowLandmarks)
 
     if key == 100: # 'd'
         bShowDebugImage = not bShowDebugImage  
