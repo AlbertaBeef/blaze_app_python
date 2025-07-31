@@ -274,9 +274,14 @@ class BlazeDetectorBase(BlazeBase):
 
         thresh = self.score_clipping_thresh
         clipped_score_tensor = np.clip(raw_score_tensor,-thresh,thresh)
+        
+        #print("[BlazeBase._tensors_to_detections] raw_score_tensor min|max = ",np.amin(raw_score_tensor),np.amax(raw_score_tensor))        
+        #print("[BlazeBase._tensors_to_detections] clipped_score_tensor thresh=",thresh," min|max = ",np.amin(clipped_score_tensor),np.amax(clipped_score_tensor))        
 
         detection_scores = 1/(1 + np.exp(-clipped_score_tensor))
         detection_scores = np.squeeze(detection_scores, axis=-1)        
+
+        #print("[BlazeBase._tensors_to_detections] detection_scores min|max = ",np.amin(detection_scores),np.amax(detection_scores))        
 
         self.detection_scores = detection_scores.copy()
         

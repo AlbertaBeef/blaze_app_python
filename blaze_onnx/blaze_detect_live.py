@@ -73,9 +73,10 @@ text_lineType = cv2.LINE_AA
 ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--testimage'  , default=False, action='store_true', help="Use test image as input (womand_hands.jpg). Default is usbcam")
-ap.add_argument('-b', '--blaze',  type=str, default="hand", help="Application (hand, face, pose).  Default is hand")
-ap.add_argument('-m', '--model1', type=str, help='Path of blazepalm model. Default is models/palm_detection_lite/model_float32.onnx')
-ap.add_argument('-n', '--model2', type=str, help='Path of blazehandlardmark model. Default is models/hand_landmark_lite/model_float32.onnx')
+ap.add_argument('-b', '--blaze'      , type=str, default="hand", help="Application (hand, face, pose).  Default is hand")
+ap.add_argument('-m', '--model1'     , type=str, help='Path of blazepalm model. Default is models/palm_detection_lite/model_float32.onnx')
+ap.add_argument('-n', '--model2'     , type=str, help='Path of blazehandlardmark model. Default is models/hand_landmark_lite/model_float32.onnx')
+ap.add_argument('-v', '--verbose'    , default=False, action='store_true', help="Enable Verbose mode. Default is off")
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
 ap.add_argument('-w', '--withoutview', default=False, action='store_true', help="Disable Output viewing. Default is on")
 ap.add_argument('-z', '--profilelog' , default=False, action='store_true', help="Enable Profile Log (Latency). Default is off")
@@ -90,6 +91,7 @@ print(' --testimage   : ', args.testimage)
 print(' --blaze       : ', args.blaze)
 print(' --model1      : ', args.model1)
 print(' --model2      : ', args.model2)
+print(' --verbose     : ', args.verbose)
 print(' --debug       : ', args.debug)
 print(' --withoutview : ', args.withoutview)
 print(' --profilelog  : ', args.profilelog)
@@ -197,11 +199,11 @@ if args.model2 == None:
    args.model2 = default_landmark_model
 
 blaze_detector = BlazeDetector(blaze_detector_type)
-blaze_detector.set_debug(debug=args.debug)
+blaze_detector.set_debug(debug=args.verbose)
 blaze_detector.load_model(args.model1)
 
 blaze_landmark = BlazeLandmark(blaze_landmark_type)
-blaze_landmark.set_debug(debug=args.debug)
+blaze_landmark.set_debug(debug=args.verbose)
 #blaze_landmark.load_model(args.model2)
 
 thresh_min_score = blaze_detector.min_score_thresh
@@ -245,10 +247,10 @@ bMirrorImage = False
 bShowDetection = True
 bShowExtractROI = True
 bShowLandmarks = True
-bShowDebugImage = False
+bShowDebugImage = args.debug
 bShowScores = False
 bShowFPS = args.fps
-bVerbose = args.debug
+bVerbose = args.verbose
 bViewOutput = not args.withoutview
 bProfileLog = args.profilelog
 bProfileView = args.profileview
@@ -424,18 +426,18 @@ while True:
                         roi_landmarks = roi_landmarks*blaze_landmark.resolution
                         if blaze_landmark_type == "blazehandlandmark":
                             if len(handedness_results) == 0:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (RGB format)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, thickness=2, radius=4)
                             elif handedness_results[i] == "left":
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (RGB format)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, thickness=2, radius=4, color=(0, 255, 0)) # green (RGB format)
                             else:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 161, 190)) # aqua (RGB format)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, thickness=2, radius=4, color=(0, 161, 190)) # aqua (RGB format)
                         elif blaze_landmark_type == "blazefacelandmark":
-                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], FACE_CONNECTIONS, size=1)                                    
+                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], FACE_CONNECTIONS, thickness=2, radius=1)                                    
                         elif blaze_landmark_type == "blazeposelandmark":
                             if roi_landmarks.shape[1] > 33:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_FULL_BODY_CONNECTIONS, thickness=2, radius=4)
                             else:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_UPPER_BODY_CONNECTIONS, thickness=2, radius=4)                
                         debug_img = cv2.hconcat([debug_img,roi_img[i]])
 
                 start = timer() 
@@ -447,18 +449,18 @@ while True:
                         if flag > thresh_confidence:
                             if blaze_landmark_type == "blazehandlandmark":
                                 if len(handedness_results) == 0:
-                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (BGR format)
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, thickness=2, radius=4)
                                 elif handedness_results[i] == "left":                                    
-                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (BGR format)
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, thickness=2, radius=4, color=(0, 255, 0)) # green (BGR format)
                                 else:
-                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(190, 161, 0)) # aqua (BGR format)
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, thickness=2, radius=4, color=(190, 161, 0)) # aqua (BGR format)
                             elif blaze_landmark_type == "blazefacelandmark":
-                                draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, size=1)                                    
+                                draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, thickness=2, radius=1)                                    
                             elif blaze_landmark_type == "blazeposelandmark":
                                 if landmarks.shape[1] > 33:
-                                    draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
+                                    draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, thickness=2, radius=4)
                                 else:
-                                    draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+                                    draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, thickness=2, radius=4)                
 
                 if bShowExtractROI:
                     draw_roi(output,roi_box)

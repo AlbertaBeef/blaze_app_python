@@ -1,4 +1,5 @@
-blaze_detect_live.csv
+*.jpg
+*.csv
 
 # blaze_*/__pycache__
 __pycache__/

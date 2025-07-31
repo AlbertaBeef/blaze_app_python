@@ -13,8 +13,8 @@ tria_white  = (255, 255, 255); # WHITE
 
 # Secondary Palette (BGR format)
 tria_gray11 = ( 90,  86,  83); # COOL GRAY 11
-tria_gray7  = (155, 153, 151); # COOL GRAY 11
-tria_gray3  = (199, 201, 200); # COOL GRAY 11
+tria_gray7  = (155, 153, 151); # COOL GRAY 7
+tria_gray3  = (199, 201, 200); # COOL GRAY 3
 
 # Tertiary Palette (BGR format)
 tria_purple = (157,  83, 107); # TRIA PURPLE
@@ -121,7 +121,7 @@ def draw_detections(img, detections, with_keypoints=True):
             for k in range(n_keypoints):
                 kp_x = int(detections[i, 4 + k*2    ])
                 kp_y = int(detections[i, 4 + k*2 + 1])
-                cv2.circle(img, (kp_x, kp_y), 2, tria_pink, thickness=2)
+                cv2.circle(img, (kp_x, kp_y), radius=4, color=tria_pink, thickness=-1)
 
 
 def draw_roi(img, roi):
@@ -134,18 +134,18 @@ def draw_roi(img, roi):
 
 
 
-def draw_landmarks(img, points, connections=[], color=(0, 255, 0), size=2):
+def draw_landmarks(img, points, connections=[], color=(0, 255, 0), radius=4, thickness=2):
     points = points[:,:2]
     for point in points:
         x, y = point
         x, y = int(x), int(y)
-        cv2.circle(img, (x, y), size, color, thickness=size)
+        cv2.circle(img, (x, y), radius=radius, color=color, thickness=-1)
     for connection in connections:
         x0, y0 = points[connection[0]]
         x1, y1 = points[connection[1]]
         x0, y0 = int(x0), int(y0)
         x1, y1 = int(x1), int(y1)
-        cv2.line(img, (x0, y0), (x1, y1), tria_black, size)
+        cv2.line(img, (x0, y0), (x1, y1), tria_black, thickness)
 
 
 

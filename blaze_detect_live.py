@@ -163,6 +163,7 @@ ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help
 ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo", help="Command seperated list of targets (blaze_tflite, blaze_tflite_quant, blaze_pytorch, blaze_vitisai).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
 ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
+ap.add_argument('-v', '--verbose'    , default=False, action='store_true', help="Enable Verbose mode. Default is off")
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
 ap.add_argument('-w', '--withoutview', default=False, action='store_true', help="Disable Output viewing. Default is on")
 ap.add_argument('-z', '--profilelog' , default=False, action='store_true', help="Enable Profile Log (Latency). Default is off")
@@ -178,6 +179,7 @@ print(' --blaze       : ', args.blaze)
 print(' --target      : ', args.target)
 print(' --pipeline    : ', args.pipeline)
 print(' --list        : ', args.list)
+print(' --verbose     : ', args.verbose)
 print(' --debug       : ', args.debug)
 print(' --withoutview : ', args.withoutview)
 print(' --profilelog  : ', args.profilelog)
@@ -345,7 +347,7 @@ for i in range(nb_blaze_pipelines):
             blaze_detector = BlazeDetector_hailo(detector_type,hailo_infer)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
-        blaze_detector.set_debug(debug=args.debug)
+        blaze_detector.set_debug(debug=args.verbose)
         blaze_detector.load_model(model1)
  
         if target2=="blaze_tflite":
@@ -360,7 +362,7 @@ for i in range(nb_blaze_pipelines):
             blaze_landmark = BlazeLandmark_hailo(landmark_type,hailo_infer)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
-        blaze_landmark.set_debug(debug=args.debug)
+        blaze_landmark.set_debug(debug=args.verbose)
         blaze_landmark.load_model(model2)
        
         blaze_pipelines[i]["supported"]     = True
@@ -413,10 +415,10 @@ bMirrorImage = False
 bShowDetection = True
 bShowExtractROI = True
 bShowLandmarks = True
-bShowDebugImage = False
+bShowDebugImage = args.debug
 bShowScores = False
 bShowFPS = args.fps
-bVerbose = args.debug
+bVerbose = args.verbose
 bViewOutput = not args.withoutview
 bProfileLog = args.profilelog
 bProfileView = args.profileview
@@ -626,18 +628,18 @@ while True:
                         roi_landmarks = roi_landmarks*blaze_landmark.resolution
                         if blaze_landmark_type == "blazehandlandmark":
                             if len(handedness_results) == 0:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (RGB format)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, thickness=2, radius=4)
                             elif handedness_results[i] == "left":
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (RGB format)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, thickness=2, radius=4, color=(0, 255, 0)) # green (RGB format)
                             else:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, size=2, color=(0, 161, 190)) # aqua (RGB format)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], HAND_CONNECTIONS, thickness=2, radius=4, color=(0, 161, 190)) # aqua (RGB format)
                         elif blaze_landmark_type == "blazefacelandmark":
-                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], FACE_CONNECTIONS, size=1)                                    
+                            draw_landmarks(roi_img[i], roi_landmarks[:,:2], FACE_CONNECTIONS, thickness=2, radius=1)                                    
                         elif blaze_landmark_type == "blazeposelandmark":
                             if roi_landmarks.shape[1] > 33:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_FULL_BODY_CONNECTIONS, thickness=2, radius=4)
                             else:
-                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+                                draw_landmarks(roi_img[i], roi_landmarks[:,:2], POSE_UPPER_BODY_CONNECTIONS, thickness=2, radius=4)                
                         debug_img = cv2.hconcat([debug_img,roi_img[i]])
 
                 start = timer() 
@@ -649,18 +651,18 @@ while True:
                         if flag > thresh_confidence:
                             if blaze_landmark_type == "blazehandlandmark":
                                 if len(handedness_results) == 0:
-                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (BGR format)
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, thickness=2, radius=4)
                                 elif handedness_results[i] == "left":                                    
-                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(0, 255, 0)) # green (BGR format)
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, thickness=2, radius=4, color=(0, 255, 0)) # green (BGR format)
                                 else:
-                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, size=2, color=(190, 161, 0)) # aqua (BGR format)
+                                    draw_landmarks(output, landmark[:,:2], HAND_CONNECTIONS, thickness=2, radius=4, color=(190, 161, 0)) # aqua (BGR format)
                             elif blaze_landmark_type == "blazefacelandmark":
-                                draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, size=1)                                    
+                                draw_landmarks(output, landmark[:,:2], FACE_CONNECTIONS, thickness=2, radius=1)                                    
                             elif blaze_landmark_type == "blazeposelandmark":
                                 if landmarks.shape[1] > 33:
-                                    draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, size=2)
+                                    draw_landmarks(output, landmark[:,:2], POSE_FULL_BODY_CONNECTIONS, thickness=2, radius=4)
                                 else:
-                                    draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, size=2)                
+                                    draw_landmarks(output, landmark[:,:2], POSE_UPPER_BODY_CONNECTIONS, thickness=2, radius=4)                
 
                 if bShowExtractROI:
                     draw_roi(output,roi_box)

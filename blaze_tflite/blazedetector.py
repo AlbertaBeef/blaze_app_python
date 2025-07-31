@@ -75,9 +75,9 @@ class BlazeDetector(BlazeDetectorBase):
     def preprocess(self, x):
         """Converts the image pixels to the range [-1, 1]."""
         """Converts the image pixels to defined input scale."""
-        x = (x / 255.0)
         x = x.astype(np.float32)
-
+        x = (x / 255.0)
+        #print("[BlazeDetector.preprocess] min|max = ",np.amin(x),np.amax(x))
        
         return x
 
@@ -134,6 +134,9 @@ class BlazeDetector(BlazeDetectorBase):
         assert x.shape[2] == self.x_scale
         
         out1, out2 = self.predict_core(x)
+
+        #print("[BlazeDetector.predict_on_batch] out1 min|max = ",np.amin(out1),np.amax(out1))
+        #print("[BlazeDetector.predict_on_batch] out2 min|max = ",np.amin(out2),np.amax(out2))
 
         assert out1.shape[0] == 1 # batch
         assert out1.shape[1] == self.num_anchors
