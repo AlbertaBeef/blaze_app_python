@@ -80,6 +80,7 @@ The blaze_app_python demo provides a common code base for comparing models infer
 - PyTorch : [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch)
 - Vitis-AI 3.5 : [AlbertaBeef/blaze_tutorial/vitis-ai](https://github.com/AlbertaBeef/blaze_tutorial/tree/2023.1/vitis-ai)
 - Hailo-8 : [AlbertaBeef/blaze_tutorial/hailo-8](https://github.com/AlbertaBeef/blaze_tutorial/tree/2023.1/hailo-8)
+- MemryX MX3 : [AlbertaBeef/blaze_tutorial/memryx](https://github.com/AlbertaBeef/blaze_tutorial/tree/mx3/memryx)
 
 
 ## Supported Models
@@ -224,11 +225,11 @@ Frame Rate (estimated from total latency)
 ## References
 
 The blaze_app_python demo is based on the following work:
-- Google MediaPipe models : [google/mediapipe](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md)
-- BlazePalm : [vidursatija/BlazePalm](https://github.com/vidursatija/BlazePalm)
-- BlazeFace-PyTorch : [hollance/BlazeFace-PyTorch](https://github.com/hollance/BlazeFace-PyTorch)
-- MediaPipePyTorch : [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch)
-- Blaze Tutorial : [AlbertaBeef/blaze_tutorial](https://github.com/AlbertaBeef/blaze_tutorial/tree/2023.1)
+   - Google MediaPipe models : [google/mediapipe](https://github.com/google/mediapipe/blob/master/docs/solutions/models.md)
+   - BlazePalm : [vidursatija/BlazePalm](https://github.com/vidursatija/BlazePalm)
+   - BlazeFace-PyTorch : [hollance/BlazeFace-PyTorch](https://github.com/hollance/BlazeFace-PyTorch)
+   - MediaPipePyTorch : [zmurez/MediaPipePytorch](https://github.com/zmurez/MediaPipePyTorch)
+   - Blaze Tutorial : [AlbertaBeef/blaze_tutorial](https://github.com/AlbertaBeef/blaze_tutorial/tree/2023.1)
 
 The following articles provide detailed information on Accelerating MediaPipe:
    - Hackster Series Part 1 [Blazing Fast Models](https://avnet.me/mediapipe-01-models)
