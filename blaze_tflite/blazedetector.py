@@ -2,15 +2,21 @@ import numpy as np
 
 from blazebase import BlazeDetectorBase
 
-#import tensorflow as tf
 bUseTfliteRuntime = False
+bUseTFContrig = False
+bUseTFLite = False
 try:
-    import tensorflow as tf
-    #import tensorflow.lite
-    import tf.contrib
+    import tensorflow
+    import tensorflow.lite
+    bUseTFLite = True
 except:
-    from tflite_runtime.interpreter import Interpreter
-    bUseTfliteRuntime = True
+    try:
+        import tensorflow
+        import tensorflow.contrib
+        bUseTFContrig = False        
+    except:
+        import tflite_runtime.interpreter
+        bUseTfliteRuntime = True
 
 from timeit import default_timer as timer
 
@@ -26,12 +32,16 @@ class BlazeDetector(BlazeDetectorBase):
 
         if self.DEBUG:
            print("[BlazeDetector.load_model] Model File : ",model_path)
-           
-        if bUseTfliteRuntime:
-            self.interp_detector = Interpreter(model_path)
+
+        if bUseTFLite:
+            self.interp_detector = tensorflow.lite.Interpreter(model_path)
+        elif bUseTFContrib:           
+            self.interp_detector = tensorflow.contrib.lite.Interpreter(model_path)
+        elif bUseTfliteRuntime:
+            self.interp_detector = tflite_runtime.interpreter.Interpreter(model_path)
         else:
-            #self.interp_detector = tf.lite.Interpreter(model_path)
-            self.interp_detector = tf.contrib.lite.Interpreter(model_path)
+            print("[BlazeDetector] Failed to load Tensorflow/TFLite interpreter !")
+        
         self.interp_detector.allocate_tensors()
 
         # reading tflite model paramteres
