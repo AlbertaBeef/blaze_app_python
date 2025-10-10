@@ -175,21 +175,20 @@ if args.blaze == "hand":
    blaze_detector_type = "blazepalm"
    blaze_landmark_type = "blazehandlandmark"
    blaze_title = "BlazeHandLandmark"
-   #default_detector_model='models/palm_detection_lite/model_float32.onnx'
-   default_detector_model='models/palm_detection_v0_07/model_float32.onnx'
-   default_landmark_model='models/hand_landmark_lite/model_float32.onnx'
-#elif args.blaze == "face":
-#   blaze_detector_type = "blazeface"
-#   blaze_landmark_type = "blazefacelandmark"
-#   blaze_title = "BlazeFaceLandmark"
-#   default_detector_model='models/face_detection_short_range.tflite'
-#   default_landmark_model='models/face_landmark.tflite'
-#elif args.blaze == "pose":
-#   blaze_detector_type = "blazepose"
-#   blaze_landmark_type = "blazeposelandmark"
-#   blaze_title = "BlazePoseLandmark"
-#   default_detector_model='models/pose_detection.tflite'
-#   default_landmark_model='models/pose_landmark_full.tflite'
+   default_detector_model='models/palm_detection_lite.onnx'
+   default_landmark_model='models/hand_landmark_lite.onnx'
+elif args.blaze == "face":
+   blaze_detector_type = "blazeface"
+   blaze_landmark_type = "blazefacelandmark"
+   blaze_title = "BlazeFaceLandmark"
+   default_detector_model='models/face_detection_short_range.onnx'
+   default_landmark_model='models/face_landmark.onnx'
+elif args.blaze == "pose":
+   blaze_detector_type = "blazepose"
+   blaze_landmark_type = "blazeposelandmark"
+   blaze_title = "BlazePoseLandmark"
+   default_detector_model='models/pose_detection.onnx'
+   default_landmark_model='models/pose_landmark_full.onnx'
 else:
    print("[ERROR] Invalid Blaze application : ",args.blaze,".  MUST be one of hand,face,pose.")
 
@@ -204,7 +203,7 @@ blaze_detector.load_model(args.model1)
 
 blaze_landmark = BlazeLandmark(blaze_landmark_type)
 blaze_landmark.set_debug(debug=args.verbose)
-#blaze_landmark.load_model(args.model2)
+blaze_landmark.load_model(args.model2)
 
 thresh_min_score = blaze_detector.min_score_thresh
 thresh_min_score_prev = thresh_min_score
@@ -389,8 +388,7 @@ while True:
 
             profile_detector_qty = len(normalized_detections)
             
-            #if len(normalized_detections) > 0:
-            if False:
+            if len(normalized_detections) > 0:
   
                 start = timer()          
                 detections = blaze_detector.denormalize_detections(normalized_detections,scale1,pad1)

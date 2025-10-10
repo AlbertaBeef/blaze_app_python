@@ -50,10 +50,10 @@ class BlazeDetector(BlazeDetectorBase):
            print("[BlazeDetector.load_model] Output1 Shape : ",self.out_reg_shape)
            print("[BlazeDetector.load_model] Output2 Shape : ",self.out_clf_shape)
 
-        self.x_scale = self.in_shape[2]
-        self.y_scale = self.in_shape[3]
-        self.h_scale = self.in_shape[2]
-        self.w_scale = self.in_shape[3]
+        self.x_scale = self.in_shape[1]
+        self.y_scale = self.in_shape[2]
+        self.h_scale = self.in_shape[1]
+        self.w_scale = self.in_shape[2]
 
         self.num_anchors = self.out_clf_shape[1]
         if self.DEBUG:
@@ -62,12 +62,10 @@ class BlazeDetector(BlazeDetectorBase):
         self.config_model(self.blaze_app)
 
     def preprocess(self, x):
-        """Change NHWC ordering to NCHW """
-        x = np.transpose(x,[0,3,1,2])
         """Converts the image pixels to the range [-1, 1]."""
         """Converts the image pixels to defined input scale."""
-        x = (x / 255.0)
         x = x.astype(np.float32)
+        x = (x / 255.0)
 
        
         return x
@@ -138,7 +136,6 @@ class BlazeDetector(BlazeDetectorBase):
         result = self.session.run(output_names, {input_name: x})   
         self.profile_model = timer()-start
 
-        start = timer() 
         out1 = result[0] # classificators [1,anchors,1]
         out2 = result[1] # regressors     [1,anchors,18]
 
@@ -157,6 +154,8 @@ class BlazeDetector(BlazeDetectorBase):
         assert out2.shape[0] == 1 # batch
         assert out2.shape[1] == self.num_anchors
         assert out2.shape[2] == self.num_coords
+
+        start = timer() 
 
         # 3. Postprocess the raw predictions:
         detections = self._tensors_to_detections(out2, out1, self.anchors)

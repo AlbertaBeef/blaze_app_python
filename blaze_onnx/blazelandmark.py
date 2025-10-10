@@ -41,11 +41,9 @@ class BlazeLandmark(BlazeLandmarkBase):
            print("[BlazeLandmark.load_model] Output1 Shape : ",self.out_landmark_shape)
            print("[BlazeLandmark.load_model] Output2 Shape : ",self.out_flag_shape)
 
-        self.resolution = self.in_shape[2]
+        self.resolution = self.in_shape[1]
 
     def preprocess(self, x):
-        """Change NHWC ordering to NCHW """
-        x = np.transpose(x,[0,3,1,2])
         # image was already pre-processed by extract_roi in blaze_common/blazebase.py
         # format = RGB
         # dtype = float32
@@ -60,7 +58,7 @@ class BlazeLandmark(BlazeLandmarkBase):
 
         out1_list = []
         out2_list = []
-        #out3_list = []
+        out3_list = []
 
         #print("[BlazeLandmark] x ",x.shape,x.dtype)
         start = timer()        
@@ -93,7 +91,7 @@ class BlazeLandmark(BlazeLandmarkBase):
                 out2 = result[0]
                 out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] / 63 => [1,21,3]
                 out2 = out2/self.resolution
-                #out3 = np.zeros(out1.shape,out1.dtype) # tflite model not returning handedness
+                out3 = result[2]
             elif self.blaze_app == "blazefacelandmark":
                 out1 = result[1]
                 out1 = out1.reshape(1,1)
@@ -109,15 +107,21 @@ class BlazeLandmark(BlazeLandmarkBase):
 
             out1_list.append(out1.squeeze(0))
             out2_list.append(out2.squeeze(0))
-            #out3_list.append(out3.squeeze(0))
+            if self.blaze_app == "blazehandlandmark":
+                out3_list.append(out3.squeeze(0))
             self.profile_post += timer()-start
 
 
         flag = np.asarray(out1_list)
         landmarks = np.asarray(out2_list)        
+        if self.blaze_app == "blazehandlandmark":
+            handedness_scores = np.asarray(out3_list)
 
         #if self.DEBUG:
         #    print("[BlazeLandmark.predict] flag ",flag.shape,flag.dtype)
         #    print("[BlazeLandmark.predict] landmarks ",landmarks.shape,landmarks.dtype)
 
-        return flag,landmarks
+        if self.blaze_app == "blazehandlandmark":
+            return flag,landmarks,handedness_scores
+        else:
+            return flag,landmarks
