@@ -1,8 +1,6 @@
 import cv2
 import numpy as np
 
-#from matplotlib import pyplot as plt
-
 from blazeconfig import get_model_config, get_anchor_options, generate_anchors
 
 """
