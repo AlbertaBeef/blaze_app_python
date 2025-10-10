@@ -3,7 +3,7 @@ import numpy as np
 from blazebase import BlazeDetectorBase
 
 bUseTfliteRuntime = False
-bUseTFContrig = False
+bUseTFContrib = False
 bUseTFLite = False
 try:
     import tensorflow
@@ -13,7 +13,7 @@ except:
     try:
         import tensorflow
         import tensorflow.contrib
-        bUseTFContrig = False        
+        bUseTFContrib = False        
     except:
         import tflite_runtime.interpreter
         bUseTfliteRuntime = True
