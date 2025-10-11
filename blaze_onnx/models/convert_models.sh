@@ -55,7 +55,7 @@ do
 	model_name=${model_array[0]}
 	model_file=${model_array[1]}
 
-	echo python3 -m tf2onnx.convert --tflite ../../blaze_tflite/models/${model_file} --output ${model_name}.onnx
-	python3 -m tf2onnx.convert  --tflite ../../blaze_tflite/models/${model_file} --output ${model_name}.onnx
+	echo python3 -m tf2onnx.convert --opset 12 --tflite ../../blaze_tflite/models/${model_file} --output ${model_name}.onnx
+	python3 -m tf2onnx.convert --opset 12 --tflite ../../blaze_tflite/models/${model_file} --output ${model_name}.onnx
 	
 done
