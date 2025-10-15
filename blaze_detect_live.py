@@ -70,7 +70,8 @@ supported_targets = {
     "blaze_pytorch": False,
     "blaze_vitisai": False,
     "blaze_hailo": False,
-    "blaze_onnx": False
+    "blaze_onnx": False,
+    "blaze_rpp": False
 }
 try:
     from blaze_tflite.blazedetector import BlazeDetector as BlazeDetector_tflite
@@ -148,6 +149,15 @@ try:
 except:
     print("[INFO] blaze_onnx NOT supported ...")
 
+try:
+    from blaze_rpp.blazedetector import BlazeDetector as BlazeDetector_rpp
+    from blaze_rpp.blazelandmark import BlazeLandmark as BlazeLandmark_rpp
+    print("[INFO] blaze_rpp supported ...")
+    supported_targets["blaze_rpp"] = True
+except:
+    print("[INFO] blaze_rpp NOT supported ...")
+
+
 from visualization import draw_detections, draw_landmarks, draw_roi
 from visualization import HAND_CONNECTIONS, FACE_CONNECTIONS, POSE_FULL_BODY_CONNECTIONS, POSE_UPPER_BODY_CONNECTIONS
 from visualization import draw_detection_scores
@@ -170,7 +180,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--testimage'  , default=False, action='store_true', help="Use test image as input (womand_hands.jpg). Default is usbcam")
 ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
-ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx", help="Command seperated list of targets (blaze_tflite, blaze_tflite_quant, blaze_pytorch, blaze_vitisai, blaze_hailo, blaze_onnx).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx'")
+ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_rpp", help="Command seperated list of targets (blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_rpp).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_rpp'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
 ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
 ap.add_argument('-v', '--verbose'    , default=False, action='store_true', help="Enable Verbose mode. Default is off")
@@ -210,6 +220,9 @@ blaze_pipelines = [
     { "blaze": "hand", "pipeline": "onnx_hand_v0_07"      , "model1": "blaze_onnx/models/palm_detection_v0_07.onnx",                 "model2": "blaze_onnx/models/hand_landmark_v0_07.onnx" },
     { "blaze": "hand", "pipeline": "onnx_hand_v0_10_lite" , "model1": "blaze_onnx/models/palm_detection_lite.onnx",                  "model2": "blaze_onnx/models/hand_landmark_lite.onnx" },
     { "blaze": "hand", "pipeline": "onnx_hand_v0_10_full" , "model1": "blaze_onnx/models/palm_detection_full.onnx",                  "model2": "blaze_onnx/models/hand_landmark_full.onnx" },
+    { "blaze": "hand", "pipeline": "rpp_hand_v0_07"       , "model1": "blaze_onnx/models/palm_detection_v0_07.onnx",                 "model2": "blaze_rpp/models/hand_landmark_v0_07_sim.onnx" },
+    { "blaze": "hand", "pipeline": "rpp_hand_v0_10_lite"  , "model1": "blaze_onnx/models/palm_detection_lite.onnx",                  "model2": "blaze_rpp/models/hand_landmark_lite_sim.onnx" },
+    { "blaze": "hand", "pipeline": "rpp_hand_v0_10_full"  , "model1": "blaze_onnx/models/palm_detection_full.onnx",                  "model2": "blaze_rpp/models/hand_landmark_full_sim.onnx" },
     { "blaze": "face", "pipeline": "tfl_face_v0_07_front" , "model1": "blaze_tflite/models/face_detection_front_v0_07.tflite",       "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
     { "blaze": "face", "pipeline": "tfl_face_v0_07_back"  , "model1": "blaze_tflite/models/face_detection_back_v0_07.tflite",        "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
     { "blaze": "face", "pipeline": "tfl_face_v0_10_short" , "model1": "blaze_tflite/models/face_detection_short_range.tflite",       "model2": "blaze_tflite/models/face_landmark.tflite" },
@@ -364,6 +377,8 @@ for i in range(nb_blaze_pipelines):
             blaze_detector = BlazeDetector_hailo(detector_type,hailo_infer)
         elif target1=="blaze_onnx":
             blaze_detector = BlazeDetector_onnx(detector_type)
+        elif target1=="blaze_rpp":
+            blaze_detector = BlazeDetector_rpp(detector_type)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
  
@@ -379,6 +394,8 @@ for i in range(nb_blaze_pipelines):
             blaze_landmark = BlazeLandmark_hailo(landmark_type,hailo_infer)
         elif target2=="blaze_onnx":
             blaze_landmark = BlazeLandmark_onnx(landmark_type)
+        elif target2=="blaze_rpp":
+            blaze_landmark = BlazeLandmark_rpp(landmark_type)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
 

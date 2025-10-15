@@ -6,6 +6,12 @@ from blazebase import BlazeDetectorBase
 sys.path.append('/usr/local/rpp/lib')
 import pyrt as trt
 
+def volume(obj):
+    vol = 1
+    for elem in obj:
+        vol *= elem
+    return vol
+
 from timeit import default_timer as timer
 
 class BlazeDetector(BlazeDetectorBase):
@@ -15,15 +21,15 @@ class BlazeDetector(BlazeDetectorBase):
         self.blaze_app = blaze_app
         self.batch_size = 1
 
-        self.int8 = True # INT8
-        #self.int8 = False # BF16
+        #self.int8 = True # INT8
+        self.int8 = False # BF16
         
 
     def load_model(self, model_path):
 
         if self.DEBUG:
            print("[blaze_rpp.BlazeDetector.load_model] Model File : ",model_path)
-        
+           
         self.log = trt.Logger(trt.Logger.INTERNAL_ERROR)
         self.builder = trt.Builder(self.log)
         self.config = self.builder.createBuilderConfig()
@@ -34,108 +40,127 @@ class BlazeDetector(BlazeDetectorBase):
         else:
             self.config.setFlag(trt.BuilderFlag.BF16)
 
-        print("[blaze_rpp.BlazeDetector.load_model] Create Network")
+        if self.DEBUG:
+            print("[blaze_rpp.BlazeDetector.load_model] Create Network")
         self.net = self.builder.createNetwork()
-        print("[blaze_rpp.BlazeDetector.load_model]    net.name = ",self.net.name)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.num_inputs = ",self.net.num_inputs)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.num_layers = ",self.net.num_layers)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.num_outputs = ",self.net.num_outputs)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.IsInputProcDisabled() = ",self.net.IsInputProcDisabled())
-        print("[blaze_rpp.BlazeDetector.load_model]    net.IsOutputProcDisabled() = ",self.net.IsOutputProcDisabled())
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_input(0) = ",self.net.get_input(0))
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_output(0) = ",self.net.get_output(0))
 
-        print('[blaze_rpp.BlazeDetector.load_model] Create onnx parser.')
+        if self.DEBUG:
+            print('[blaze_rpp.BlazeDetector.load_model] Create onnx parser.')
         self.parser = trt.OnnxParser(self.net, self.log)
 
         self.model_path = model_path
-        #with open(self.model_path, "rb") as model:
-        #    if not self.parser.parse(model.read()):
-        #        print("[blaze_rpp.BlazeDetector.load_model] ERROR: Failed to parse the ONNX file:", self.model_path)
-        #        for error in range(self.parser.num_errors):
-        #            print(self.parser.get_error(error))
+        if self.DEBUG:
+            print("[blaze_rpp.BlazeDetector.load_model] Parsing model : ",self.model_path)
         model = open(self.model_path, "rb")
         if not self.parser.parse(model.read()):
-            print("[blaze_rpp.BlazeDetector.load_model] ERROR: Failed to parse the ONNX file:", self.model_path)
+            print("[blaze_rpp.BlazeDetector.load_model]    ERROR: Failed to parse the ONNX file:", self.model_path)
             for error in range(self.parser.num_errors):
                 print(self.parser.get_error(error))
 
-        print("[blaze_rpp.BlazeDetector.load_model]    net.name = ",self.net.name)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.num_inputs = ",self.net.num_inputs)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.num_layers = ",self.net.num_layers)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.num_outputs = ",self.net.num_outputs)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.IsInputProcDisabled() = ",self.net.IsInputProcDisabled())
-        print("[blaze_rpp.BlazeDetector.load_model]    net.IsOutputProcDisabled() = ",self.net.IsOutputProcDisabled())
+        if self.DEBUG:
+            print("[blaze_rpp.BlazeDetector.load_model]    name = ",self.net.name)
+            print("[blaze_rpp.BlazeDetector.load_model]    num_inputs = ",self.net.num_inputs)
+            print("[blaze_rpp.BlazeDetector.load_model]    num_layers = ",self.net.num_layers)
+            print("[blaze_rpp.BlazeDetector.load_model]    num_outputs = ",self.net.num_outputs)
+            print("[blaze_rpp.BlazeDetector.load_model]    IsInputProcDisabled() = ",self.net.IsInputProcDisabled())
+            print("[blaze_rpp.BlazeDetector.load_model]    IsOutputProcDisabled() = ",self.net.IsOutputProcDisabled())
 
-        self.input0 = self.net.get_input(0)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_input(0).name = ",self.input0.name)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_input(0).dimensions = ",self.input0.dimensions)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_input(0).dataType = ",self.input0.dataType)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_input(0).isNetworkInput() = ",self.input0.isNetworkInput())
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_input(0).isNetworkOutput() = ",self.input0.isNetworkOutput())
-        self.output0 = self.net.get_output(0)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_output(0).name = ",self.output0.name)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_output(0).dimensions = ",self.output0.dimensions)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_output(0).dataType = ",self.output0.dataType)
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_output(0).isNetworkInput() = ",self.output0.isNetworkInput())
-        print("[blaze_rpp.BlazeDetector.load_model]    net.get_output(0).isNetworkOutput() = ",self.output0.isNetworkOutput())
+        self.num_inputs = self.net.num_inputs
+        self.num_outputs = self.net.num_outputs
+        self.num_layers = self.net.num_layers
 
-        # parser.parse(model_name)
-   
-        self.input_dimension = self.net.get_input(0).dimensions
-        self.output_dimension = self.net.get_output(0).dimensions
-        print("[blaze_rpp.BlazeDetector.load_model]    input dimension : ",self.input_dimension)
-        print("[blaze_rpp.BlazeDetector.load_model]    output dimension : ",self.output_dimension)
+        self.bindings = []
+        self.input_names = []
+        self.output_names = []
+        self.input_dimensions = []
+        self.output_dimensions = []
+        self.input_bindings = []
+        self.output_bindings = []
 
-        print('[blaze_rpp.BlazeDetector.load_model] Build IEngine')
+        if self.DEBUG:
+            print('[blaze_rpp.BlazeDetector.load_model] Initialize IO buffers')
+        for i in range(self.num_inputs):
+            inputx = self.net.get_input(i)
+            if self.DEBUG:
+                print(f"[blaze_rpp.BlazeDetector.load_model]    net.get_input({i})")
+                print("[blaze_rpp.BlazeDetector.load_model]       name = ",inputx.name)
+                print("[blaze_rpp.BlazeDetector.load_model]       dimensions = ",inputx.dimensions)
+                print("[blaze_rpp.BlazeDetector.load_model]       dataType = ",inputx.dataType)
+                print("[blaze_rpp.BlazeDetector.load_model]       isNetworkInput() = ",inputx.isNetworkInput())
+                print("[blaze_rpp.BlazeDetector.load_model]       isNetworkOutput() = ",inputx.isNetworkOutput())
+            input_dimension = inputx.dimensions
+            input_size = volume(input_dimension) * 4
+            if self.DEBUG:
+                print("[blaze_rpp.BlazeDetector.load_model]       input_size = ",input_size)
+            input_binding = trt.DeviceAllocation(input_size)
+            #
+            self.input_names.append(inputx.name)
+            self.input_dimensions.append(inputx.dimensions)
+            self.input_bindings.append(input_binding)
+            self.bindings.append(int(input_binding))
+
+        for i in range(self.num_outputs):
+            outputx = self.net.get_output(i)
+            if self.DEBUG:
+                print(f"[blaze_rpp.BlazeDetector.load_model]    net.get_output({i})")
+                print("[blaze_rpp.BlazeDetector.load_model]       name = ",outputx.name)
+                print("[blaze_rpp.BlazeDetector.load_model]       dimensions = ",outputx.dimensions)
+                print("[blaze_rpp.BlazeDetector.load_model]       dataType = ",outputx.dataType)
+                print("[blaze_rpp.BlazeDetector.load_model]       isNetworkInput() = ",outputx.isNetworkInput())
+                print("[blaze_rpp.BlazeDetector.load_model]       isNetworkOutput() = ",outputx.isNetworkOutput())
+            output_dimension = outputx.dimensions
+            output_size = volume(output_dimension) * 4
+            if self.DEBUG:
+                print("[blaze_rpp.BlazeDetector.load_model]       output_size = ",output_size)
+            output_binding = trt.DeviceAllocation(output_size)
+            #
+            self.output_names.append(outputx.name)
+            self.output_dimensions.append(outputx.dimensions)
+            self.output_bindings.append(output_binding)
+            self.bindings.append(int(output_binding))
+    
+        if self.DEBUG:
+            print('[blaze_rpp.BlazeDetector.load_model] Build IEngine')
         self.engine = self.builder.build_EngineWithConfig(self.net, self.config)
         if self.engine is None:
             return
 
-        print('[blaze_rpp.BlazeDetector.load_model] Initialize IO buffer')
-        self.input_binding = trt.DeviceAllocation(volume(self.input_dimension) * 4)
-        self.output_binding = trt.DeviceAllocation(volume(self.output_dimension) * 4)
-
-        rng = np.random.default_rng()
-        test_data = rng.random(input_dimension)
-        input_binding.copy_from_numpy(test_data)
-
-        self.bindings = [int(self.input_binding), int(self.output_binding)]
-
+        if self.DEBUG:
+            print("[blaze_rpp.BlazeDetector.load_model] Create execution context")
         self.context = self.engine.createExecutionContext()
 
-        # warmup
+        if self.DEBUG:
+            print('[blaze_rpp.BlazeDetector.load_model] Prepare Input')
+        self.rng = np.random.default_rng()
+        if self.DEBUG:
+            print(f"[blaze_rpp.BlazeDetector.load_model]    Creating random test data")
+        test_data = self.rng.random(input_dimension,dtype=np.float32)
+        if self.DEBUG:
+            print("[blaze_rpp.BlazeDetector.load_model]       test_data.shape = ",test_data.shape)
+            print("[blaze_rpp.BlazeDetector.load_model]       test_data.dtype = ",test_data.dtype)
+        input_binding = self.input_bindings[0]
+        input_binding.copy_from_numpy(test_data)
+
+        # Inference (warmup)
+        if self.DEBUG:
+            print("[blaze_rpp.BlazeDetector.load_model] Execute (warmup)")
         self.context.execute(1, self.bindings)
 
-
-        # reading onnx model parameters
-        self.session_inputs = self.session.get_inputs()
-        self.session_outputs = self.session.get_outputs()
-        self.num_inputs = len(self.session_inputs)
-        self.num_outputs = len(self.session_outputs)
-        if self.DEBUG:
-           print("[BlazeDetector.load_model] Number of Inputs : ",self.num_inputs)
-           for i in range(self.num_inputs):
-               print("[BlazeDetector.load_model] Input[",i,"] Shape : ",self.session_inputs[i].shape," (",self.session_inputs[i].name,")")
-           print("[BlazeDetector.load_model] Number of Outputs : ",self.num_outputs)
-           for i in range(self.num_outputs):
-               print("[BlazeDetector.load_model] Output[",i,"] Shape : ",self.session_outputs[i].shape," (",self.session_outputs[i].name,")")
-
-        self.in_shape = self.session_inputs[0].shape
-        if self.session_outputs[0].name == "classificators":
-            self.out_reg_name = self.session_outputs[1].name
-            self.out_clf_name = self.session_outputs[0].name
-            self.out_reg_shape = self.session_outputs[1].shape
-            self.out_clf_shape = self.session_outputs[0].shape
+        self.in_shape = self.input_dimensions[0]
+        if self.output_names[0] == "classifiers": # ... TBD ...
+            self.out_reg_name = self.output_names[1]
+            self.out_clf_name = self.output_names[0]
+            self.out_reg_shape = self.output_dimensions[1]
+            self.out_clf_shape = self.output_dimensions[0]
         else:
-            self.out_reg_name = self.session_outputs[0].name
-            self.out_clf_name = self.session_outputs[1].name
-            self.out_reg_shape = self.session_outputs[0].shape
-            self.out_clf_shape = self.session_outputs[1].shape
+            self.out_reg_name = self.output_names[0]
+            self.out_clf_name = self.output_names[1]
+            self.out_reg_shape = self.output_dimensions[0]
+            self.out_clf_shape = self.output_dimensions[1]
         if self.DEBUG:
-           print("[BlazeDetector.load_model] Input Shape : ",self.in_shape)
-           print("[BlazeDetector.load_model] Output1 Shape : ",self.out_reg_shape)
-           print("[BlazeDetector.load_model] Output2 Shape : ",self.out_clf_shape)
+           print("[blaze_rpp.BlazeDetector.load_model] Input Shape : ",self.in_shape)
+           print("[blaze_rpp.BlazeDetector.load_model] Output1 Shape : ",self.out_reg_shape)
+           print("blaze_rpp.[BlazeDetector.load_model] Output2 Shape : ",self.out_clf_shape)
 
         self.x_scale = self.in_shape[1]
         self.y_scale = self.in_shape[2]
@@ -144,7 +169,7 @@ class BlazeDetector(BlazeDetectorBase):
 
         self.num_anchors = self.out_clf_shape[1]
         if self.DEBUG:
-            print("[BlazeDetector.load_model] Num Anchors : ",self.num_anchors)
+            print("[blaze_rpp.BlazeDetector.load_model] Num Anchors : ",self.num_anchors)
            
         self.config_model(self.blaze_app)
 
