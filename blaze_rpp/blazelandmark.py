@@ -159,7 +159,7 @@ class BlazeLandmark(BlazeLandmarkBase):
         # format = RGB
         # dtype = float32
         # range = 0.0 - 1.0
-        x = x * 128
+        #x = x * 128
         return x
 
     def predict(self, x):
@@ -205,11 +205,58 @@ class BlazeLandmark(BlazeLandmarkBase):
             start = timer()  
 
             if self.blaze_app == "blazehandlandmark":
-                out2 = self.output_bindings[3].numpy_float()
-                out3 = self.output_bindings[1].numpy_float()
+                #[blaze_rpp.BlazeLandmark.load_model] Parsing model :  blaze_rpp/models/hand_landmark_lite_sim.onnx
+                #[blaze_rpp.BlazeLandmark.load_model]    name =  Unnamed Network 0
+                #[blaze_rpp.BlazeLandmark.load_model]    num_inputs =  1
+                #[blaze_rpp.BlazeLandmark.load_model]    num_layers =  99
+                #[blaze_rpp.BlazeLandmark.load_model]    num_outputs =  4
+                #[blaze_rpp.BlazeLandmark.load_model]    IsInputProcDisabled() =  False
+                #[blaze_rpp.BlazeLandmark.load_model]    IsOutputProcDisabled() =  False
+                #[blaze_rpp.BlazeLandmark.load_model] Initialize IO buffers
+                #[blaze_rpp.BlazeLandmark.load_model]    net.get_input(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  input_1
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (224, 224, 3)
+                #[blaze_rpp.BlazeLandmark.load_model]       dataType =  DataType.kFLOAT
+                #[blaze_rpp.BlazeLandmark.load_model]    net.get_output(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (63,)
+                #[blaze_rpp.BlazeLandmark.load_model]       dataType =  DataType.kFLOAT
+                #[blaze_rpp.BlazeLandmark.load_model]    net.get_output(1)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_1
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1,)
+                #[blaze_rpp.BlazeLandmark.load_model]       dataType =  DataType.kFLOAT
+                #[blaze_rpp.BlazeLandmark.load_model]    net.get_output(2)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_2
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1,)
+                #[blaze_rpp.BlazeLandmark.load_model]       dataType =  DataType.kFLOAT
+                #[blaze_rpp.BlazeLandmark.load_model]    net.get_output(3)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_3
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (63,)
+                #[blaze_rpp.BlazeLandmark.load_model]       dataType =  DataType.kFLOAT
+                #
+                # self.output_bindings[1].numpy_float() => 0..01 / 0.99 ... clearly handedness ... correct scale :)
+                # self.output_bindings[2].numpy_float() => 117-118 ... confidence, but with wrong scale (too large)
+                #
+                # [BlazeHandLandmark.load_model] Model File :  ./models/hand_landmark_lite.tflite
+                # [BlazeHandLandmark.load_model] Number of Inputs :  1
+                # [BlazeHandLandmark.load_model] Input[ 0 ] Shape :  [  1 224 224   3]  ( input_1 )
+                # [BlazeHandLandmark.load_model] Number of Outputs :  4
+                # [BlazeHandLandmark.load_model] Output[ 0 ] Shape :  [ 1 63]  ( Identity ) => out2 (landmarks)
+                # [BlazeHandLandmark.load_model] Output[ 1 ] Shape :  [1 1]  ( Identity_1 ) => out1 (confidence)
+                # [BlazeHandLandmark.load_model] Output[ 2 ] Shape :  [1 1]  ( Identity_2 ) => out3 (handedness)
+                # [BlazeHandLandmark.load_model] Output[ 3 ] Shape :  [ 1 63]  ( Identity_3 ) => tiny hands without offset         
+                #
+                #out1 = self.output_bindings[1].numpy_float()
                 out1 = self.output_bindings[2].numpy_float()
+                out2 = self.output_bindings[0].numpy_float()
+                #out3 = self.output_bindings[2].numpy_float()
+                out3 = self.output_bindings[1].numpy_float()
+                out4 = self.output_bindings[3].numpy_float()
+                #
+                out1 = out1/128.0
                 #
                 out2 = out2.reshape(21,-1) # 42 => [21,2] / 63 => [21,3]
+                #out2 = out2[:,::-1]
                 #out2 = out2/self.resolution
             elif self.blaze_app == "blazefacelandmark":
                 out2 = self.output_bindings[0].numpy_float()
@@ -226,10 +273,11 @@ class BlazeLandmark(BlazeLandmarkBase):
                 #out2 = out2/self.resolution
 
             if self.DEBUG:
-                print("[blaze_rpp.BlazeLandmark.predict] out1 ",out1.shape,out1.dtype, out1)
-                print("[blaze_rpp.BlazeLandmark.predict] out2 ",out2.shape,out2.dtype, out2)
+                print("[blaze_rpp.BlazeLandmark.predict] out1 (condifence)",out1.shape,out1.dtype, out1)
+                print("[blaze_rpp.BlazeLandmark.predict] out2 (landmarks)",out2.shape,out2.dtype, out2)
                 if self.blaze_app == "blazehandlandmark":
-                    print("[blaze_rpp.BlazeLandmark.predict] out3 ",out3.shape,out3.dtype, out3)
+                    print("[blaze_rpp.BlazeLandmark.predict] out3 (handedness)",out3.shape,out3.dtype, out3)
+                    print("[blaze_rpp.BlazeLandmark.predict] out4 (mini hand)",out4.shape,out4.dtype, out4)
 
             out1_list.append(out1)
             out2_list.append(out2)

@@ -87,11 +87,20 @@ class BlazeLandmark(BlazeLandmarkBase):
             start = timer()  
 
             if self.blaze_app == "blazehandlandmark":
+                # [BlazeHandLandmark.load_model] Model File :  ./models/hand_landmark_lite.tflite
+                # [BlazeHandLandmark.load_model] Number of Inputs :  1
+                # [BlazeHandLandmark.load_model] Input[ 0 ] Shape :  [  1 224 224   3]  ( input_1 )
+                # [BlazeHandLandmark.load_model] Number of Outputs :  4
+                # [BlazeHandLandmark.load_model] Output[ 0 ] Shape :  [ 1 63]  ( Identity ) => out2 (landmarks)
+                # [BlazeHandLandmark.load_model] Output[ 1 ] Shape :  [1 1]  ( Identity_1 ) => out1 (confidence)
+                # [BlazeHandLandmark.load_model] Output[ 2 ] Shape :  [1 1]  ( Identity_2 ) => out3 (handedness)
+                # [BlazeHandLandmark.load_model] Output[ 3 ] Shape :  [ 1 63]  ( Identity_3 ) => tiny hands without offset         
                 out1 = result[1]
                 out2 = result[0]
                 out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] / 63 => [1,21,3]
                 out2 = out2/self.resolution
                 out3 = result[2]
+                out4 = result[3]
             elif self.blaze_app == "blazefacelandmark":
                 out1 = result[1]
                 out1 = out1.reshape(1,1)
@@ -104,6 +113,12 @@ class BlazeLandmark(BlazeLandmarkBase):
                 out2 = out2.reshape(1,-1,5) # 195 => [1,39,5]
                 out2 = out2/self.resolution
 
+            if self.DEBUG:
+                print("[blaze_onnx.BlazeLandmark.predict] out1 (condifence)",out1.shape,out1.dtype, out1)
+                print("[blaze_onnx.BlazeLandmark.predict] out2 (landmarks)",out2.shape,out2.dtype, out2*self.resolution)
+                if self.blaze_app == "blazehandlandmark":
+                    print("[blaze_onnx.BlazeLandmark.predict] out3 (handedness)",out3.shape,out3.dtype, out3)
+                    print("[blaze_onnx.BlazeLandmark.predict] out4 (mini hand)",out4.shape,out4.dtype, out4)
 
             out1_list.append(out1.squeeze(0))
             out2_list.append(out2.squeeze(0))
