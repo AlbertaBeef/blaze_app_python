@@ -1,5 +1,8 @@
 import numpy as np
 import sys
+import math
+from pathlib import Path
+from datetime import datetime
 
 from blazebase import BlazeLandmarkBase
 
@@ -27,8 +30,8 @@ class BlazeLandmark(BlazeLandmarkBase):
 
         if self.DEBUG:
            print("[blaze_rpp.BlazeLandmark.load_model] Model File : ",model_path)
-           
-        self.log = trt.Logger(trt.Logger.INTERNAL_ERROR)
+
+        self.log = trt.Logger(trt.Logger.ERROR)
         self.builder = trt.Builder(self.log)
         self.config = self.builder.createBuilderConfig()
         if self.int8:
@@ -76,53 +79,40 @@ class BlazeLandmark(BlazeLandmarkBase):
         self.output_bindings = []
 
         if self.DEBUG:
-            print('[blaze_rpp.BlazeLandmark.load_model] Initialize IO buffers')
-        for i in range(self.num_inputs):
-            inputx = self.net.get_input(i)
-            if self.DEBUG:
-                print(f"[blaze_rpp.BlazeLandmark.load_model]    net.get_input({i})")
-                print("[blaze_rpp.BlazeLandmark.load_model]       name = ",inputx.name)
-                print("[blaze_rpp.BlazeLandmark.load_model]       dimensions = ",inputx.dimensions)
-                print("[blaze_rpp.BlazeLandmark.load_model]       dataType = ",inputx.dataType)
-                print("[blaze_rpp.BlazeLandmark.load_model]       isNetworkInput() = ",inputx.isNetworkInput())
-                print("[blaze_rpp.BlazeLandmark.load_model]       isNetworkOutput() = ",inputx.isNetworkOutput())
-            input_dimension = inputx.dimensions
-            input_size = volume(input_dimension) * 4
-            if self.DEBUG:
-                print("[blaze_rpp.BlazeLandmark.load_model]       input_size = ",input_size)
-            input_binding = trt.DeviceAllocation(input_size)
-            #
-            self.input_names.append(inputx.name)
-            self.input_dimensions.append(inputx.dimensions)
-            self.input_bindings.append(input_binding)
-            self.bindings.append(int(input_binding))
-
-        for i in range(self.num_outputs):
-            outputx = self.net.get_output(i)
-            if self.DEBUG:
-                print(f"[blaze_rpp.BlazeLandmark.load_model]    net.get_output({i})")
-                print("[blaze_rpp.BlazeLandmark.load_model]       name = ",outputx.name)
-                print("[blaze_rpp.BlazeLandmark.load_model]       dimensions = ",outputx.dimensions)
-                print("[blaze_rpp.BlazeLandmark.load_model]       dataType = ",outputx.dataType)
-                print("[blaze_rpp.BlazeLandmark.load_model]       isNetworkInput() = ",outputx.isNetworkInput())
-                print("[blaze_rpp.BlazeLandmark.load_model]       isNetworkOutput() = ",outputx.isNetworkOutput())
-            output_dimension = outputx.dimensions
-            output_size = volume(output_dimension) * 4
-            if self.DEBUG:
-                print("[blaze_rpp.BlazeLandmark.load_model]       output_size = ",output_size)
-            output_binding = trt.DeviceAllocation(output_size)
-            #
-            self.output_names.append(outputx.name)
-            self.output_dimensions.append(outputx.dimensions)
-            self.output_bindings.append(output_binding)
-            self.bindings.append(int(output_binding))
-    
-        if self.DEBUG:
             print('[blaze_rpp.BlazeLandmark.load_model] Build IEngine')
         self.engine = self.builder.build_EngineWithConfig(self.net, self.config)
         if self.engine is None:
+            print('[ERROR] Failed to build engine')
             return
 
+        self.output_index_mapping = {}
+        for index in range(len(self.engine)):
+            name = self.engine.get_binding_name(index)
+            shape = self.engine.get_binding_shape(index).get()
+            is_input = self.engine.binding_is_input(index)
+
+            bytes_size = volume(shape) * 4
+            binding = trt.DeviceAllocation(bytes_size)
+
+            init_data = np.zeros(shape, dtype=np.float32)
+            binding.copy_from_numpy(init_data)
+
+            print(f"index: {index}, name: {name}, shape: {shape}")
+            self.bindings.append(int(binding))
+            if is_input:
+                self.input_names.append(name)
+                self.input_dimensions.append(shape)
+                self.input_bindings.append(binding)
+                input_dimension = shape
+            else:
+                self.output_names.append(name)
+                self.output_dimensions.append(shape)
+                self.output_bindings.append(binding)
+
+                output_index = index - 1
+                self.output_index_mapping[output_index] = name
+
+        # self.DEBUG = True
         if self.DEBUG:
             print("[blaze_rpp.BlazeLandmark.load_model] Create execution context")
         self.context = self.engine.createExecutionContext()
@@ -148,9 +138,9 @@ class BlazeLandmark(BlazeLandmarkBase):
         self.out_landmark_shape = self.output_dimensions[0]
         self.out_flag_shape = self.output_dimensions[1]
         if self.DEBUG:
-           print("[blaze_rpp.BlazeLandmark.load_model] Input Shape : ",self.in_shape)
-           print("[blaze_rpp.BlazeLandmark.load_model] Output1 Shape : ",self.out_landmark_shape)
-           print("[blaze_rpp.BlazeLandmark.load_model] Output2 Shape : ",self.out_flag_shape)
+            print("[blaze_rpp.BlazeLandmark.load_model] Input Shape : ",self.in_shape)
+            print("[blaze_rpp.BlazeLandmark.load_model] Output1 Shape : ",self.out_landmark_shape)
+            print("[blaze_rpp.BlazeLandmark.load_model] Output2 Shape : ",self.out_flag_shape)
 
         self.resolution = self.in_shape[1]
 
@@ -159,7 +149,6 @@ class BlazeLandmark(BlazeLandmarkBase):
         # format = RGB
         # dtype = float32
         # range = 0.0 - 1.0
-        #x = x * 128
         return x
 
     def predict(self, x):
@@ -168,15 +157,17 @@ class BlazeLandmark(BlazeLandmarkBase):
         self.profile_model = 0.0
         self.profile_post = 0.0
 
+        np.set_printoptions(precision=6, suppress=True)
+
         out1_list = []
         out2_list = []
         out3_list = []
 
         #print("[BlazeLandmark] x ",x.shape,x.dtype)
-        start = timer()        
+        start = timer()
         x = self.preprocess(x)
         self.profile_pre += timer()-start
-                
+
         nb_images = x.shape[0]
         for i in range(nb_images):
 
@@ -187,77 +178,36 @@ class BlazeLandmark(BlazeLandmarkBase):
             # 1. Preprocess the images into tensors:
             #self.interp_landmark.set_tensor(self.in_idx, xi)
             self.profile_pre += timer()-start
-                               
+
             # 2. Run the neural network:
-            start = timer()  
-            
+            start = timer()
+
             #print('Prepare Input')
             input_binding = self.input_bindings[0]
             input_data = np.array([xi],dtype=np.float32)
-            input_binding.copy_from_numpy(input_data)
+            input_binding.copy_from_numpy(input_data.ravel())
 
             # Inference
             #print("Inference")
             self.context.execute(1, self.bindings)
-                
+
             self.profile_model += timer()-start
 
-            start = timer()  
+            start = timer()
 
             if self.blaze_app == "blazehandlandmark":
-                #[blaze_rpp.BlazeLandmark.load_model] Parsing model :  blaze_rpp/models/hand_landmark_lite_sim.onnx
-                #[blaze_rpp.BlazeLandmark.load_model]    name =  Unnamed Network 0
-                #[blaze_rpp.BlazeLandmark.load_model]    num_inputs =  1
-                #[blaze_rpp.BlazeLandmark.load_model]    num_layers =  99
-                #[blaze_rpp.BlazeLandmark.load_model]    num_outputs =  4
-                #[blaze_rpp.BlazeLandmark.load_model]    IsInputProcDisabled() =  False
-                #[blaze_rpp.BlazeLandmark.load_model]    IsOutputProcDisabled() =  False
-                #[blaze_rpp.BlazeLandmark.load_model] Initialize IO buffers
-                #[blaze_rpp.BlazeLandmark.load_model]    net.get_input(0)
-                #[blaze_rpp.BlazeLandmark.load_model]       name =  input_1
-                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (224, 224, 3)
-                #[blaze_rpp.BlazeLandmark.load_model]       dataType =  DataType.kFLOAT
-                #[blaze_rpp.BlazeLandmark.load_model]    net.get_output(0)
-                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity
-                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (63,)
-                #[blaze_rpp.BlazeLandmark.load_model]       dataType =  DataType.kFLOAT
-                #[blaze_rpp.BlazeLandmark.load_model]    net.get_output(1)
-                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_1
-                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1,)
-                #[blaze_rpp.BlazeLandmark.load_model]       dataType =  DataType.kFLOAT
-                #[blaze_rpp.BlazeLandmark.load_model]    net.get_output(2)
-                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_2
-                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1,)
-                #[blaze_rpp.BlazeLandmark.load_model]       dataType =  DataType.kFLOAT
-                #[blaze_rpp.BlazeLandmark.load_model]    net.get_output(3)
-                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_3
-                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (63,)
-                #[blaze_rpp.BlazeLandmark.load_model]       dataType =  DataType.kFLOAT
-                #
-                # self.output_bindings[1].numpy_float() => 0..01 / 0.99 ... clearly handedness ... correct scale :)
-                # self.output_bindings[2].numpy_float() => 117-118 ... confidence, but with wrong scale (too large)
-                #
-                # [BlazeHandLandmark.load_model] Model File :  ./models/hand_landmark_lite.tflite
-                # [BlazeHandLandmark.load_model] Number of Inputs :  1
-                # [BlazeHandLandmark.load_model] Input[ 0 ] Shape :  [  1 224 224   3]  ( input_1 )
-                # [BlazeHandLandmark.load_model] Number of Outputs :  4
-                # [BlazeHandLandmark.load_model] Output[ 0 ] Shape :  [ 1 63]  ( Identity ) => out2 (landmarks)
-                # [BlazeHandLandmark.load_model] Output[ 1 ] Shape :  [1 1]  ( Identity_1 ) => out1 (confidence)
-                # [BlazeHandLandmark.load_model] Output[ 2 ] Shape :  [1 1]  ( Identity_2 ) => out3 (handedness)
-                # [BlazeHandLandmark.load_model] Output[ 3 ] Shape :  [ 1 63]  ( Identity_3 ) => tiny hands without offset         
-                #
-                #out1 = self.output_bindings[1].numpy_float()
-                out1 = self.output_bindings[2].numpy_float()
-                out2 = self.output_bindings[0].numpy_float()
-                #out3 = self.output_bindings[2].numpy_float()
+                # Identity
+                out2 = self.output_bindings[2].numpy_float()
+
+                # Identity_2
                 out3 = self.output_bindings[1].numpy_float()
-                out4 = self.output_bindings[3].numpy_float()
-                #
-                out1 = out1/128.0
-                #
-                out2 = out2.reshape(21,-1) # 42 => [21,2] / 63 => [21,3]
-                #out2 = out2[:,::-1]
-                #out2 = out2/self.resolution
+
+                # Identity_1
+                out1 = self.output_bindings[0].numpy_float()
+
+                out2 = out2.reshape(21, -1)  # 42 => [21,2] / 63 => [21,3]
+                out2 = out2/self.resolution
+
             elif self.blaze_app == "blazefacelandmark":
                 out2 = self.output_bindings[0].numpy_float()
                 out1 = self.output_bindings[1].numpy_float()
@@ -285,9 +235,8 @@ class BlazeLandmark(BlazeLandmarkBase):
                 out3_list.append(out3)
             self.profile_post += timer()-start
 
-
         flag = np.asarray(out1_list)
-        landmarks = np.asarray(out2_list)        
+        landmarks = np.asarray(out2_list)
         if self.blaze_app == "blazehandlandmark":
             handedness_scores = np.asarray(out3_list)
 
