@@ -248,18 +248,86 @@ class BlazeLandmark(BlazeLandmarkBase):
                 out3 = self.output_bindings[1].numpy_float()
 
             elif self.blaze_app == "blazefacelandmark":
-                out2 = self.output_bindings[0].numpy_float()
-                out1 = self.output_bindings[1].numpy_float()
-                #
+                #[blaze_rpp.BlazeLandmark.load_model] Model Input/Output:
+                #[blaze_rpp.BlazeLandmark.load_model]    input(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  input_1
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (192, 192, 3)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  conv2d_31
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1, 1, 1)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(1)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  conv2d_21
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1, 1, 1404)
+
+                # conv2d_31
+                out1 = self.output_bindings[0].numpy_float()
                 out1 = out1.reshape(1,1)
-                out2 = out2.reshape(-1,3) # 1404 => [356,2]
-                #out2 = out2/self.resolution            
-            elif self.blaze_app == "blazeposelandmark":
-                out2 = self.output_bindings[0].numpy_float()
-                out1 = self.output_bindings[1].numpy_float()
-                #
+            
+                # conv2d_21
+                out2 = self.output_bindings[1].numpy_float()
+                out2 = out2.reshape(-1,3) # 1404 => [468,3]
+                out2 = out2/self.resolution            
+
+            elif self.blaze_app == "blazeposelandmark" and self.output_names[1] == "Identity":
+                #[blaze_rpp.BlazeLandmark.load_model] Model Input/Output:
+                #[blaze_rpp.BlazeLandmark.load_model]    input(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  input_1
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (256, 256, 3)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_4
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (117,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(1)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (195,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(2)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_1
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(3)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_3
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (64, 64, 39)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(4)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_2
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (256, 256, 1)
+
+                # Identity_1
+                out1 = self.output_bindings[2].numpy_float()
+                out1 = out1.reshape(1,1)
+                
+                # Identity
+                out2 = self.output_bindings[1].numpy_float()
                 out2 = out2.reshape(-1,5) # 195 => [39,5]
-                #out2 = out2/self.resolution
+                out2 = out2/self.resolution
+                
+            elif self.blaze_app == "blazeposelandmark" and self.output_names[2] == "Identity":
+                #[blaze_rpp.BlazeLandmark.load_model] Model Input/Output:
+                #[blaze_rpp.BlazeLandmark.load_model]    input(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  input_1
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (256, 256, 3)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_2
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (256, 256, 1)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(1)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_4
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (117,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(2)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (195,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(3)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_1
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(4)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_3
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (64, 64, 39)
+
+                # Identity_1
+                out1 = self.output_bindings[3].numpy_float()
+                out1 = out1.reshape(1,1)
+                
+                # Identity
+                out2 = self.output_bindings[2].numpy_float()
+                out2 = out2.reshape(-1,5) # 195 => [39,5]
+                out2 = out2/self.resolution
+                
 
             #if self.DEBUG:
             #    print("[blaze_rpp.BlazeLandmark.predict] out1 (condifence)",out1.shape,out1.dtype, out1)

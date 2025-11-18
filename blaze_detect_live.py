@@ -238,10 +238,10 @@ blaze_pipelines = [
     { "blaze": "face", "pipeline": "onnx_face_v0_07_back" , "model1": "blaze_onnx/models/face_detection_back_v0_07.onnx",            "model2": "blaze_onnx/models/face_landmark_v0_07.onnx" },
     { "blaze": "face", "pipeline": "onnx_face_v0_10_short", "model1": "blaze_onnx/models/face_detection_short_range.onnx",           "model2": "blaze_onnx/models/face_landmark.onnx" },
     { "blaze": "face", "pipeline": "onnx_face_v0_10_full" , "model1": "blaze_onnx/models/face_detection_full_range.onnx",            "model2": "blaze_onnx/models/face_landmark.onnx" },
-    { "blaze": "face", "pipeline": "rpp_face_v0_07_front" , "model1": "blaze_rpp/models/face_detection_front_v0_07_sim.onnx",        "model2": "blaze_onnx/models/face_landmark_v0_07_sim.onnx" },
-    { "blaze": "face", "pipeline": "rpp_face_v0_07_back"  , "model1": "blaze_rpp/models/face_detection_back_v0_07_sim.onnx",         "model2": "blaze_onnx/models/face_landmark_v0_07_sim.onnx" },
-    { "blaze": "face", "pipeline": "rpp_face_v0_10_short" , "model1": "blaze_rpp/models/face_detection_short_range_sim.onnx",        "model2": "blaze_onnx/models/face_landmark_sim.onnx" },
-    { "blaze": "face", "pipeline": "rpp_face_v0_10_full"  , "model1": "blaze_rpp/models/face_detection_full_range_sim.onnx",         "model2": "blaze_onnx/models/face_landmark_sim.onnx" },
+    { "blaze": "face", "pipeline": "rpp_face_v0_07_front" , "model1": "blaze_rpp/models/face_detection_front_v0_07_sim.onnx",        "model2": "blaze_rpp/models/face_landmark_v0_07_sim.onnx" },
+    { "blaze": "face", "pipeline": "rpp_face_v0_07_back"  , "model1": "blaze_rpp/models/face_detection_back_v0_07_sim.onnx",         "model2": "blaze_rpp/models/face_landmark_v0_07_sim.onnx" },
+    { "blaze": "face", "pipeline": "rpp_face_v0_10_short" , "model1": "blaze_rpp/models/face_detection_short_range_sim.onnx",        "model2": "blaze_rpp/models/face_landmark_sim.onnx" },
+    { "blaze": "face", "pipeline": "rpp_face_v0_10_full"  , "model1": "blaze_rpp/models/face_detection_full_range_sim.onnx",         "model2": "blaze_rpp/models/face_landmark_sim.onnx" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_lite.tflite" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_full.tflite" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_heavy.tflite" },
@@ -250,7 +250,13 @@ blaze_pipelines = [
     { "blaze": "pose", "pipeline": "tflh_pose_v0_07_upper", "model1": "blaze_tflite/models/pose_detection_v0_07.tflite","model2": "blaze_tflite_quant/models/pose_landmark_upper_body_256x256_full_integer_quant.tflite" },
     { "blaze": "pose", "pipeline": "tflq_pose_v0_10_upper", "model1": "blaze_tflite_quant/models/pose_detection_full_quant.tflite",  "model2": "blaze_tflite_quant/models/pose_landmark_full_quant.tflite" },
     { "blaze": "pose", "pipeline": "pyt_pose_v0_07"       , "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" },
-    { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" }
+    { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" },
+    { "blaze": "pose", "pipeline": "onnx_pose_v0_10_lite" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_onnx/models/pose_landmark_lite.onnx" },
+    { "blaze": "pose", "pipeline": "onnx_pose_v0_10_full" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_onnx/models/pose_landmark_full.onnx" },
+    { "blaze": "pose", "pipeline": "onnx_pose_v0_10_heavy", "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_onnx/models/pose_landmark_heavy.onnx" },
+    { "blaze": "pose", "pipeline": "rpp_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_lite_sim.onnx" },
+    { "blaze": "pose", "pipeline": "rpp_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_full_sim.onnx" },
+    { "blaze": "pose", "pipeline": "rpp_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_heavy_sim.onnx" }
 ]
 nb_blaze_pipelines = len(blaze_pipelines)
 
