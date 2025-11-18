@@ -1,5 +1,8 @@
 import numpy as np
 import sys
+import math
+from pathlib import Path
+from datetime import datetime
 
 from blazebase import BlazeDetectorBase
 
@@ -29,8 +32,8 @@ class BlazeDetector(BlazeDetectorBase):
 
         if self.DEBUG:
            print("[blaze_rpp.BlazeDetector.load_model] Model File : ",model_path)
-           
-        self.log = trt.Logger(trt.Logger.INTERNAL_ERROR)
+
+        self.log = trt.Logger(trt.Logger.ERROR)
         self.builder = trt.Builder(self.log)
         self.config = self.builder.createBuilderConfig()
         if self.int8:
@@ -78,52 +81,50 @@ class BlazeDetector(BlazeDetectorBase):
         self.output_bindings = []
 
         if self.DEBUG:
-            print('[blaze_rpp.BlazeDetector.load_model] Initialize IO buffers')
-        for i in range(self.num_inputs):
-            inputx = self.net.get_input(i)
-            if self.DEBUG:
-                print(f"[blaze_rpp.BlazeDetector.load_model]    net.get_input({i})")
-                print("[blaze_rpp.BlazeDetector.load_model]       name = ",inputx.name)
-                print("[blaze_rpp.BlazeDetector.load_model]       dimensions = ",inputx.dimensions)
-                print("[blaze_rpp.BlazeDetector.load_model]       dataType = ",inputx.dataType)
-                print("[blaze_rpp.BlazeDetector.load_model]       isNetworkInput() = ",inputx.isNetworkInput())
-                print("[blaze_rpp.BlazeDetector.load_model]       isNetworkOutput() = ",inputx.isNetworkOutput())
-            input_dimension = inputx.dimensions
-            input_size = volume(input_dimension) * 4
-            if self.DEBUG:
-                print("[blaze_rpp.BlazeDetector.load_model]       input_size = ",input_size)
-            input_binding = trt.DeviceAllocation(input_size)
-            #
-            self.input_names.append(inputx.name)
-            self.input_dimensions.append(inputx.dimensions)
-            self.input_bindings.append(input_binding)
-            self.bindings.append(int(input_binding))
-
-        for i in range(self.num_outputs):
-            outputx = self.net.get_output(i)
-            if self.DEBUG:
-                print(f"[blaze_rpp.BlazeDetector.load_model]    net.get_output({i})")
-                print("[blaze_rpp.BlazeDetector.load_model]       name = ",outputx.name)
-                print("[blaze_rpp.BlazeDetector.load_model]       dimensions = ",outputx.dimensions)
-                print("[blaze_rpp.BlazeDetector.load_model]       dataType = ",outputx.dataType)
-                print("[blaze_rpp.BlazeDetector.load_model]       isNetworkInput() = ",outputx.isNetworkInput())
-                print("[blaze_rpp.BlazeDetector.load_model]       isNetworkOutput() = ",outputx.isNetworkOutput())
-            output_dimension = outputx.dimensions
-            output_size = volume(output_dimension) * 4
-            if self.DEBUG:
-                print("[blaze_rpp.BlazeDetector.load_model]       output_size = ",output_size)
-            output_binding = trt.DeviceAllocation(output_size)
-            #
-            self.output_names.append(outputx.name)
-            self.output_dimensions.append(outputx.dimensions)
-            self.output_bindings.append(output_binding)
-            self.bindings.append(int(output_binding))
-    
-        if self.DEBUG:
             print('[blaze_rpp.BlazeDetector.load_model] Build IEngine')
         self.engine = self.builder.build_EngineWithConfig(self.net, self.config)
         if self.engine is None:
+            print('[ERROR] Failed to build engine')
             return
+
+        if self.DEBUG:
+            print('[blaze_rpp.BlazeDetector.load_model] Initialize IO buffers')
+        self.output_index_mapping = {}
+        for index in range(len(self.engine)):
+            name = self.engine.get_binding_name(index)
+            shape = self.engine.get_binding_shape(index).get()
+            is_input = self.engine.binding_is_input(index)
+
+            bytes_size = volume(shape) * 4
+            binding = trt.DeviceAllocation(bytes_size)
+
+            init_data = np.zeros(shape, dtype=np.float32)
+            binding.copy_from_numpy(init_data)
+
+            self.bindings.append(int(binding))
+            if is_input:
+                self.input_names.append(name)
+                self.input_dimensions.append(shape)
+                self.input_bindings.append(binding)
+                input_dimension = shape
+            else:
+                self.output_names.append(name)
+                self.output_dimensions.append(shape)
+                self.output_bindings.append(binding)
+
+                output_index = index - 1
+                self.output_index_mapping[output_index] = name
+
+        if self.DEBUG:
+            print("[blaze_rpp.BlazeDetector.load_model] Model Input/Output:")
+            for index in range(len(self.input_names)):
+                print(f"[blaze_rpp.BlazeDetector.load_model]    input({index})")
+                print("[blaze_rpp.BlazeDetector.load_model]       name = ",self.input_names[index])
+                print("[blaze_rpp.BlazeDetector.load_model]       dimensions = ",self.input_dimensions[index])
+            for index in range(len(self.output_names)):
+                print(f"[blaze_rpp.BlazeDetector.load_model]    output({index})")
+                print("[blaze_rpp.BlazeDetector.load_model]       name = ",self.output_names[index])
+                print("[blaze_rpp.BlazeDetector.load_model]       dimensions = ",self.output_dimensions[index])
 
         if self.DEBUG:
             print("[blaze_rpp.BlazeDetector.load_model] Create execution context")
@@ -146,28 +147,12 @@ class BlazeDetector(BlazeDetectorBase):
             print("[blaze_rpp.BlazeDetector.load_model] Execute (warmup)")
         self.context.execute(1, self.bindings)
 
-        self.in_shape = self.input_dimensions[0]
-        if self.output_names[0] == "classifiers": # ... TBD ...
-            self.out_reg_name = self.output_names[1]
-            self.out_clf_name = self.output_names[0]
-            self.out_reg_shape = self.output_dimensions[1]
-            self.out_clf_shape = self.output_dimensions[0]
-        else:
-            self.out_reg_name = self.output_names[0]
-            self.out_clf_name = self.output_names[1]
-            self.out_reg_shape = self.output_dimensions[0]
-            self.out_clf_shape = self.output_dimensions[1]
-        if self.DEBUG:
-           print("[blaze_rpp.BlazeDetector.load_model] Input Shape : ",self.in_shape)
-           print("[blaze_rpp.BlazeDetector.load_model] Output1 Shape : ",self.out_reg_shape)
-           print("blaze_rpp.[BlazeDetector.load_model] Output2 Shape : ",self.out_clf_shape)
+        self.x_scale = self.input_dimensions[0][0]
+        self.y_scale = self.input_dimensions[0][1]
+        self.h_scale = self.input_dimensions[0][0]
+        self.w_scale = self.input_dimensions[0][1]
 
-        self.x_scale = self.in_shape[1]
-        self.y_scale = self.in_shape[2]
-        self.h_scale = self.in_shape[1]
-        self.w_scale = self.in_shape[2]
-
-        self.num_anchors = self.out_clf_shape[1]
+        self.num_anchors = self.out_clf_shape[0]
         if self.DEBUG:
             print("[blaze_rpp.BlazeDetector.load_model] Num Anchors : ",self.num_anchors)
            
@@ -237,20 +222,29 @@ class BlazeDetector(BlazeDetectorBase):
         # 1. Preprocess the images into tensors:
         start = timer()
         x = self.preprocess(x)
-        #self.interp_detector.set_tensor(self.in_idx, x)
+        
+        #print('Prepare Input')
+        input_binding = self.input_bindings[0]
+        input_data = np.array([x],dtype=np.float32)
+        input_binding.copy_from_numpy(input_data.ravel())        
         self.profile_pre = timer()-start
-                               
+
         # 2. Run the neural network:
         start = timer()
-        input_name = self.session_inputs[0].name
-        #output_names = [output.name for output in self.session_outputs]
-        output_names = [self.out_clf_name,self.out_reg_name]
-        result = self.session.run(output_names, {input_name: x})   
+        self.context.execute(1, self.bindings)
         self.profile_model = timer()-start
 
-        out1 = result[0] # classificators [1,anchors,1]
-        out2 = result[1] # regressors     [1,anchors,18]
+        # 3. Extract outputs
+        start = timer() 
+        
+        # classificators [1,anchors,1]
+        out1 = self.output_bindings[1].numpy_float()
+        out1 = out1.reshape(1, self.num_anchors, -1)
 
+        # regressors     [1,anchors,18]
+        out2 = self.output_bindings[0].numpy_float()
+        out2 = out2.reshape(1, self.num_anchors, -1)
+        
         #if self.DEBUG:
         #    print("[BlazeDetector.predict] Input   : ",x.shape, x.dtype)
         #    print("[BlazeDetector.predict] Input Min/Max: ",np.amin(x),np.amax(x))
@@ -266,8 +260,6 @@ class BlazeDetector(BlazeDetectorBase):
         assert out2.shape[0] == 1 # batch
         assert out2.shape[1] == self.num_anchors
         assert out2.shape[2] == self.num_coords
-
-        start = timer() 
 
         # 3. Postprocess the raw predictions:
         detections = self._tensors_to_detections(out2, out1, self.anchors)

@@ -33,15 +33,7 @@ class BlazeLandmark(BlazeLandmarkBase):
            for i in range(self.num_outputs):
                print("[BlazeLandmark.load_model] Output[",i,"] Shape : ",self.session_outputs[i].shape," (",self.session_outputs[i].name,")")
                 
-        self.in_shape = self.session_inputs[0].shape
-        self.out_landmark_shape = self.session_outputs[0].shape
-        self.out_flag_shape = self.session_outputs[1].shape
-        if self.DEBUG:
-           print("[BlazeLandmark.load_model] Input Shape : ",self.in_shape)
-           print("[BlazeLandmark.load_model] Output1 Shape : ",self.out_landmark_shape)
-           print("[BlazeLandmark.load_model] Output2 Shape : ",self.out_flag_shape)
-
-        self.resolution = self.in_shape[1]
+        self.resolution = self.session_inputs[0].shape[1]
 
     def preprocess(self, x):
         # image was already pre-processed by extract_roi in blaze_common/blazebase.py
@@ -61,10 +53,10 @@ class BlazeLandmark(BlazeLandmarkBase):
         out3_list = []
 
         #print("[BlazeLandmark] x ",x.shape,x.dtype)
-        start = timer()        
+        start = timer()
         x = self.preprocess(x)
         self.profile_pre += timer()-start
-                
+
         nb_images = x.shape[0]
         for i in range(nb_images):
 
@@ -73,9 +65,8 @@ class BlazeLandmark(BlazeLandmarkBase):
             #print("[BlazeLandmark] xi ",xi.shape,xi.dtype)
 
             # 1. Preprocess the images into tensors:
-            #self.interp_landmark.set_tensor(self.in_idx, xi)
             self.profile_pre += timer()-start
-                               
+
             # 2. Run the neural network:
             start = timer()  
             #self.interp_landmark.invoke()
@@ -84,7 +75,7 @@ class BlazeLandmark(BlazeLandmarkBase):
             result = self.session.run(output_names, {input_name: xi})   
             self.profile_model += timer()-start
 
-            start = timer()  
+            start = timer()
 
             if self.blaze_app == "blazehandlandmark":
                 # [BlazeHandLandmark.load_model] Model File :  ./models/hand_landmark_lite.tflite
@@ -100,7 +91,7 @@ class BlazeLandmark(BlazeLandmarkBase):
                 out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] / 63 => [1,21,3]
                 out2 = out2/self.resolution
                 out3 = result[2]
-                out4 = result[3]
+                #out4 = result[3]
             elif self.blaze_app == "blazefacelandmark":
                 out1 = result[1]
                 out1 = out1.reshape(1,1)
@@ -113,12 +104,12 @@ class BlazeLandmark(BlazeLandmarkBase):
                 out2 = out2.reshape(1,-1,5) # 195 => [1,39,5]
                 out2 = out2/self.resolution
 
-            if self.DEBUG:
-                print("[blaze_onnx.BlazeLandmark.predict] out1 (condifence)",out1.shape,out1.dtype, out1)
-                print("[blaze_onnx.BlazeLandmark.predict] out2 (landmarks)",out2.shape,out2.dtype, out2*self.resolution)
-                if self.blaze_app == "blazehandlandmark":
-                    print("[blaze_onnx.BlazeLandmark.predict] out3 (handedness)",out3.shape,out3.dtype, out3)
-                    print("[blaze_onnx.BlazeLandmark.predict] out4 (mini hand)",out4.shape,out4.dtype, out4)
+            #if self.DEBUG:
+            #    print("[blaze_onnx.BlazeLandmark.predict] out1 (condifence)",out1.shape,out1.dtype, out1)
+            #    print("[blaze_onnx.BlazeLandmark.predict] out2 (landmarks)",out2.shape,out2.dtype, out2*self.resolution)
+            #    if self.blaze_app == "blazehandlandmark":
+            #        print("[blaze_onnx.BlazeLandmark.predict] out3 (handedness)",out3.shape,out3.dtype, out3)
+            #        #print("[blaze_onnx.BlazeLandmark.predict] out4 (mini hand)",out4.shape,out4.dtype, out4)
 
             out1_list.append(out1.squeeze(0))
             out2_list.append(out2.squeeze(0))

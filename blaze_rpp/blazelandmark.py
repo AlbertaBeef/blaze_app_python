@@ -85,6 +85,8 @@ class BlazeLandmark(BlazeLandmarkBase):
             print('[ERROR] Failed to build engine')
             return
 
+        if self.DEBUG:
+            print('[blaze_rpp.BlazeLandmark.load_model] Initialize IO buffers')
         self.output_index_mapping = {}
         for index in range(len(self.engine)):
             name = self.engine.get_binding_name(index)
@@ -97,7 +99,6 @@ class BlazeLandmark(BlazeLandmarkBase):
             init_data = np.zeros(shape, dtype=np.float32)
             binding.copy_from_numpy(init_data)
 
-            print(f"index: {index}, name: {name}, shape: {shape}")
             self.bindings.append(int(binding))
             if is_input:
                 self.input_names.append(name)
@@ -112,7 +113,17 @@ class BlazeLandmark(BlazeLandmarkBase):
                 output_index = index - 1
                 self.output_index_mapping[output_index] = name
 
-        # self.DEBUG = True
+        if self.DEBUG:
+            print("[blaze_rpp.BlazeLandmark.load_model] Model Input/Output:")
+            for index in range(len(self.input_names)):
+                print(f"[blaze_rpp.BlazeLandmark.load_model]    input({index})")
+                print("[blaze_rpp.BlazeLandmark.load_model]       name = ",self.input_names[index])
+                print("[blaze_rpp.BlazeLandmark.load_model]       dimensions = ",self.input_dimensions[index])
+            for index in range(len(self.output_names)):
+                print(f"[blaze_rpp.BlazeLandmark.load_model]    output({index})")
+                print("[blaze_rpp.BlazeLandmark.load_model]       name = ",self.output_names[index])
+                print("[blaze_rpp.BlazeLandmark.load_model]       dimensions = ",self.output_dimensions[index])
+
         if self.DEBUG:
             print("[blaze_rpp.BlazeLandmark.load_model] Create execution context")
         self.context = self.engine.createExecutionContext()
@@ -134,15 +145,7 @@ class BlazeLandmark(BlazeLandmarkBase):
             print("[blaze_rpp.BlazeDetector.load_model] Execute (warmup)")
         self.context.execute(1, self.bindings)
 
-        self.in_shape = self.input_dimensions[0]
-        self.out_landmark_shape = self.output_dimensions[0]
-        self.out_flag_shape = self.output_dimensions[1]
-        if self.DEBUG:
-            print("[blaze_rpp.BlazeLandmark.load_model] Input Shape : ",self.in_shape)
-            print("[blaze_rpp.BlazeLandmark.load_model] Output1 Shape : ",self.out_landmark_shape)
-            print("[blaze_rpp.BlazeLandmark.load_model] Output2 Shape : ",self.out_flag_shape)
-
-        self.resolution = self.in_shape[1]
+        self.resolution = self.input_dimensions[0][1]
 
     def preprocess(self, x):
         # image was already pre-processed by extract_roi in blaze_common/blazebase.py
@@ -176,37 +179,73 @@ class BlazeLandmark(BlazeLandmarkBase):
             #print("[BlazeLandmark] xi ",xi.shape,xi.dtype)
 
             # 1. Preprocess the images into tensors:
-            #self.interp_landmark.set_tensor(self.in_idx, xi)
+            input_binding = self.input_bindings[0]
+            input_data = np.array([xi],dtype=np.float32)
+            input_binding.copy_from_numpy(input_data.ravel())
             self.profile_pre += timer()-start
 
             # 2. Run the neural network:
             start = timer()
-
-            #print('Prepare Input')
-            input_binding = self.input_bindings[0]
-            input_data = np.array([xi],dtype=np.float32)
-            input_binding.copy_from_numpy(input_data.ravel())
-
-            # Inference
-            #print("Inference")
             self.context.execute(1, self.bindings)
-
             self.profile_model += timer()-start
 
+            # 3. Extract outputs
             start = timer()
 
-            if self.blaze_app == "blazehandlandmark":
-                # Identity
-                out2 = self.output_bindings[2].numpy_float()
+            if self.blaze_app == "blazehandlandmark" and self.resolution == 256:
+                #[blaze_rpp.BlazeLandmark.load_model] Model Input/Output:           
+                #[blaze_rpp.BlazeLandmark.load_model]    input(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  input_1
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (256, 256, 3)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  ld_21_3d
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (63,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(1)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  output_handflag
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(2)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  output_handedness
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1,)
+                
+                # output_handflag
+                out1 = self.output_bindings[1].numpy_float()
+                
+                # ld_21_3d
+                out2 = self.output_bindings[0].numpy_float()
+                out2 = out2.reshape(21,-1) # 63 => [21,3]
+                out2 = out2/self.resolution
 
-                # Identity_2
-                out3 = self.output_bindings[1].numpy_float()
+                # output_handedness
+                out3 = self.output_bindings[2].numpy_float()
 
+            if self.blaze_app == "blazehandlandmark" and self.resolution == 224:
+                #[blaze_rpp.BlazeLandmark.load_model] Model Input/Output:           
+                #[blaze_rpp.BlazeLandmark.load_model]    input(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  input_1
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (224, 224, 3)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(0)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_1
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(1)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_2
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (1,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(2)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (63,)
+                #[blaze_rpp.BlazeLandmark.load_model]    output(3)
+                #[blaze_rpp.BlazeLandmark.load_model]       name =  Identity_3
+                #[blaze_rpp.BlazeLandmark.load_model]       dimensions =  (63,)            
+                
                 # Identity_1
                 out1 = self.output_bindings[0].numpy_float()
 
-                out2 = out2.reshape(21, -1)  # 42 => [21,2] / 63 => [21,3]
+                # Identity
+                out2 = self.output_bindings[2].numpy_float()
+                out2 = out2.reshape(21, -1)  # 63 => [21,3]
                 out2 = out2/self.resolution
+
+                # Identity_2
+                out3 = self.output_bindings[1].numpy_float()
 
             elif self.blaze_app == "blazefacelandmark":
                 out2 = self.output_bindings[0].numpy_float()
@@ -222,12 +261,12 @@ class BlazeLandmark(BlazeLandmarkBase):
                 out2 = out2.reshape(-1,5) # 195 => [39,5]
                 #out2 = out2/self.resolution
 
-            if self.DEBUG:
-                print("[blaze_rpp.BlazeLandmark.predict] out1 (condifence)",out1.shape,out1.dtype, out1)
-                print("[blaze_rpp.BlazeLandmark.predict] out2 (landmarks)",out2.shape,out2.dtype, out2)
-                if self.blaze_app == "blazehandlandmark":
-                    print("[blaze_rpp.BlazeLandmark.predict] out3 (handedness)",out3.shape,out3.dtype, out3)
-                    print("[blaze_rpp.BlazeLandmark.predict] out4 (mini hand)",out4.shape,out4.dtype, out4)
+            #if self.DEBUG:
+            #    print("[blaze_rpp.BlazeLandmark.predict] out1 (condifence)",out1.shape,out1.dtype, out1)
+            #    print("[blaze_rpp.BlazeLandmark.predict] out2 (landmarks)",out2.shape,out2.dtype, out2)
+            #    if self.blaze_app == "blazehandlandmark":
+            #        print("[blaze_rpp.BlazeLandmark.predict] out3 (handedness)",out3.shape,out3.dtype, out3)
+            #        #print("[blaze_rpp.BlazeLandmark.predict] out4 (mini hand)",out4.shape,out4.dtype, out4)
 
             out1_list.append(out1)
             out2_list.append(out2)
@@ -240,11 +279,11 @@ class BlazeLandmark(BlazeLandmarkBase):
         if self.blaze_app == "blazehandlandmark":
             handedness_scores = np.asarray(out3_list)
 
-        if self.DEBUG:
-            print("[blaze_rpp.BlazeLandmark.predict] flag ",flag.shape,flag.dtype)
-            print("[blaze_rpp.BlazeLandmark.predict] landmarks ",landmarks.shape,landmarks.dtype)
-            if self.blaze_app == "blazehandlandmark":
-                print("[blaze_rpp.BlazeLandmark.predict] handedness_scores ",handedness_scores.shape,handedness_scores.dtype)
+        #if self.DEBUG:
+        #    print("[blaze_rpp.BlazeLandmark.predict] flag ",flag.shape,flag.dtype)
+        #    print("[blaze_rpp.BlazeLandmark.predict] landmarks ",landmarks.shape,landmarks.dtype)
+        #    if self.blaze_app == "blazehandlandmark":
+        #        print("[blaze_rpp.BlazeLandmark.predict] handedness_scores ",handedness_scores.shape,handedness_scores.dtype)
 
         if self.blaze_app == "blazehandlandmark":
             return flag,landmarks,handedness_scores
