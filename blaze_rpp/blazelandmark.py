@@ -179,10 +179,10 @@ class BlazeLandmark(BlazeLandmarkBase):
             # 2. Run the neural network:
             start = timer()
             if self.DEBUG:
-                print('[blaze_rpp.BlazeDetector.predict_on_batch] Execute context with ',self.binding_int_values)
+                print('[blaze_rpp.blazehandlandmark.predict_on_batch] Execute context with ',self.binding_int_values)
             self.context.execute(1, self.binding_int_values)
             if self.DEBUG:
-                print('[blaze_rpp.BlazeDetector.predict_on_batch] Finished inference')
+                print('[blaze_rpp.blazehandlandmark.predict_on_batch] Finished inference')
 
             self.profile_model += timer()-start
 
