@@ -9,11 +9,12 @@ from blazebase import BlazeDetectorBase
 sys.path.append('/usr/local/rpp/lib')
 import pyrt as trt
 
-def volume(obj):
-    vol = 1
-    for elem in obj:
-        vol *= elem
-    return vol
+def rt_type_to_numpy_type(rt_type):
+    if rt_type == trt.DataType.kFLOAT:
+        return np.float32
+    if rt_type == trt.DataType.kBF:
+        return np.float16
+    raise NotImplementedError(f"No supported data type, value: {rt_type}")
 
 from timeit import default_timer as timer
 
@@ -26,14 +27,21 @@ class BlazeDetector(BlazeDetectorBase):
 
         #self.int8 = True # INT8
         self.int8 = False # BF16
-        
 
     def load_model(self, model_path):
 
         if self.DEBUG:
            print("[blaze_rpp.BlazeDetector.load_model] Model File : ",model_path)
 
-        self.log = trt.Logger(trt.Logger.ERROR)
+        if self.DEBUG:
+            #self.log = trt.Logger(trt.Logger.INTERNAL_ERROR)
+            self.log = trt.Logger(trt.Logger.ERROR)
+            #self.log = trt.Logger(trt.Logger.INFO)
+            #self.log = trt.Logger(trt.Logger.VERBOSE)
+        else:
+            self.log = trt.Logger(trt.Logger.INTERNAL_ERROR)
+            #self.log = trt.Logger(trt.Logger.ERROR)
+        
         self.builder = trt.Builder(self.log)
         self.config = self.builder.createBuilderConfig()
         if self.int8:
@@ -60,23 +68,14 @@ class BlazeDetector(BlazeDetectorBase):
             for error in range(self.parser.num_errors):
                 print(self.parser.get_error(error))
 
-        if self.DEBUG:
-            print("[blaze_rpp.BlazeDetector.load_model]    name = ",self.net.name)
-            print("[blaze_rpp.BlazeDetector.load_model]    num_inputs = ",self.net.num_inputs)
-            print("[blaze_rpp.BlazeDetector.load_model]    num_layers = ",self.net.num_layers)
-            print("[blaze_rpp.BlazeDetector.load_model]    num_outputs = ",self.net.num_outputs)
-            print("[blaze_rpp.BlazeDetector.load_model]    IsInputProcDisabled() = ",self.net.IsInputProcDisabled())
-            print("[blaze_rpp.BlazeDetector.load_model]    IsOutputProcDisabled() = ",self.net.IsOutputProcDisabled())
-
-        self.num_inputs = self.net.num_inputs
-        self.num_outputs = self.net.num_outputs
-        self.num_layers = self.net.num_layers
-
-        self.bindings = []
+        self.binding_list = []
+        self.binding_int_values = []
         self.input_names = []
         self.output_names = []
         self.input_dimensions = []
         self.output_dimensions = []
+        self.input_dtypes = []
+        self.output_dtypes = []
         self.input_bindings = []
         self.output_bindings = []
 
@@ -89,63 +88,55 @@ class BlazeDetector(BlazeDetectorBase):
 
         if self.DEBUG:
             print('[blaze_rpp.BlazeDetector.load_model] Initialize IO buffers')
-        self.output_index_mapping = {}
         for index in range(len(self.engine)):
             name = self.engine.get_binding_name(index)
             shape = self.engine.get_binding_shape(index).get()
             is_input = self.engine.binding_is_input(index)
+            rt_dtype = self.engine.get_binding_dtype(index)
+            dtype = rt_type_to_numpy_type(rt_dtype)
 
-            bytes_size = volume(shape) * 4
+            bytes_size = math.prod(shape) * np.dtype(dtype).itemsize
+
             binding = trt.DeviceAllocation(bytes_size)
+            if self.DEBUG:
+                print(f"[blaze_rpp.BlazeLandmark.load_model]    io({index})")
+                print("[blaze_rpp.BlazeDetector.load_model]       bytes_size = ",bytes_size)
+                print("[blaze_rpp.BlazeDetector.load_model]       binding = ",binding)
 
-            init_data = np.zeros(shape, dtype=np.float32)
-            binding.copy_from_numpy(init_data)
-
-            self.bindings.append(int(binding))
+            self.binding_list.append(binding)
+            self.binding_int_values.append(int(binding))
             if is_input:
                 self.input_names.append(name)
                 self.input_dimensions.append(shape)
+                self.input_dtypes.append(dtype)
                 self.input_bindings.append(binding)
                 input_dimension = shape
             else:
                 self.output_names.append(name)
                 self.output_dimensions.append(shape)
+                self.output_dtypes.append(dtype)
                 self.output_bindings.append(binding)
 
-                output_index = index - 1
-                self.output_index_mapping[output_index] = name
-
+                
+        self.num_inputs = len(self.input_names)
+        self.num_output = len(self.output_names)
+        
         if self.DEBUG:
             print("[blaze_rpp.BlazeDetector.load_model] Model Input/Output:")
-            for index in range(len(self.input_names)):
+            for index in range(self.num_inputs):
                 print(f"[blaze_rpp.BlazeDetector.load_model]    input({index})")
                 print("[blaze_rpp.BlazeDetector.load_model]       name = ",self.input_names[index])
                 print("[blaze_rpp.BlazeDetector.load_model]       dimensions = ",self.input_dimensions[index])
-            for index in range(len(self.output_names)):
+                print("[blaze_rpp.BlazeDetector.load_model]       dtype = ",self.input_dtypes[index])
+            for index in range(self.num_output):
                 print(f"[blaze_rpp.BlazeDetector.load_model]    output({index})")
                 print("[blaze_rpp.BlazeDetector.load_model]       name = ",self.output_names[index])
                 print("[blaze_rpp.BlazeDetector.load_model]       dimensions = ",self.output_dimensions[index])
+                print("[blaze_rpp.BlazeDetector.load_model]       dtype = ",self.output_dtypes[index])
 
         if self.DEBUG:
             print("[blaze_rpp.BlazeDetector.load_model] Create execution context")
         self.context = self.engine.createExecutionContext()
-
-        if self.DEBUG:
-            print('[blaze_rpp.BlazeDetector.load_model] Prepare Input')
-        self.rng = np.random.default_rng()
-        if self.DEBUG:
-            print(f"[blaze_rpp.BlazeDetector.load_model]    Creating random test data")
-        test_data = self.rng.random(input_dimension,dtype=np.float32)
-        if self.DEBUG:
-            print("[blaze_rpp.BlazeDetector.load_model]       test_data.shape = ",test_data.shape)
-            print("[blaze_rpp.BlazeDetector.load_model]       test_data.dtype = ",test_data.dtype)
-        input_binding = self.input_bindings[0]
-        input_binding.copy_from_numpy(test_data)
-
-        # Inference (warmup)
-        if self.DEBUG:
-            print("[blaze_rpp.BlazeDetector.load_model] Execute (warmup)")
-        self.context.execute(1, self.bindings)
 
         self.x_scale = self.input_dimensions[0][0]
         self.y_scale = self.input_dimensions[0][1]
@@ -223,15 +214,21 @@ class BlazeDetector(BlazeDetectorBase):
         start = timer()
         x = self.preprocess(x)
         
-        #print('Prepare Input')
+        if self.DEBUG:
+            print('[blaze_rpp.BlazeDetector.predict_on_batch] Prepare Input')
         input_binding = self.input_bindings[0]
-        input_data = np.array([x],dtype=np.float32)
+        input_data = np.array([x],dtype=self.input_dtypes[0])
         input_binding.copy_from_numpy(input_data.ravel())        
+
         self.profile_pre = timer()-start
 
         # 2. Run the neural network:
         start = timer()
-        self.context.execute(1, self.bindings)
+        if self.DEBUG:
+            print('[blaze_rpp.BlazeDetector.predict_on_batch] Execute context with ',self.binding_int_values)
+        self.context.execute(1, self.binding_int_values)
+        if self.DEBUG:
+            print('[blaze_rpp.BlazeDetector.predict_on_batch] Finished inference')
         self.profile_model = timer()-start
 
         # 3. Extract outputs
