@@ -225,7 +225,10 @@ class BlazeDetector(BlazeDetectorBase):
         # 2. Run the neural network:
         start = timer()
         if self.DEBUG:
-            print('[blaze_rpp.BlazeDetector.predict_on_batch] Execute context with ',self.binding_int_values)
+            #print('[blaze_rpp.BlazeDetector.predict_on_batch] Execute context with ',self.binding_int_values)
+            for index, int_value in enumerate(self.binding_int_values):
+            	print(f"[blaze_rpp.BlazeDetector.predict_on_batch], binding index: {index}, value: {hex(int_value)}")
+            print(f"[blaze_rpp.BlazeDetector.predict_on_batch] Execute context with engine bindings: {len(self.engine)}")
         self.context.execute(1, self.binding_int_values)
         if self.DEBUG:
             print('[blaze_rpp.BlazeDetector.predict_on_batch] Finished inference')

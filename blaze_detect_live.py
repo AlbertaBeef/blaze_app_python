@@ -78,24 +78,24 @@ try:
     from blaze_tflite.blazelandmark import BlazeLandmark as BlazeLandmark_tflite
     print("[INFO] blaze_tflite supported ...")
     supported_targets["blaze_tflite"] = True
-except:
-    print("[INFO] blaze_tflite NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_tflite NOT supported ... ({e})")
 
 try:
     from blaze_tflite_quant.blazedetector import BlazeDetector as BlazeDetector_tflite_quant
     from blaze_tflite_quant.blazelandmark import BlazeLandmark as BlazeLandmark_tflite_quant
     print("[INFO] blaze_tflite_quant supported ...")
     supported_targets["blaze_tflite_quant"] = True
-except:
-    print("[INFO] blaze_tflite_quant NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_tflite_quant NOT supported ... ({e})")
 
 try:
     from blaze_pytorch.blazedetector import BlazeDetector as BlazeDetector_pytorch
     from blaze_pytorch.blazelandmark import BlazeLandmark as BlazeLandmark_pytorch
     print("[INFO] blaze_pytorch supported ...")
     supported_targets["blaze_pytorch"] = True
-except:
-    print("[INFO] blaze_pytorch NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_pytorch NOT supported ... ({e})")
 
 try:
     from blaze_vitisai.blazedetector import BlazeDetector as BlazeDetector_vitisai
@@ -127,8 +127,8 @@ try:
             
     dpu_arch = detect_dpu_architecture()
     print("[INFO] DPU Architecture : ",dpu_arch)            
-except:
-    print("[INFO] blaze_vitisai NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_vitisai NOT supported ... ({e})")
     dpu_arch = "B?"    
 
 try:
@@ -138,24 +138,24 @@ try:
     from blaze_hailo.blazelandmark import BlazeLandmark as BlazeLandmark_hailo
     print("[INFO] blaze_hailo supported ...")
     supported_targets["blaze_hailo"] = True
-except:
-    print("[INFO] blaze_hailo NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_hailo NOT supported ... ({e})")
 
 try:
     from blaze_onnx.blazedetector import BlazeDetector as BlazeDetector_onnx
     from blaze_onnx.blazelandmark import BlazeLandmark as BlazeLandmark_onnx
     print("[INFO] blaze_onnx supported ...")
     supported_targets["blaze_onnx"] = True
-except:
-    print("[INFO] blaze_onnx NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_onnx NOT supported ... ({e})")
 
 try:
     from blaze_rpp.blazedetector import BlazeDetector as BlazeDetector_rpp
     from blaze_rpp.blazelandmark import BlazeLandmark as BlazeLandmark_rpp
     print("[INFO] blaze_rpp supported ...")
     supported_targets["blaze_rpp"] = True
-except:
-    print("[INFO] blaze_rpp NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_rpp NOT supported ... ({e})")
 
 
 from visualization import draw_detections, draw_landmarks, draw_roi
@@ -426,7 +426,7 @@ for i in range(nb_blaze_pipelines):
             print("[blaze_detect_live] Pipeline ",pipeline," supported and initialized.")
 
             nb_active_pipelines += 1
-        except:
+        except Exception as e:
             blaze_pipelines[i]["supported"]     = False
             blaze_pipelines[i]["detector_type"] = detector_type
             blaze_pipelines[i]["detector"]      = None
@@ -434,7 +434,7 @@ for i in range(nb_blaze_pipelines):
             blaze_pipelines[i]["landmark"]      = None
             blaze_pipelines[i]["thresh_confidence"] = 0.5
 
-            print("[blaze_detect_live] Pipeline ",pipeline," FAILED to initialize.")
+            print(f"[blaze_detect_live] Pipeline {pipeline} FAILED to initialize ({e})")
                 
 
 if nb_active_pipelines == 0:
