@@ -201,12 +201,12 @@ class BlazeDetector(BlazeDetectorBase):
         """
         out2 = self.interp_detector.get_tensor(self.out_reg_idx)
 
-        if self.DEBUG:
-            print("[BlazeDetector] Input   : ",x.shape, x.dtype) #, x)
-            print("[BlazeDetector] Input Min/Max: ",np.amin(x),np.amax(x))
-            print("[BlazeDetector] Output1 : ",out1.shape, out1.dtype) #, out1)
-            print("[BlazeDetector] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
-            print("[BlazeDetector] Output2 : ",out2.shape, out2.dtype) #, out2)
-            print("[BlazeDetector] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
+        #if self.DEBUG:
+        #    print("[BlazeDetector] Input   : ",x.shape, x.dtype) #, x)
+        #    print("[BlazeDetector] Input Min/Max: ",np.amin(x),np.amax(x))
+        #    print("[BlazeDetector] Output1 : ",out1.shape, out1.dtype) #, out1)
+        #    print("[BlazeDetector] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
+        #    print("[BlazeDetector] Output2 : ",out2.shape, out2.dtype) #, out2)
+        #    print("[BlazeDetector] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
 
         return out1, out2

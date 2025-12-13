@@ -96,10 +96,10 @@ class BlazeLandmark(BlazeLandmarkBase):
         out3_list = []
 
         #print("[BlazeLandmark] x ",x.shape,x.dtype)
-        start = timer()        
+        start = timer()
         x = self.preprocess(x)
         self.profile_pre += timer()-start
-                
+
         nb_images = x.shape[0]
         for i in range(nb_images):
 
@@ -110,13 +110,13 @@ class BlazeLandmark(BlazeLandmarkBase):
             # 1. Preprocess the images into tensors:
             self.interp_landmark.set_tensor(self.in_idx, xi)
             self.profile_pre += timer()-start
-                               
+
             # 2. Run the neural network:
             start = timer()  
             self.interp_landmark.invoke()
             self.profile_model += timer()-start
 
-            start = timer()  
+            start = timer()
 
             if self.blaze_app == "blazehandlandmark":
                 out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))

@@ -70,31 +70,32 @@ supported_targets = {
     "blaze_pytorch": False,
     "blaze_vitisai": False,
     "blaze_hailo": False,
-    "blaze_onnx": False
+    "blaze_onnx": False,
+    "blaze_rpp": False
 }
 try:
     from blaze_tflite.blazedetector import BlazeDetector as BlazeDetector_tflite
     from blaze_tflite.blazelandmark import BlazeLandmark as BlazeLandmark_tflite
     print("[INFO] blaze_tflite supported ...")
     supported_targets["blaze_tflite"] = True
-except:
-    print("[INFO] blaze_tflite NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_tflite NOT supported ... ({e})")
 
 try:
     from blaze_tflite_quant.blazedetector import BlazeDetector as BlazeDetector_tflite_quant
     from blaze_tflite_quant.blazelandmark import BlazeLandmark as BlazeLandmark_tflite_quant
     print("[INFO] blaze_tflite_quant supported ...")
     supported_targets["blaze_tflite_quant"] = True
-except:
-    print("[INFO] blaze_tflite_quant NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_tflite_quant NOT supported ... ({e})")
 
 try:
     from blaze_pytorch.blazedetector import BlazeDetector as BlazeDetector_pytorch
     from blaze_pytorch.blazelandmark import BlazeLandmark as BlazeLandmark_pytorch
     print("[INFO] blaze_pytorch supported ...")
     supported_targets["blaze_pytorch"] = True
-except:
-    print("[INFO] blaze_pytorch NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_pytorch NOT supported ... ({e})")
 
 try:
     from blaze_vitisai.blazedetector import BlazeDetector as BlazeDetector_vitisai
@@ -126,8 +127,8 @@ try:
             
     dpu_arch = detect_dpu_architecture()
     print("[INFO] DPU Architecture : ",dpu_arch)            
-except:
-    print("[INFO] blaze_vitisai NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_vitisai NOT supported ... ({e})")
     dpu_arch = "B?"    
 
 try:
@@ -137,16 +138,25 @@ try:
     from blaze_hailo.blazelandmark import BlazeLandmark as BlazeLandmark_hailo
     print("[INFO] blaze_hailo supported ...")
     supported_targets["blaze_hailo"] = True
-except:
-    print("[INFO] blaze_hailo NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_hailo NOT supported ... ({e})")
 
 try:
     from blaze_onnx.blazedetector import BlazeDetector as BlazeDetector_onnx
     from blaze_onnx.blazelandmark import BlazeLandmark as BlazeLandmark_onnx
     print("[INFO] blaze_onnx supported ...")
     supported_targets["blaze_onnx"] = True
-except:
-    print("[INFO] blaze_onnx NOT supported ...")
+except Exception as e:
+    print(f"[INFO] blaze_onnx NOT supported ... ({e})")
+
+try:
+    from blaze_rpp.blazedetector import BlazeDetector as BlazeDetector_rpp
+    from blaze_rpp.blazelandmark import BlazeLandmark as BlazeLandmark_rpp
+    print("[INFO] blaze_rpp supported ...")
+    supported_targets["blaze_rpp"] = True
+except Exception as e:
+    print(f"[INFO] blaze_rpp NOT supported ... ({e})")
+
 
 from visualization import draw_detections, draw_landmarks, draw_roi
 from visualization import HAND_CONNECTIONS, FACE_CONNECTIONS, POSE_FULL_BODY_CONNECTIONS, POSE_UPPER_BODY_CONNECTIONS
@@ -170,7 +180,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--testimage'  , default=False, action='store_true', help="Use test image as input (womand_hands.jpg). Default is usbcam")
 ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
-ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx", help="Command seperated list of targets (blaze_tflite, blaze_tflite_quant, blaze_pytorch, blaze_vitisai, blaze_hailo, blaze_onnx).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx'")
+ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_rpp", help="Command seperated list of targets (blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_rpp).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_rpp'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
 ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
 ap.add_argument('-v', '--verbose'    , default=False, action='store_true', help="Enable Verbose mode. Default is off")
@@ -210,6 +220,9 @@ blaze_pipelines = [
     { "blaze": "hand", "pipeline": "onnx_hand_v0_07"      , "model1": "blaze_onnx/models/palm_detection_v0_07.onnx",                 "model2": "blaze_onnx/models/hand_landmark_v0_07.onnx" },
     { "blaze": "hand", "pipeline": "onnx_hand_v0_10_lite" , "model1": "blaze_onnx/models/palm_detection_lite.onnx",                  "model2": "blaze_onnx/models/hand_landmark_lite.onnx" },
     { "blaze": "hand", "pipeline": "onnx_hand_v0_10_full" , "model1": "blaze_onnx/models/palm_detection_full.onnx",                  "model2": "blaze_onnx/models/hand_landmark_full.onnx" },
+    { "blaze": "hand", "pipeline": "rpp_hand_v0_07"       , "model1": "blaze_rpp/models/palm_detection_v0_07_sim.onnx",              "model2": "blaze_rpp/models/hand_landmark_v0_07_sim.onnx" },
+    { "blaze": "hand", "pipeline": "rpp_hand_v0_10_lite"  , "model1": "blaze_rpp/models/palm_detection_lite_sim.onnx",               "model2": "blaze_rpp/models/hand_landmark_lite_sim.onnx" },
+    { "blaze": "hand", "pipeline": "rpp_hand_v0_10_full"  , "model1": "blaze_rpp/models/palm_detection_full_sim.onnx",               "model2": "blaze_rpp/models/hand_landmark_full_sim.onnx" },
     { "blaze": "face", "pipeline": "tfl_face_v0_07_front" , "model1": "blaze_tflite/models/face_detection_front_v0_07.tflite",       "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
     { "blaze": "face", "pipeline": "tfl_face_v0_07_back"  , "model1": "blaze_tflite/models/face_detection_back_v0_07.tflite",        "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
     { "blaze": "face", "pipeline": "tfl_face_v0_10_short" , "model1": "blaze_tflite/models/face_detection_short_range.tflite",       "model2": "blaze_tflite/models/face_landmark.tflite" },
@@ -225,6 +238,10 @@ blaze_pipelines = [
     { "blaze": "face", "pipeline": "onnx_face_v0_07_back" , "model1": "blaze_onnx/models/face_detection_back_v0_07.onnx",            "model2": "blaze_onnx/models/face_landmark_v0_07.onnx" },
     { "blaze": "face", "pipeline": "onnx_face_v0_10_short", "model1": "blaze_onnx/models/face_detection_short_range.onnx",           "model2": "blaze_onnx/models/face_landmark.onnx" },
     { "blaze": "face", "pipeline": "onnx_face_v0_10_full" , "model1": "blaze_onnx/models/face_detection_full_range.onnx",            "model2": "blaze_onnx/models/face_landmark.onnx" },
+    { "blaze": "face", "pipeline": "rpp_face_v0_07_front" , "model1": "blaze_rpp/models/face_detection_front_v0_07_sim.onnx",        "model2": "blaze_rpp/models/face_landmark_v0_07_sim.onnx" },
+    { "blaze": "face", "pipeline": "rpp_face_v0_07_back"  , "model1": "blaze_rpp/models/face_detection_back_v0_07_sim.onnx",         "model2": "blaze_rpp/models/face_landmark_v0_07_sim.onnx" },
+    { "blaze": "face", "pipeline": "rpp_face_v0_10_short" , "model1": "blaze_rpp/models/face_detection_short_range_sim.onnx",        "model2": "blaze_rpp/models/face_landmark_sim.onnx" },
+    { "blaze": "face", "pipeline": "rpp_face_v0_10_full"  , "model1": "blaze_rpp/models/face_detection_full_range_sim.onnx",         "model2": "blaze_rpp/models/face_landmark_sim.onnx" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_lite.tflite" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_full.tflite" },
     { "blaze": "pose", "pipeline": "tfl_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_tflite/models/pose_landmark_heavy.tflite" },
@@ -233,7 +250,13 @@ blaze_pipelines = [
     { "blaze": "pose", "pipeline": "tflh_pose_v0_07_upper", "model1": "blaze_tflite/models/pose_detection_v0_07.tflite","model2": "blaze_tflite_quant/models/pose_landmark_upper_body_256x256_full_integer_quant.tflite" },
     { "blaze": "pose", "pipeline": "tflq_pose_v0_10_upper", "model1": "blaze_tflite_quant/models/pose_detection_full_quant.tflite",  "model2": "blaze_tflite_quant/models/pose_landmark_full_quant.tflite" },
     { "blaze": "pose", "pipeline": "pyt_pose_v0_07"       , "model1": "blaze_pytorch/models/blazepose.pth",                          "model2": "blaze_pytorch/models/blazepose_landmark.pth" },
-    { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" }
+    { "blaze": "pose", "pipeline": "hai_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_hailo/models/pose_landmark_lite.hef" },
+    { "blaze": "pose", "pipeline": "onnx_pose_v0_10_lite" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_onnx/models/pose_landmark_lite.onnx" },
+    { "blaze": "pose", "pipeline": "onnx_pose_v0_10_full" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_onnx/models/pose_landmark_full.onnx" },
+    { "blaze": "pose", "pipeline": "onnx_pose_v0_10_heavy", "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_onnx/models/pose_landmark_heavy.onnx" },
+    { "blaze": "pose", "pipeline": "rpp_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_lite_sim.onnx" },
+    { "blaze": "pose", "pipeline": "rpp_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_full_sim.onnx" },
+    { "blaze": "pose", "pipeline": "rpp_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_heavy_sim.onnx" }
 ]
 nb_blaze_pipelines = len(blaze_pipelines)
 
@@ -364,6 +387,8 @@ for i in range(nb_blaze_pipelines):
             blaze_detector = BlazeDetector_hailo(detector_type,hailo_infer)
         elif target1=="blaze_onnx":
             blaze_detector = BlazeDetector_onnx(detector_type)
+        elif target1=="blaze_rpp":
+            blaze_detector = BlazeDetector_rpp(detector_type)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
  
@@ -379,6 +404,8 @@ for i in range(nb_blaze_pipelines):
             blaze_landmark = BlazeLandmark_hailo(landmark_type,hailo_infer)
         elif target2=="blaze_onnx":
             blaze_landmark = BlazeLandmark_onnx(landmark_type)
+        elif target2=="blaze_rpp":
+            blaze_landmark = BlazeLandmark_rpp(landmark_type)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
 
@@ -399,7 +426,7 @@ for i in range(nb_blaze_pipelines):
             print("[blaze_detect_live] Pipeline ",pipeline," supported and initialized.")
 
             nb_active_pipelines += 1
-        except:
+        except Exception as e:
             blaze_pipelines[i]["supported"]     = False
             blaze_pipelines[i]["detector_type"] = detector_type
             blaze_pipelines[i]["detector"]      = None
@@ -407,7 +434,7 @@ for i in range(nb_blaze_pipelines):
             blaze_pipelines[i]["landmark"]      = None
             blaze_pipelines[i]["thresh_confidence"] = 0.5
 
-            print("[blaze_detect_live] Pipeline ",pipeline," FAILED to initialize.")
+            print(f"[blaze_detect_live] Pipeline {pipeline} FAILED to initialize ({e})")
                 
 
 if nb_active_pipelines == 0:
