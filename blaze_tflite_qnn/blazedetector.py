@@ -212,7 +212,6 @@ class BlazeDetector(BlazeDetectorBase):
         # 2852809.5 * (q - 255)
         out1 = out1.astype(np.float32)
         out1 = out1_scale * (out1 - out1_offset)
-        #out1 = (out1 - out1_offset) / 256.0
 
         if self.DEBUG:
             print("q[BlazeDetector] Output1 Scale/Offset : ",out1_scale,out1_offset)
@@ -225,7 +224,6 @@ class BlazeDetector(BlazeDetectorBase):
         # 425116.125 * (q - 122)
         out2 = out2.astype(np.float32)
         out2 = out2_scale * (out2 - out2_offset)
-        #out2 = (out2 - out2_offset) / 256.0
         
         if self.DEBUG:
             print("q[BlazeDetector] Output2 Scale/Offset : ",out2_scale,out2_offset)

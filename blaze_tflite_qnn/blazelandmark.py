@@ -148,6 +148,9 @@ class BlazeLandmark(BlazeLandmarkBase):
                 print("q[BlazeLandmark] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
                 print("q[BlazeLandmark] Output2 : ",out2.shape, out2.dtype) #, out2)
                 print("q[BlazeLandmark] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
+                if self.blaze_app == "blazehandlandmark":
+                    print("q[BlazeLandmark] Output3 : ",out3.shape, out3.dtype) #, out3)
+                    print("q[BlazeLandmark] Output3 Min/Max: ",np.amin(out3),np.amax(out3))
 
             # name: Identity_1
             # tensor: uint8[-1,1,1,1]
@@ -166,14 +169,25 @@ class BlazeLandmark(BlazeLandmarkBase):
             # quantization: linear
             # 11.609466552734375 * (q - 114) 
             out2 = out2.astype(np.float32)
-            out2 = out2_scale * (out2 - out2_offset)    
+            out2 = out2_scale * (out2 - out2_offset)                    
+            out2 = out2/self.resolution
                 
             if self.DEBUG:
                 print("q[BlazeLandmark] Output2 Scale/Offset : ",out2_scale,out2_offset)
                 print("q[BlazeLandmark] Output2 : ",out2.shape, out2.dtype) #, out2)
                 print("q[BlazeLandmark] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
 
-            out2 = out2/self.resolution
+            if self.blaze_app == "blazehandlandmark":
+                # name: Identity_3
+                # tensor: uint8[1]
+                # quantization: linear
+                out3 = out3.astype(np.float32)
+                out3 = out3_scale * (out3 - out3_offset)    
+                
+                if self.DEBUG:
+                    print("q[BlazeLandmark] Output3 Scale/Offset : ",out3_scale,out3_offset)
+                    print("q[BlazeLandmark] Output3 : ",out3.shape, out3.dtype) #, out3)
+                    print("q[BlazeLandmark] Output3 Min/Max: ",np.amin(out3),np.amax(out3))
 
             out1_list.append(out1.squeeze(0))
             out2_list.append(out2.squeeze(0))
