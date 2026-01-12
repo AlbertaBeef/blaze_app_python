@@ -24,8 +24,8 @@ class BlazeLandmark(BlazeLandmarkBase):
            
         delegate_options = {'backend_type': 'htp'}
         delegate = tflite.load_delegate("/usr/lib/libQnnTFLiteDelegate.so", delegate_options)
-        #self.interp_landmark = tflite.Interpreter(model_path=model_path, experimental_delegates=[delegate])
-        self.interp_landmark = tflite.Interpreter(model_path=model_path)
+        self.interp_landmark = tflite.Interpreter(model_path=model_path, experimental_delegates=[delegate])
+        #self.interp_landmark = tflite.Interpreter(model_path=model_path)
 
         self.interp_landmark.allocate_tensors()
 
