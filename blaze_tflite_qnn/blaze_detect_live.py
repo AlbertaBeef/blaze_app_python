@@ -1,5 +1,4 @@
 '''
-Copyright 2025 Tria Technologies Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -15,7 +14,7 @@ limitations under the License.
 #
 # References:
 #   https://www.github.com/AlbertaBeef/blaze_app_python
-#   https://www.github.com/AlbertaBeef/blaze_tutorial/tree/2023.1
+#   https://www.github.com/AlbertaBeef/blaze_tutorial/tree/qcs6490
 #
 # Dependencies:
 #   TFLite
@@ -545,7 +544,7 @@ while True:
                     str(timestamp)+","+\
                     str(user)+","+\
                     str(host)+","+\
-                    "blaze_tflite"+","+\
+                    "blaze_tflite_qnn"+","+\
                     str(prof_detector_qty[pipeline_id])+","+\
                     str(prof_resize[pipeline_id])+","+\
                     str(prof_detector_pre[pipeline_id])+","+\
