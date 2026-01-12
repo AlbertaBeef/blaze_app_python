@@ -50,6 +50,12 @@ class BlazeLandmark(BlazeLandmarkBase):
         if self.blaze_app == "blazehandlandmark":
             self.out_handedness_idx = self.output_details[2]['index']
 
+        self.in_quantization = self.input_details[0]['quantization']
+        self.out_landmark_quantization = self.output_details[0]['quantization']
+        self.out_flag_quantization = self.output_details[1]['quantization']
+        if self.blaze_app == "blazehandlandmark":
+            self.out_handedness_quantization = self.output_details[2]['quantization']
+
         self.in_shape = self.input_details[0]['shape']
         self.out_landmark_shape = self.output_details[0]['shape']
         self.out_flag_shape = self.output_details[1]['shape']
@@ -68,6 +74,10 @@ class BlazeLandmark(BlazeLandmarkBase):
         # format = RGB
         # dtype = float32
         # range = 0.0 - 1.0
+        """Converts the image pixels to INT8 in the range [-128,127]."""
+        x = x * 255.0
+        x = x - 128.0
+        x = x.astype(np.int8)
         return x
 
     def predict(self, x):
@@ -103,29 +113,67 @@ class BlazeLandmark(BlazeLandmarkBase):
 
             start = timer()
 
+            out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
+            out1_scale = self.out_flag_quantization[0]
+            out1_offset = self.out_flag_quantization[1]
+
+            out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
+            out2_scale = self.out_landmark_quantization[0]
+            out2_offset = self.out_landmark_quantization[1]
+
             if self.blaze_app == "blazehandlandmark":
-                out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
-                out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
-                out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] / 63 => [1,21,3]
-                out2 = out2/self.resolution
-                #out3 = np.zeros(out1.shape,out1.dtype) # tflite model not returning handedness
                 out3 = np.asarray(self.interp_landmark.get_tensor(self.out_handedness_idx))
+                out3_scale = self.out_handedness_quantization[0]
+                out3_offset = self.out_handedness_quantization[1]
+
+            #if self.DEBUG:
+            #    print("q[BlazeLandmark] flag Scale/Offset  ",out1_scale,out1_offset)
+            #    print("q[BlazeLandmark] landmark Scale/Offset  ",out2_scale,out2_offset)
+
+            if self.blaze_app == "blazehandlandmark":
+                out2 = out2.reshape(1,21,-1) # 42 => [1,21,2] / 63 => [1,21,3]
             elif self.blaze_app == "blazefacelandmark":
-                out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
                 out1 = out1.reshape(1,1)
-                out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
                 out2 = out2.reshape(1,-1,3) # 1404 => [1,356,2]
-                out2 = out2/self.resolution            
             elif self.blaze_app == "blazeposelandmark":
-                out1 = np.asarray(self.interp_landmark.get_tensor(self.out_flag_idx))
-                out2 = np.asarray(self.interp_landmark.get_tensor(self.out_landmark_idx))
                 if out2.shape[1] == 124:
                     out2 = out2.reshape(1,-1,4) # v0.07 upper : 124 => [1,31,4]
                 else:
                     out2 = out2.reshape(1,-1,5) # v0.10 full  : 195 => [1,39,5]
-                out2 = out2/self.resolution
-                #out3 = np.asarray(self.interp_poselandmark.get_tensor(self.out_seg_idx))
 
+            if self.DEBUG:
+                print("q[BlazeLandmark] Input   : ",x.shape, x.dtype) #, x)
+                print("q[BlazeLandmark] Input Min/Max: ",np.amin(x),np.amax(x))
+                print("q[BlazeLandmark] Output1 : ",out1.shape, out1.dtype) #, out1)
+                print("q[BlazeLandmark] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
+                print("q[BlazeLandmark] Output2 : ",out2.shape, out2.dtype) #, out2)
+                print("q[BlazeLandmark] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
+
+            # name: Identity_1
+            # tensor: uint8[-1,1,1,1]
+            # quantization: linear
+            # 0.00390625 * q
+            out1 = out1.astype(np.float32)
+            out1 = out1_scale * (out1 - out1_offset)    
+
+            if self.DEBUG:
+                print("q[BlazeLandmark] Output1 Scale/Offset : ",out1_scale,out1_offset)
+                print("q[BlazeLandmark] Output1 : ",out1.shape, out1.dtype) #, out1)
+                print("q[BlazeLandmark] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
+    
+            # name: Identity_2
+            # tensor: uint8[1,124]
+            # quantization: linear
+            # 11.609466552734375 * (q - 114) 
+            out2 = out2.astype(np.float32)
+            out2 = out2_scale * (out2 - out2_offset)    
+                
+            if self.DEBUG:
+                print("q[BlazeLandmark] Output2 Scale/Offset : ",out2_scale,out2_offset)
+                print("q[BlazeLandmark] Output2 : ",out2.shape, out2.dtype) #, out2)
+                print("q[BlazeLandmark] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
+
+            out2 = out2/self.resolution
 
             out1_list.append(out1.squeeze(0))
             out2_list.append(out2.squeeze(0))
@@ -140,11 +188,11 @@ class BlazeLandmark(BlazeLandmarkBase):
             handedness_scores = np.asarray(out3_list)
 
         if self.DEBUG:
-            print("[BlazeLandmark] flag ",flag.shape,flag.dtype)
-            print("[BlazeLandmark] flag Min/Max: ",np.amin(flag),np.amax(flag))
-            print("[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
-            print("[BlazeLandmark] landmarks Min/Max: ",np.amin(landmarks),np.amax(landmarks))
-
+            print("q[BlazeLandmark] flag ",flag.shape,flag.dtype)
+            print("q[BlazeLandmark] flag Min/Max: ",np.amin(flag),np.amax(flag))
+            print("q[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
+            print("q[BlazeLandmark] landmarks Min/Max: ",np.amin(landmarks),np.amax(landmarks))
+            
         if self.blaze_app == "blazehandlandmark":
             return flag,landmarks,handedness_scores
         else:
