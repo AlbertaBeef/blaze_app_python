@@ -9,7 +9,7 @@ from qai_appbuilder import (QNNContext, Runtime, LogLevel, ProfilingLevel, PerfP
 qnn_sdk_root = os.environ.get("QNN_SDK_ROOT")
 if not qnn_sdk_root:
     print("Error: QNN_SDK_ROOT environment variable is not set.")
-    sys.exit(1)
+    #sys.exit(1)
 
 qnn_dir = os.path.join(qnn_sdk_root, "lib/aarch64-oe-linux-gcc11.2")
 

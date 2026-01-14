@@ -9,7 +9,7 @@ from qai_appbuilder import (QNNContext, Runtime, LogLevel, ProfilingLevel, PerfP
 qnn_sdk_root = os.environ.get("QNN_SDK_ROOT")
 if not qnn_sdk_root:
     print("Error: QNN_SDK_ROOT environment variable is not set.")
-    sys.exit(1)
+    #sys.exit(1)
 
 qnn_dir = os.path.join(qnn_sdk_root, "lib/aarch64-oe-linux-gcc11.2")
 
@@ -128,7 +128,7 @@ class BlazeLandmark(BlazeLandmarkBase):
                 out1 = out1.reshape(1,1)
                 out2 = out2.reshape(1,-1,3) # 1404 => [1,356,2]
             elif self.blaze_app == "blazeposelandmark":
-                if out2.shape[1] == 124:
+                if out2.shape[0] == 124:
                     out2 = out2.reshape(1,-1,4) # v0.07 upper : 124 => [1,31,4]
                 else:
                     out2 = out2.reshape(1,-1,5) # v0.10 full  : 195 => [1,39,5]
