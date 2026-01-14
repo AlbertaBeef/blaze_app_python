@@ -2,21 +2,27 @@ import numpy as np
 
 from blazebase import BlazeLandmarkBase
 
+bUseLiteRT = False
 bUseTfliteRuntime = False
 bUseTFContrib = False
 bUseTFLite = False
 try:
-    import tensorflow
-    import tensorflow.lite
-    bUseTFLite = True
+    import ai_edge_litert.interpreter
+    bUseLiteRT = True
 except:
     try:
         import tensorflow
-        import tensorflow.contrib
-        bUseTFContrib = False        
+        import tensorflow.lite
+        bUseTFLite = True
     except:
-        import tflite_runtime.interpreter
-        bUseTfliteRuntime = True
+        try:
+            import tensorflow
+            import tensorflow.contrib
+            bUseTFContrib = False        
+        except:
+            import tflite_runtime.interpreter
+            bUseTfliteRuntime = True
+
 
 from timeit import default_timer as timer
 
@@ -32,14 +38,16 @@ class BlazeLandmark(BlazeLandmarkBase):
         if self.DEBUG:
            print("[BlazeLandmark.load_model] Model File : ",model_path)
            
-        if bUseTFLite:
+        if bUseLiteRT:
+            self.interp_landmark = ai_edge_litert.interpreter.Interpreter(model_path=model_path)
+        elif bUseTFLite:
             self.interp_landmark = tensorflow.lite.Interpreter(model_path)
         elif bUseTFContrib:           
             self.interp_landmark = tensorflow.contrib.lite.Interpreter(model_path)
         elif bUseTfliteRuntime:
             self.interp_landmark = tflite_runtime.interpreter.Interpreter(model_path)
         else:
-            print("[BlazeLandmark] Failed to load Tensorflow/TFLite interpreter !")
+            print("[BlazeLandmark] Failed to load LiteRT|TFLite|TensorFlow interpreter !")
 
 
         self.interp_landmark.allocate_tensors()
@@ -153,12 +161,6 @@ class BlazeLandmark(BlazeLandmarkBase):
         landmarks = np.asarray(out2_list)        
         if self.blaze_app == "blazehandlandmark":
             handedness_scores = np.asarray(out3_list)
-
-        if self.DEBUG:
-            print("[BlazeLandmark] flag ",flag.shape,flag.dtype)
-            print("[BlazeLandmark] flag Min/Max: ",np.amin(flag),np.amax(flag))
-            print("[BlazeLandmark] landmarks ",landmarks.shape,landmarks.dtype)
-            print("[BlazeLandmark] landmarks Min/Max: ",np.amin(landmarks),np.amax(landmarks))
 
         if self.blaze_app == "blazehandlandmark":
             return flag,landmarks,handedness_scores

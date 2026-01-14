@@ -2,21 +2,26 @@ import numpy as np
 
 from blazebase import BlazeDetectorBase
 
+bUseLiteRT = False
 bUseTfliteRuntime = False
 bUseTFContrib = False
 bUseTFLite = False
 try:
-    import tensorflow
-    import tensorflow.lite
-    bUseTFLite = True
+    import ai_edge_litert.interpreter
+    bUseLiteRT = True
 except:
     try:
         import tensorflow
-        import tensorflow.contrib
-        bUseTFContrib = False        
+        import tensorflow.lite
+        bUseTFLite = True
     except:
-        import tflite_runtime.interpreter
-        bUseTfliteRuntime = True
+        try:
+            import tensorflow
+            import tensorflow.contrib
+            bUseTFContrib = False        
+        except:
+            import tflite_runtime.interpreter
+            bUseTfliteRuntime = True
 
 from timeit import default_timer as timer
 
@@ -33,14 +38,16 @@ class BlazeDetector(BlazeDetectorBase):
         if self.DEBUG:
            print("[BlazeDetector.load_model] Model File : ",model_path)
 
-        if bUseTFLite:
+        if bUseLiteRT:
+            self.interp_detector = ai_edge_litert.interpreter.Interpreter(model_path=model_path)
+        elif bUseTFLite:
             self.interp_detector = tensorflow.lite.Interpreter(model_path)
         elif bUseTFContrib:           
             self.interp_detector = tensorflow.contrib.lite.Interpreter(model_path)
         elif bUseTfliteRuntime:
             self.interp_detector = tflite_runtime.interpreter.Interpreter(model_path)
         else:
-            print("[BlazeDetector] Failed to load Tensorflow/TFLite interpreter !")
+            print("[BlazeDetector] Failed to load LiteRT|TFLite|TensorFlow interpreter !")
         
         self.interp_detector.allocate_tensors()
 
@@ -200,13 +207,5 @@ class BlazeDetector(BlazeDetectorBase):
         Second dimension 4 - 18 are 7 hand keypoint x and y coordinates: x1,y1,x2,y2,...x7,y7
         """
         out2 = self.interp_detector.get_tensor(self.out_reg_idx)
-
-        #if self.DEBUG:
-        #    print("[BlazeDetector] Input   : ",x.shape, x.dtype) #, x)
-        #    print("[BlazeDetector] Input Min/Max: ",np.amin(x),np.amax(x))
-        #    print("[BlazeDetector] Output1 : ",out1.shape, out1.dtype) #, out1)
-        #    print("[BlazeDetector] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
-        #    print("[BlazeDetector] Output2 : ",out2.shape, out2.dtype) #, out2)
-        #    print("[BlazeDetector] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
 
         return out1, out2

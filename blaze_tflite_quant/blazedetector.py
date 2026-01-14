@@ -2,21 +2,27 @@ import numpy as np
 
 from blazebase import BlazeDetectorBase
 
+bUseLiteRT = False
 bUseTfliteRuntime = False
 bUseTFContrib = False
 bUseTFLite = False
 try:
-    import tensorflow
-    import tensorflow.lite
-    bUseTFLite = True
+    import ai_edge_litert.interpreter
+    bUseLiteRT = True
 except:
     try:
         import tensorflow
-        import tensorflow.contrib
-        bUseTFContrib = False        
+        import tensorflow.lite
+        bUseTFLite = True
     except:
-        import tflite_runtime.interpreter
-        bUseTfliteRuntime = True
+        try:
+            import tensorflow
+            import tensorflow.contrib
+            bUseTFContrib = False        
+        except:
+            import tflite_runtime.interpreter
+            bUseTfliteRuntime = True
+
 
 from timeit import default_timer as timer
 
@@ -33,14 +39,16 @@ class BlazeDetector(BlazeDetectorBase):
         if self.DEBUG:
            print("q[BlazeDetector.load_model] Model File : ",model_path)
            
-        if bUseTFLite:
+        if bUseLiteRT:
+            self.interp_detector = ai_edge_litert.interpreter.Interpreter(model_path=model_path)
+        elif bUseTFLite:
             self.interp_detector = tensorflow.lite.Interpreter(model_path)
         elif bUseTFContrib:           
             self.interp_detector = tensorflow.contrib.lite.Interpreter(model_path)
         elif bUseTfliteRuntime:
             self.interp_detector = tflite_runtime.interpreter.Interpreter(model_path)
         else:
-            print("q[BlazeDetector] Failed to load Tensorflow/TFLite interpreter !")
+            print("q[BlazeDetector] Failed to load LiteRT|TFLite|TensorFlow interpreter !")
             
         self.interp_detector.allocate_tensors()
 
