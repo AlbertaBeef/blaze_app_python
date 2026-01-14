@@ -28,6 +28,9 @@ limitations under the License.
 #      vitis_ai_library
 #   Hailo
 #      hailo_platform
+#   Qualcomm
+#      LiteRT
+#      QAIRT
 #
 
 
@@ -62,6 +65,9 @@ sys.path.append(os.path.abspath('blaze_pytorch/'))
 sys.path.append(os.path.abspath('blaze_vitisai/'))
 sys.path.append(os.path.abspath('blaze_hailo/'))
 sys.path.append(os.path.abspath('blaze_onnx/'))
+sys.path.append(os.path.abspath('blaze_rpp/'))
+sys.path.append(os.path.abspath('blaze_tflite_qnn/'))
+sys.path.append(os.path.abspath('blaze_qairt/'))
 
 supported_targets = {
     "blaze_tflite": False,
@@ -70,6 +76,8 @@ supported_targets = {
     "blaze_vitisai": False,
     "blaze_hailo": False,
     "blaze_onnx": False,
+    "blaze_tflite_qnn": False,
+    "blaze_qairt": False,
     "blaze_rpp": False
 }
 try:
@@ -149,6 +157,22 @@ except Exception as e:
     print(f"[INFO] blaze_onnx NOT supported ... ({e})")
 
 try:
+    from blaze_tflite_qnn.blazedetector import BlazeDetector as BlazeDetector_tflite_qnn
+    from blaze_tflite_qnn.blazelandmark import BlazeLandmark as BlazeLandmark_tflite_qnn
+    print("[INFO] blaze_tflite_qnn supported ...")
+    supported_targets["blaze_tflite_qnn"] = True
+except Exception as e:
+    print(f"[INFO] blaze_tflite_qnn NOT supported ... ({e})")
+
+try:
+    from blaze_qairt.blazedetector import BlazeDetector as BlazeDetector_qairt
+    from blaze_qairt.blazelandmark import BlazeLandmark as BlazeLandmark_qairt
+    print("[INFO] blaze_qairt supported ...")
+    supported_targets["blaze_qairt"] = True
+except Exception as e:
+    print(f"[INFO] blaze_qairt NOT supported ... ({e})")
+
+try:
     from blaze_rpp.blazedetector import BlazeDetector as BlazeDetector_rpp
     from blaze_rpp.blazelandmark import BlazeLandmark as BlazeLandmark_rpp
     print("[INFO] blaze_rpp supported ...")
@@ -179,7 +203,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--testimage'  , default=False, action='store_true', help="Use test image as input (womand_hands.jpg). Default is usbcam")
 ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
-ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_rpp", help="Command seperated list of targets (blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_rpp).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_rpp'")
+ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_tflite_qnn,blaze_qairt,blaze_rpp", help="Command seperated list of targets (blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_tflite_qnn,blaze_qairt,blaze_rpp).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_rpp'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
 ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
 ap.add_argument('-v', '--verbose'    , default=False, action='store_true', help="Enable Verbose mode. Default is off")
@@ -219,6 +243,12 @@ blaze_pipelines = [
     { "blaze": "hand", "pipeline": "onnx_hand_v0_07"      , "model1": "blaze_onnx/models/palm_detection_v0_07.onnx",                 "model2": "blaze_onnx/models/hand_landmark_v0_07.onnx" },
     { "blaze": "hand", "pipeline": "onnx_hand_v0_10_lite" , "model1": "blaze_onnx/models/palm_detection_lite.onnx",                  "model2": "blaze_onnx/models/hand_landmark_lite.onnx" },
     { "blaze": "hand", "pipeline": "onnx_hand_v0_10_full" , "model1": "blaze_onnx/models/palm_detection_full.onnx",                  "model2": "blaze_onnx/models/hand_landmark_full.onnx" },
+    { "blaze": "hand", "pipeline": "tflqnn_hand_v0_07"    , "model1": "blaze_tflite_qnn/models/palm_detection_v0_07.tflite",         "model2": "blaze_tflite_qnn/models/hand_landmark_v0_07.tflite" },
+    { "blaze": "hand", "pipeline": "tflqnn_hand_v0_10_lite","model1": "blaze_tflite_qnn/models/palm_detection_lite.tflite",          "model2": "blaze_tflite_qnn/models/hand_landmark_lite.tflite" },
+    { "blaze": "hand", "pipeline": "tflqnn_hand_v0_10_full","model1": "blaze_tflite_qnn/models/palm_detection_full.tflite",          "model2": "blaze_tflite_qnn/models/hand_landmark_full.tflite" },
+    { "blaze": "hand", "pipeline": "qairt_hand_v0_07"     , "model1": "blaze_qairt/models/palm_detection_v0_07.bin",                 "model2": "blaze_qairt/models/hand_landmark_v0_07.bin" },
+    { "blaze": "hand", "pipeline": "qairt_hand_v0_10_lite", "model1": "blaze_qairt/models/palm_detection_lite.bin",                  "model2": "blaze_qairt/models/hand_landmark_lite.bin" },
+    { "blaze": "hand", "pipeline": "qairt_hand_v0_10_full", "model1": "blaze_qairt/models/palm_detection_full.bin",                  "model2": "blaze_qairt/models/hand_landmark_full.bin" },
     { "blaze": "hand", "pipeline": "rpp_hand_v0_07"       , "model1": "blaze_rpp/models/palm_detection_v0_07_sim.onnx",              "model2": "blaze_rpp/models/hand_landmark_v0_07_sim.onnx" },
     { "blaze": "hand", "pipeline": "rpp_hand_v0_10_lite"  , "model1": "blaze_rpp/models/palm_detection_lite_sim.onnx",               "model2": "blaze_rpp/models/hand_landmark_lite_sim.onnx" },
     { "blaze": "hand", "pipeline": "rpp_hand_v0_10_full"  , "model1": "blaze_rpp/models/palm_detection_full_sim.onnx",               "model2": "blaze_rpp/models/hand_landmark_full_sim.onnx" },
@@ -237,6 +267,8 @@ blaze_pipelines = [
     { "blaze": "face", "pipeline": "onnx_face_v0_07_back" , "model1": "blaze_onnx/models/face_detection_back_v0_07.onnx",            "model2": "blaze_onnx/models/face_landmark_v0_07.onnx" },
     { "blaze": "face", "pipeline": "onnx_face_v0_10_short", "model1": "blaze_onnx/models/face_detection_short_range.onnx",           "model2": "blaze_onnx/models/face_landmark.onnx" },
     { "blaze": "face", "pipeline": "onnx_face_v0_10_full" , "model1": "blaze_onnx/models/face_detection_full_range.onnx",            "model2": "blaze_onnx/models/face_landmark.onnx" },
+    { "blaze": "face", "pipeline": "qairt_face_v0_10_short","model1": "blaze_qairt/models/face_detection_short_range.bin",           "model2": "blaze_qairt/models/face_landmark.bin" },
+    { "blaze": "face", "pipeline": "qairt_face_v0_10_full" ,"model1": "blaze_qairt/models/face_detection_full_range.bin",            "model2": "blaze_qairt/models/face_landmark.bin" },
     { "blaze": "face", "pipeline": "rpp_face_v0_07_front" , "model1": "blaze_rpp/models/face_detection_front_v0_07_sim.onnx",        "model2": "blaze_rpp/models/face_landmark_v0_07_sim.onnx" },
     { "blaze": "face", "pipeline": "rpp_face_v0_07_back"  , "model1": "blaze_rpp/models/face_detection_back_v0_07_sim.onnx",         "model2": "blaze_rpp/models/face_landmark_v0_07_sim.onnx" },
     { "blaze": "face", "pipeline": "rpp_face_v0_10_short" , "model1": "blaze_rpp/models/face_detection_short_range_sim.onnx",        "model2": "blaze_rpp/models/face_landmark_sim.onnx" },
@@ -253,6 +285,9 @@ blaze_pipelines = [
     { "blaze": "pose", "pipeline": "onnx_pose_v0_10_lite" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_onnx/models/pose_landmark_lite.onnx" },
     { "blaze": "pose", "pipeline": "onnx_pose_v0_10_full" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_onnx/models/pose_landmark_full.onnx" },
     { "blaze": "pose", "pipeline": "onnx_pose_v0_10_heavy", "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_onnx/models/pose_landmark_heavy.onnx" },
+    { "blaze": "pose", "pipeline": "qairt_pose_v0_10_lite", "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_qairt/models/pose_landmark_lite.bin" },
+    { "blaze": "pose", "pipeline": "qairt_pose_v0_10_full", "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_qairt/models/pose_landmark_full.bin" },
+    { "blaze": "pose", "pipeline": "qairt_pose_v0_10_heavy","model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_qairt/models/pose_landmark_heavy.bin" },
     { "blaze": "pose", "pipeline": "rpp_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_lite_sim.onnx" },
     { "blaze": "pose", "pipeline": "rpp_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_full_sim.onnx" },
     { "blaze": "pose", "pipeline": "rpp_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_heavy_sim.onnx" }
@@ -386,6 +421,10 @@ for i in range(nb_blaze_pipelines):
             blaze_detector = BlazeDetector_hailo(detector_type,hailo_infer)
         elif target1=="blaze_onnx":
             blaze_detector = BlazeDetector_onnx(detector_type)
+        elif target1=="blaze_tflite_qnn":
+            blaze_detector = BlazeDetector_tflite_qnn(detector_type)
+        elif target1=="blaze_qairt":
+            blaze_detector = BlazeDetector_qairt(detector_type)
         elif target1=="blaze_rpp":
             blaze_detector = BlazeDetector_rpp(detector_type)
         else:
@@ -403,6 +442,10 @@ for i in range(nb_blaze_pipelines):
             blaze_landmark = BlazeLandmark_hailo(landmark_type,hailo_infer)
         elif target2=="blaze_onnx":
             blaze_landmark = BlazeLandmark_onnx(landmark_type)
+        elif target2=="blaze_tflite_qnn":
+            blaze_landmark = BlazeLandmark_tflite_qnn(landmark_type)
+        elif target2=="blaze_qairt":
+            blaze_landmark = BlazeLandmark_qairt(landmark_type)
         elif target2=="blaze_rpp":
             blaze_landmark = BlazeLandmark_rpp(landmark_type)
         else:
