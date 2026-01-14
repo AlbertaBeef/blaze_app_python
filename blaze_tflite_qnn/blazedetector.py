@@ -25,8 +25,8 @@ class BlazeDetector(BlazeDetectorBase):
 
         delegate_options = {'backend_type': 'htp'}
         delegate = tflite.load_delegate("/usr/lib/libQnnTFLiteDelegate.so", delegate_options)
-        #self.interp_detector = tflite.Interpreter(model_path=model_path, experimental_delegates=[delegate])
-        self.interp_detector = tflite.Interpreter(model_path=model_path)
+        self.interp_detector = tflite.Interpreter(model_path=model_path, experimental_delegates=[delegate])
+        #self.interp_detector = tflite.Interpreter(model_path=model_path)
         
         self.interp_detector.allocate_tensors()
 
