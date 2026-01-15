@@ -2,15 +2,27 @@ import numpy as np
 
 from blazebase import BlazeLandmarkBase
 
-#import tensorflow as tf
+bUseLiteRT = False
 bUseTfliteRuntime = False
+bUseTFContrib = False
+bUseTFLite = False
 try:
-    import tensorflow as tf
-    #import tensorflow.lite
-    import tf.contrib
+    import ai_edge_litert.interpreter
+    bUseLiteRT = True
 except:
-    from tflite_runtime.interpreter import Interpreter
-    bUseTfliteRuntime = True
+    try:
+        import tensorflow
+        import tensorflow.lite
+        bUseTFLite = True
+    except:
+        try:
+            import tensorflow
+            import tensorflow.contrib
+            bUseTFContrib = False        
+        except:
+            import tflite_runtime.interpreter
+            bUseTfliteRuntime = True
+
 
 from timeit import default_timer as timer
 
@@ -26,11 +38,17 @@ class BlazeLandmark(BlazeLandmarkBase):
         if self.DEBUG:
            print("q[BlazeLandmark.load_model] Model File : ",model_path)
            
-        if bUseTfliteRuntime:
-            self.interp_landmark = Interpreter(model_path)
+        if bUseLiteRT:
+            self.interp_landmark = ai_edge_litert.interpreter.Interpreter(model_path=model_path)
+        elif bUseTFLite:
+            self.interp_landmark = tensorflow.lite.Interpreter(model_path)
+        elif bUseTFContrib:           
+            self.interp_landmark = tensorflow.contrib.lite.Interpreter(model_path)
+        elif bUseTfliteRuntime:
+            self.interp_landmark = tflite_runtime.interpreter.Interpreter(model_path)
         else:
-            #self.interp_landmark = tf.lite.Interpreter(model_path)
-            self.interp_landmark = tf.contrib.lite.Interpreter(model_path)
+            print("q[BlazeLandmark] Failed to load LiteRT|TFLite|TensorFlow interpreter !")
+            
 
         self.interp_landmark.allocate_tensors()
 

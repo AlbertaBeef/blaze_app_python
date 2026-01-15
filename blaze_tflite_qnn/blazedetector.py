@@ -2,28 +2,13 @@ import numpy as np
 
 from blazebase import BlazeDetectorBase
 
-bUseLiteRT = False
-bUseTfliteRuntime = False
-bUseTFContrib = False
-bUseTFLite = False
-try:
-    import ai_edge_litert.interpreter
-    bUseLiteRT = True
-except:
-    try:
-        import tensorflow
-        import tensorflow.lite
-        bUseTFLite = True
-    except:
-        try:
-            import tensorflow
-            import tensorflow.contrib
-            bUseTFContrib = False        
-        except:
-            import tflite_runtime.interpreter
-            bUseTfliteRuntime = True
+import ai_edge_litert.interpreter as tflite
 
 from timeit import default_timer as timer
+
+#import os
+#os.environ["QNN_LOG_LEVEL"] = "FATAL"
+#os.environ["QNN_SILENT"] = "1"
 
 class BlazeDetector(BlazeDetectorBase):
     def __init__(self,blaze_app="blazepalm"):
@@ -38,16 +23,10 @@ class BlazeDetector(BlazeDetectorBase):
         if self.DEBUG:
            print("[BlazeDetector.load_model] Model File : ",model_path)
 
-        if bUseLiteRT:
-            self.interp_detector = ai_edge_litert.interpreter.Interpreter(model_path=model_path)
-        elif bUseTFLite:
-            self.interp_detector = tensorflow.lite.Interpreter(model_path)
-        elif bUseTFContrib:           
-            self.interp_detector = tensorflow.contrib.lite.Interpreter(model_path)
-        elif bUseTfliteRuntime:
-            self.interp_detector = tflite_runtime.interpreter.Interpreter(model_path)
-        else:
-            print("[BlazeDetector] Failed to load LiteRT|TFLite|TensorFlow interpreter !")
+        delegate_options = {'backend_type': 'htp'}
+        delegate = tflite.load_delegate("/usr/lib/libQnnTFLiteDelegate.so", delegate_options)
+        self.interp_detector = tflite.Interpreter(model_path=model_path, experimental_delegates=[delegate])
+        #self.interp_detector = tflite.Interpreter(model_path=model_path)
         
         self.interp_detector.allocate_tensors()
 
@@ -69,6 +48,10 @@ class BlazeDetector(BlazeDetectorBase):
         self.in_idx = self.input_details[0]['index']
         self.out_reg_idx = self.output_details[0]['index']
         self.out_clf_idx = self.output_details[1]['index']
+
+        self.in_quantization = self.input_details[0]['quantization']
+        self.out_reg_quantization = self.output_details[0]['quantization']
+        self.out_clf_quantization = self.output_details[1]['quantization']
 
         self.in_shape = self.input_details[0]['shape']
         self.out_reg_shape = self.output_details[0]['shape']
@@ -92,10 +75,13 @@ class BlazeDetector(BlazeDetectorBase):
     def preprocess(self, x):
         """Converts the image pixels to the range [-1, 1]."""
         """Converts the image pixels to defined input scale."""
-        x = x.astype(np.float32)
-        x = (x / 255.0)
+        #x = x.astype(np.float32)
+        #x = (x / 255.0)
         #print("[BlazeDetector.preprocess] min|max = ",np.amin(x),np.amax(x))
-       
+        
+        """Converts the image pixels to INT8 in the range [-128,127]."""
+        x = (x - 128.0)
+        x = x.astype(np.int8)       
         return x
 
     def predict_on_image(self, img):
@@ -201,11 +187,47 @@ class BlazeDetector(BlazeDetectorBase):
         it is the classification score if there is a hand for each anchor box
         """
         out1 = self.interp_detector.get_tensor(self.out_clf_idx)
+        out1_scale = self.out_clf_quantization[0]
+        out1_offset = self.out_clf_quantization[1]
         """
         out_reg shape is [number of anchors, 18]
         Second dimension 0 - 4 are bounding box offset, width and height: dx, dy, w ,h
         Second dimension 4 - 18 are 7 hand keypoint x and y coordinates: x1,y1,x2,y2,...x7,y7
         """
         out2 = self.interp_detector.get_tensor(self.out_reg_idx)
+        out2_scale = self.out_reg_quantization[0]
+        out2_offset = self.out_reg_quantization[1]
+
+        if self.DEBUG:
+            print("q[BlazeDetector] Input   : ",x.shape, x.dtype) #, x)
+            print("q[BlazeDetector] Input Min/Max: ",np.amin(x),np.amax(x))
+            print("q[BlazeDetector] Output1 : ",out1.shape, out1.dtype) #, out1)
+            print("q[BlazeDetector] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
+            print("q[BlazeDetector] Output2 : ",out2.shape, out2.dtype) #, out2)
+            print("q[BlazeDetector] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
+
+        # Identity 
+        # tensor: uint8[1,896,1]
+        # quantization : linear
+        # 2852809.5 * (q - 255)
+        out1 = out1.astype(np.float32)
+        out1 = out1_scale * (out1 - out1_offset)
+
+        if self.DEBUG:
+            print("q[BlazeDetector] Output1 Scale/Offset : ",out1_scale,out1_offset)
+            print("q[BlazeDetector] Output1 : ",out1.shape, out1.dtype) #, out1)
+            print("q[BlazeDetector] Output1 Min/Max: ",np.amin(out1),np.amax(out1))
+
+        # Identity_1
+        # tensor: uint8[1,896,12]
+        # quantization : linear
+        # 425116.125 * (q - 122)
+        out2 = out2.astype(np.float32)
+        out2 = out2_scale * (out2 - out2_offset)
+        
+        if self.DEBUG:
+            print("q[BlazeDetector] Output2 Scale/Offset : ",out2_scale,out2_offset)
+            print("q[BlazeDetector] Output2 : ",out2.shape, out2.dtype) #, out2)
+            print("q[BlazeDetector] Output2 Min/Max: ",np.amin(out2),np.amax(out2))
 
         return out1, out2

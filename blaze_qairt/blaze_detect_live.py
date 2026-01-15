@@ -14,13 +14,10 @@ limitations under the License.
 #
 # References:
 #   https://www.github.com/AlbertaBeef/blaze_app_python
-#   https://www.github.com/AlbertaBeef/blaze_tutorial/tree/2023.1
+#   https://www.github.com/AlbertaBeef/blaze_tutorial/tree/qcs6490
 #
 # Dependencies:
-#   TFLite
-#      tensorflow
-#    or
-#      tflite_runtime
+#   QAIRT
 #
 
 
@@ -74,9 +71,9 @@ text_lineType = cv2.LINE_AA
 ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--testimage'  , default=False, action='store_true', help="Use test image as input (womand_hands.jpg). Default is usbcam")
-ap.add_argument('-b', '--blaze'      , type=str, default="pose", help="Application (hand, face, pose).  Default is pose")
-ap.add_argument('-m', '--model1'     , type=str, help='Path of blazepalm model. Default is models/pose_detection_full_quant.tflite')
-ap.add_argument('-n', '--model2'     , type=str, help='Path of blazehandlardmark model. Default is models/pose_landmark_full_quant.tflite')
+ap.add_argument('-b', '--blaze'      , type=str, default="hand", help="Application (hand, face, pose).  Default is hand")
+ap.add_argument('-m', '--model1'     , type=str, help='Path of blazepalm model. Default is models/palm_detection_lite.bin')
+ap.add_argument('-n', '--model2'     , type=str, help='Path of blazehandlardmark model. Default is models/hand_landmark_lite.bin')
 ap.add_argument('-v', '--verbose'    , default=False, action='store_true', help="Enable Verbose mode. Default is off")
 ap.add_argument('-d', '--debug'      , default=False, action='store_true', help="Enable Debug mode. Default is off")
 ap.add_argument('-w', '--withoutview', default=False, action='store_true', help="Disable Output viewing. Default is on")
@@ -176,23 +173,20 @@ if args.blaze == "hand":
    blaze_detector_type = "blazepalm"
    blaze_landmark_type = "blazehandlandmark"
    blaze_title = "BlazeHandLandmark"
-   default_detector_model='models/palm_detection_lite.tflite'
-   default_landmark_model='models/hand_landmark_lite.tflite'
+   default_detector_model='models/palm_detection_lite.bin'
+   default_landmark_model='models/hand_landmark_lite.bin'
 elif args.blaze == "face":
    blaze_detector_type = "blazeface"
    blaze_landmark_type = "blazefacelandmark"
    blaze_title = "BlazeFaceLandmark"
-   default_detector_model='models/face_detection_short_range.tflite'
-   default_landmark_model='models/face_landmark.tflite'
+   default_detector_model='models/face_detection_short_range.bin'
+   default_landmark_model='models/face_landmark.bin'
 elif args.blaze == "pose":
    blaze_detector_type = "blazepose"
    blaze_landmark_type = "blazeposelandmark"
    blaze_title = "BlazePoseLandmark"
-   #default_detector_model='models/pose_detection.tflite'
-   #default_landmark_model='models/pose_landmark_full.tflite'
-   #default_detector_model='models/pose_detection_full_quant.tflite'
-   default_detector_model='models/pose_detection_full_quant.tflite'
-   default_landmark_model='models/pose_landmark_full_quant.tflite'
+   default_detector_model='models/pose_detection.bin'
+   default_landmark_model='models/pose_landmark_full.bin'
 else:
    print("[ERROR] Invalid Blaze application : ",args.blaze,".  MUST be one of hand,face,pose.")
 
@@ -547,7 +541,7 @@ while True:
                     str(timestamp)+","+\
                     str(user)+","+\
                     str(host)+","+\
-                    "blaze_tflite_quant"+","+\
+                    "blaze_qairt"+","+\
                     str(prof_detector_qty[pipeline_id])+","+\
                     str(prof_resize[pipeline_id])+","+\
                     str(prof_detector_pre[pipeline_id])+","+\
