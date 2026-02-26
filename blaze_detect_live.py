@@ -68,6 +68,7 @@ sys.path.append(os.path.abspath('blaze_onnx/'))
 sys.path.append(os.path.abspath('blaze_rpp/'))
 sys.path.append(os.path.abspath('blaze_tflite_qnn/'))
 sys.path.append(os.path.abspath('blaze_qairt/'))
+sys.path.append(os.path.abspath('blaze_axelera/'))
 
 supported_targets = {
     "blaze_tflite": False,
@@ -78,7 +79,8 @@ supported_targets = {
     "blaze_onnx": False,
     "blaze_tflite_qnn": False,
     "blaze_qairt": False,
-    "blaze_rpp": False
+    "blaze_rpp": False,
+    "blaze_axelera": False
 }
 try:
     from blaze_tflite.blazedetector import BlazeDetector as BlazeDetector_tflite
@@ -179,6 +181,14 @@ try:
     supported_targets["blaze_rpp"] = True
 except Exception as e:
     print(f"[INFO] blaze_rpp NOT supported ... ({e})")
+
+try:
+    from blaze_axelera.blazedetector import BlazeDetector as BlazeDetector_axelera
+    from blaze_axelera.blazelandmark import BlazeLandmark as BlazeLandmark_axelera
+    print("[INFO] blaze_axelera supported ...")
+    supported_targets["blaze_axelera"] = True
+except Exception as e:
+    print(f"[INFO] blaze_axelera NOT supported ... ({e})")
 
 
 from visualization import draw_detections, draw_landmarks, draw_roi
@@ -290,7 +300,14 @@ blaze_pipelines = [
     { "blaze": "pose", "pipeline": "qairt_pose_v0_10_heavy","model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_qairt/models/pose_landmark_heavy.bin" },
     { "blaze": "pose", "pipeline": "rpp_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_lite_sim.onnx" },
     { "blaze": "pose", "pipeline": "rpp_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_full_sim.onnx" },
-    { "blaze": "pose", "pipeline": "rpp_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_heavy_sim.onnx" }
+    { "blaze": "pose", "pipeline": "rpp_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_heavy_sim.onnx" },
+    { "blaze": "hand", "pipeline": "axl_hand_lite"        , "model1": "blaze_axelera/models/palm_detection_lite.axmodel",            "model2": "blaze_axelera/models/hand_landmark_lite.axmodel" },
+    { "blaze": "hand", "pipeline": "axl_hand_full"        , "model1": "blaze_axelera/models/palm_detection_full.axmodel",            "model2": "blaze_axelera/models/hand_landmark_full.axmodel" },
+    { "blaze": "face", "pipeline": "axl_face_short"       , "model1": "blaze_axelera/models/face_detection_short_range.axmodel",     "model2": "blaze_axelera/models/face_landmark.axmodel" },
+    { "blaze": "face", "pipeline": "axl_face_full"        , "model1": "blaze_axelera/models/face_detection_full_range.axmodel",      "model2": "blaze_axelera/models/face_landmark.axmodel" },
+    { "blaze": "pose", "pipeline": "axl_pose_lite"        , "model1": "blaze_axelera/models/pose_detection.axmodel",                 "model2": "blaze_axelera/models/pose_landmark_lite.axmodel" },
+    { "blaze": "pose", "pipeline": "axl_pose_full"        , "model1": "blaze_axelera/models/pose_detection.axmodel",                 "model2": "blaze_axelera/models/pose_landmark_full.axmodel" },
+    { "blaze": "pose", "pipeline": "axl_pose_heavy"       , "model1": "blaze_axelera/models/pose_detection.axmodel",                 "model2": "blaze_axelera/models/pose_landmark_heavy.axmodel" }
 ]
 nb_blaze_pipelines = len(blaze_pipelines)
 
@@ -427,6 +444,8 @@ for i in range(nb_blaze_pipelines):
             blaze_detector = BlazeDetector_qairt(detector_type)
         elif target1=="blaze_rpp":
             blaze_detector = BlazeDetector_rpp(detector_type)
+        elif target1=="blaze_axelera":
+            blaze_detector = BlazeDetector_axelera(detector_type)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
  
@@ -448,6 +467,8 @@ for i in range(nb_blaze_pipelines):
             blaze_landmark = BlazeLandmark_qairt(landmark_type)
         elif target2=="blaze_rpp":
             blaze_landmark = BlazeLandmark_rpp(landmark_type)
+        elif target2=="blaze_axelera":
+            blaze_landmark = BlazeLandmark_axelera(landmark_type)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
 

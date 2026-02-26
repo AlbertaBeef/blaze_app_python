@@ -14,6 +14,8 @@ blaze_onnx/models/*.onnx
 blaze_rpp/models/*.onnx
 blaze_tflite_qnn/models/*.tflite
 blaze_qairt/models/*.bin
+blaze_axelera/models/*.axmodel
+blaze_axelera/models/tflite_source/*.tflite
 
 *.log
 
