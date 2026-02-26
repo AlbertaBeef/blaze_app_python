@@ -6,6 +6,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Python demonstration application for MediaPipe models (blazepalm/hand, blazeface, blazepose) with support for multiple AI inference frameworks. The repository enables side-by-side comparison of the same models running on different backends.
 
+## Active Development
+
+### Axelera Metis M.2 Implementation (blaze_axelera-dev-claude branch)
+
+**Status**: Implementation complete, initial testing successful
+- Branch: `blaze_axelera-dev-claude`
+- Created: 2026-02-26
+- Virtual environment: `/home/abbeefai/.cache/axelera/venvs/644f17ff/bin/activate`
+
+**Testing Results**:
+- ✓ Axelera SDK imports successfully in virtual environment
+- ✓ blazedetector.py syntax and imports verified
+- Ready for full pipeline testing with compiled models
+
+**Next Steps**:
+1. Download TFLite models: `cd blaze_axelera/models && bash convert_models.sh`
+2. Compile models: `python3 compile_axelera_models.py --model <model_name>`
+3. Test pipelines: `python3 blaze_detect_live.py --blaze hand --target blaze_axelera`
+
 ## Architecture
 
 ### Multi-Framework Structure
