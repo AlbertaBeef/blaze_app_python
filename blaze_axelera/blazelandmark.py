@@ -5,168 +5,155 @@ from blazebase import BlazeLandmarkBase
 
 bUseAxeleraRuntime = False
 try:
-    from axelera import runtime
+    from axelera.runtime import objects as axr
     bUseAxeleraRuntime = True
 except Exception as e:
     print(f"[BlazeLandmark] Failed to import axelera.runtime: {e}")
-    try:
-        # Fallback: try importing InferenceStream for simpler API
-        from axelera.pipeline import InferenceStream
-        bUseAxeleraRuntime = True
-    except Exception as e2:
-        print(f"[BlazeLandmark] Failed to import axelera.pipeline: {e2}")
 
 from timeit import default_timer as timer
 
 class BlazeLandmark(BlazeLandmarkBase):
-    def __init__(self, blaze_app="blazehand"):
+    def __init__(self, blaze_app="blazehandlandmark"):
         super(BlazeLandmark, self).__init__()
 
         self.blaze_app = blaze_app
-        self.batch_size = 1
-        self.model = None
-        self.device = None
 
         if not bUseAxeleraRuntime:
             raise ImportError("Axelera runtime is not available. Please install the Voyager SDK.")
 
-    def load_model(self, model_path):
-        """
-        Load a compiled Axelera model for the Metis hardware.
+        # Runtime objects (initialized in load_model)
+        self.ctx = None
+        self.conn = None
+        self.model = None
+        self.model_instance = None
+        self.input_info = None
+        self.output_infos = None
 
-        Args:
-            model_path: Path to the compiled model directory or .axmodel file
-        """
+    def load_model(self, model_path):
         if self.DEBUG:
             print(f"[BlazeLandmark.load_model] Model Path: {model_path}")
 
-        # Check if model_path exists
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model path not found: {model_path}")
+        # If model_path is a directory, look for model.json inside it
+        if os.path.isdir(model_path):
+            model_file = os.path.join(model_path, "model.json")
+        else:
+            model_file = model_path
 
-        try:
-            # Initialize Axelera device (reuse if already created, or create new)
-            self.device = runtime.Device()
+        if not os.path.exists(model_file):
+            raise FileNotFoundError(f"Model file not found: {model_file}")
 
-            if self.DEBUG:
-                print(f"[BlazeLandmark.load_model] Axelera device initialized")
-                print(f"[BlazeLandmark.load_model] Device info: {self.device.get_info()}")
+        # Initialize Axelera runtime
+        self.ctx = axr.Context()
+        devices = self.ctx.list_devices()
+        if not devices:
+            raise RuntimeError("No Axelera devices found")
 
-            # Load the compiled model onto the device
-            self.model = runtime.Model(model_path, self.device)
+        if self.DEBUG:
+            print(f"[BlazeLandmark.load_model] Device: {devices[0].name}")
 
-            # Get model input/output information
-            self.input_details = self.model.get_input_details()
-            self.output_details = self.model.get_output_details()
+        self.conn = self.ctx.device_connect(devices[0], num_sub_devices=1)
+        self.model = self.ctx.load_model(model_file)
+        self.model_instance = self.conn.load_model_instance(self.model)
 
-            if self.DEBUG:
-                print(f"[BlazeLandmark.load_model] Number of Inputs: {len(self.input_details)}")
-                for i, inp in enumerate(self.input_details):
-                    print(f"[BlazeLandmark.load_model] Input[{i}]: shape={inp['shape']}, dtype={inp['dtype']}")
+        # Cache input/output tensor info
+        self.input_info = self.model.inputs()[0]
+        self.output_infos = self.model.outputs()
 
-                print(f"[BlazeLandmark.load_model] Number of Outputs: {len(self.output_details)}")
-                for i, out in enumerate(self.output_details):
-                    print(f"[BlazeLandmark.load_model] Output[{i}]: shape={out['shape']}, dtype={out['dtype']}")
+        if self.DEBUG:
+            inp = self.input_info
+            print(f"[BlazeLandmark.load_model] Input: shape={inp.shape} unpadded={inp.unpadded_shape} scale={inp.scale} zp={inp.zero_point}")
+            for i, out in enumerate(self.output_infos):
+                print(f"[BlazeLandmark.load_model] Output[{i}]: shape={out.shape} unpadded={out.unpadded_shape} scale={out.scale} zp={out.zero_point}")
 
-            # Get input shape
-            self.in_shape = self.input_details[0]['shape']
+        # Resolution from unpadded input shape (NHWC)
+        self.resolution = self.input_info.unpadded_shape[1]
 
-            # Determine resolution from input shape
-            self.resolution = self.in_shape[1]  # Assuming square input
+        if self.DEBUG:
+            print(f"[BlazeLandmark.load_model] Resolution: {self.resolution}")
 
-            if self.DEBUG:
-                print(f"[BlazeLandmark.load_model] Input Shape: {self.in_shape}")
-                print(f"[BlazeLandmark.load_model] Resolution: {self.resolution}")
+    def _quantize_and_pad(self, x):
+        """Quantize float32 input to int8 and pad for hardware."""
+        inp = self.input_info
+        quantized = np.round(x / inp.scale + inp.zero_point).clip(-128, 127).astype(np.int8)
+        padded = np.pad(quantized, inp.padding, constant_values=inp.zero_point)
+        return padded
 
-        except Exception as e:
-            print(f"[BlazeLandmark.load_model] Error loading model: {e}")
-            raise
+    def _depad_and_dequantize(self, raw_output, info):
+        """Remove padding and dequantize int8 output to float32."""
+        depadded = raw_output[tuple(slice(b, -e if e else None) for b, e in info.padding)]
+        dequantized = (depadded.astype(np.float32) - info.zero_point) * info.scale
+        return dequantized
 
     def preprocess(self, x):
-        """
-        Converts the image pixels to the range [0, 1] for Axelera input.
-
-        Args:
-            x: Input image as numpy array
-
-        Returns:
-            Preprocessed image
-        """
-        x = (x / 255.0)
-        x = x.astype(np.float32)
+        # Input from extract_roi is already float32 in [0, 1] range
         return x
 
     def predict(self, x):
-        """
-        Run inference on the Axelera Metis device.
 
-        Args:
-            x: Preprocessed input image(s)
+        self.profile_pre = 0.0
+        self.profile_model = 0.0
+        self.profile_post = 0.0
 
-        Returns:
-            Tuple of (landmarks, flags/scores)
-        """
-        if self.PROFILE:
+        out1_list = []
+        out2_list = []
+        out3_list = []
+
+        start = timer()
+        x = self.preprocess(x)
+        self.profile_pre += timer() - start
+
+        nb_images = x.shape[0]
+        for i in range(nb_images):
+
+            start = timer()
+            xi = np.expand_dims(x[i, :, :, :], axis=0)
+
+            # Quantize and pad input for Axelera hardware
+            xi_hw = self._quantize_and_pad(xi)
+            self.profile_pre += timer() - start
+
+            # Allocate output buffers
+            out_bufs = [np.zeros(o.shape, dtype=np.int8) for o in self.output_infos]
+
+            # Run inference on Axelera Metis
+            start = timer()
+            self.model_instance.run([xi_hw], out_bufs)
+            self.profile_model += timer() - start
+
             start = timer()
 
-        # Handle batched input
-        if len(x.shape) == 3:
-            x = np.expand_dims(x, axis=0)
+            # Depad and dequantize outputs
+            outputs = [self._depad_and_dequantize(buf, info)
+                       for buf, info in zip(out_bufs, self.output_infos)]
 
-        batch_size = x.shape[0]
+            if self.blaze_app == "blazehandlandmark":
+                # Output[0]: landmarks 3D (1,1,1,63), Output[1]: flag (1,1,1,1),
+                # Output[2]: handedness (1,1,1,1), Output[3]: world landmarks
+                out1 = outputs[1].reshape(1, 1)          # flag
+                out2 = outputs[0].reshape(1, 21, -1)     # landmarks => [1,21,3]
+                out2 = out2 / self.resolution
+                out3 = outputs[2].reshape(1, 1)           # handedness
+            elif self.blaze_app == "blazefacelandmark":
+                out1 = outputs[1].reshape(1, 1)
+                out2 = outputs[0].reshape(1, -1, 3)
+                out2 = out2 / self.resolution
+            elif self.blaze_app == "blazeposelandmark":
+                out1 = outputs[1].reshape(1, 1)
+                out2 = outputs[0].reshape(1, -1, 5)
+                out2 = out2 / self.resolution
 
-        # Run inference for each item in batch
-        # Axelera runtime may support batching; if not, process individually
-        try:
-            all_landmarks = []
-            all_flags = []
+            out1_list.append(out1.squeeze(0))
+            out2_list.append(out2.squeeze(0))
+            if self.blaze_app == "blazehandlandmark":
+                out3_list.append(out3.squeeze(0))
+            self.profile_post += timer() - start
 
-            for i in range(batch_size):
-                # Get single input
-                input_img = x[i:i+1]
+        flag = np.asarray(out1_list)
+        landmarks = np.asarray(out2_list)
+        if self.blaze_app == "blazehandlandmark":
+            handedness_scores = np.asarray(out3_list)
 
-                # Run inference on Axelera device
-                outputs = self.model.run(input_img)
-
-                # Extract landmark and flag outputs
-                # Output structure varies by model:
-                # Hand: [landmarks_3d (63), handflag (1), handedness (1)]
-                # Face: [landmarks_2d (1404), faceflag (1)]
-                # Pose: [landmarks_3d (195), poseflag (1), segmentation, heatmap, world_landmarks]
-
-                if self.blaze_app in ["blazehand", "blazehandlandmark"]:
-                    # Hand landmark model
-                    landmarks = outputs[0]  # Shape: (1, 63) for 21 landmarks * 3
-                    flag = outputs[1]       # Shape: (1, 1)
-                elif self.blaze_app in ["blazeface", "blazefacelandmark"]:
-                    # Face landmark model
-                    landmarks = outputs[0]  # Shape: (1, 1, 1, 1404) for 468 landmarks * 3
-                    flag = outputs[1]       # Shape: (1, 1, 1, 1)
-                elif self.blaze_app in ["blazepose", "blazeposelandmark"]:
-                    # Pose landmark model
-                    landmarks = outputs[0]  # Shape: (1, 195) for 39 landmarks * 5
-                    flag = outputs[1]       # Shape: (1, 1)
-                else:
-                    # Default: assume first output is landmarks, second is flag
-                    landmarks = outputs[0]
-                    flag = outputs[1]
-
-                all_landmarks.append(landmarks)
-                all_flags.append(flag)
-
-            # Stack results
-            out_landmarks = np.concatenate(all_landmarks, axis=0)
-            out_flags = np.concatenate(all_flags, axis=0)
-
-        except Exception as e:
-            print(f"[BlazeLandmark.predict] Inference error: {e}")
-            raise
-
-        if self.PROFILE:
-            end = timer()
-            self.profile_pre_nb_frames += 1
-            self.profile_pre_time_ms += (end - start) * 1000
-            if self.profile_pre_nb_frames == 1:
-                self.profile_pre_time_first_ms = (end - start) * 1000
-
-        return out_landmarks, out_flags
+        if self.blaze_app == "blazehandlandmark":
+            return flag, landmarks, handedness_scores
+        else:
+            return flag, landmarks

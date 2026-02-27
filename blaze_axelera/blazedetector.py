@@ -5,16 +5,10 @@ from blazebase import BlazeDetectorBase
 
 bUseAxeleraRuntime = False
 try:
-    from axelera import runtime
+    from axelera.runtime import objects as axr
     bUseAxeleraRuntime = True
 except Exception as e:
     print(f"[BlazeDetector] Failed to import axelera.runtime: {e}")
-    try:
-        # Fallback: try importing InferenceStream for simpler API
-        from axelera.pipeline import InferenceStream
-        bUseAxeleraRuntime = True
-    except Exception as e2:
-        print(f"[BlazeDetector] Failed to import axelera.pipeline: {e2}")
 
 from timeit import default_timer as timer
 
@@ -24,127 +18,119 @@ class BlazeDetector(BlazeDetectorBase):
 
         self.blaze_app = blaze_app
         self.batch_size = 1
-        self.model = None
-        self.device = None
 
         if not bUseAxeleraRuntime:
             raise ImportError("Axelera runtime is not available. Please install the Voyager SDK.")
 
-    def load_model(self, model_path):
-        """
-        Load a compiled Axelera model for the Metis hardware.
+        # Runtime objects (initialized in load_model)
+        self.ctx = None
+        self.conn = None
+        self.model = None
+        self.model_instance = None
+        self.input_info = None
+        self.output_infos = None
 
-        Args:
-            model_path: Path to the compiled model directory or .axmodel file
-        """
+    def load_model(self, model_path):
         if self.DEBUG:
             print(f"[BlazeDetector.load_model] Model Path: {model_path}")
 
-        # Check if model_path exists
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model path not found: {model_path}")
+        # If model_path is a directory, look for model.json inside it
+        if os.path.isdir(model_path):
+            model_file = os.path.join(model_path, "model.json")
+        else:
+            model_file = model_path
 
-        try:
-            # Initialize Axelera device
-            # The runtime API allows selecting available Metis devices
-            self.device = runtime.Device()
+        if not os.path.exists(model_file):
+            raise FileNotFoundError(f"Model file not found: {model_file}")
 
-            if self.DEBUG:
-                print(f"[BlazeDetector.load_model] Axelera device initialized")
-                print(f"[BlazeDetector.load_model] Device info: {self.device.get_info()}")
+        # Initialize Axelera runtime
+        self.ctx = axr.Context()
+        devices = self.ctx.list_devices()
+        if not devices:
+            raise RuntimeError("No Axelera devices found")
 
-            # Load the compiled model onto the device
-            self.model = runtime.Model(model_path, self.device)
+        if self.DEBUG:
+            print(f"[BlazeDetector.load_model] Device: {devices[0].name}")
 
-            # Get model input/output information
-            self.input_details = self.model.get_input_details()
-            self.output_details = self.model.get_output_details()
+        self.conn = self.ctx.device_connect(devices[0], num_sub_devices=1)
+        self.model = self.ctx.load_model(model_file)
+        self.model_instance = self.conn.load_model_instance(self.model)
 
-            if self.DEBUG:
-                print(f"[BlazeDetector.load_model] Number of Inputs: {len(self.input_details)}")
-                for i, inp in enumerate(self.input_details):
-                    print(f"[BlazeDetector.load_model] Input[{i}]: shape={inp['shape']}, dtype={inp['dtype']}")
+        # Cache input/output tensor info
+        self.input_info = self.model.inputs()[0]
+        self.output_infos = self.model.outputs()
 
-                print(f"[BlazeDetector.load_model] Number of Outputs: {len(self.output_details)}")
-                for i, out in enumerate(self.output_details):
-                    print(f"[BlazeDetector.load_model] Output[{i}]: shape={out['shape']}, dtype={out['dtype']}")
+        if self.DEBUG:
+            inp = self.input_info
+            print(f"[BlazeDetector.load_model] Input: shape={inp.shape} unpadded={inp.unpadded_shape} scale={inp.scale} zp={inp.zero_point}")
+            for i, out in enumerate(self.output_infos):
+                print(f"[BlazeDetector.load_model] Output[{i}]: shape={out.shape} unpadded={out.unpadded_shape} scale={out.scale} zp={out.zero_point}")
 
-            # Get input shape
-            self.in_shape = self.input_details[0]['shape']
-            self.out_reg_shape = self.output_details[0]['shape']
-            self.out_clf_shape = self.output_details[1]['shape']
+        # Get num_anchors from unpadded output shape
+        # Detection models output: regressors [1, num_anchors, num_coords], classificators [1, num_anchors, 1]
+        out_reg_unpadded = self.output_infos[0].unpadded_shape
+        self.num_anchors = out_reg_unpadded[1]
 
-            # Extract model parameters from output shapes
-            self.num_anchors = self.out_reg_shape[1]
+        # Resolution from unpadded input shape (NHWC)
+        input_size = self.input_info.unpadded_shape[1]
+        self.x_scale = float(input_size)
+        self.y_scale = float(input_size)
+        self.h_scale = float(input_size)
+        self.w_scale = float(input_size)
 
-            # Determine scales based on input size
-            input_size = self.in_shape[1]  # Assuming square input
-            self.x_scale = float(input_size)
-            self.y_scale = float(input_size)
-            self.h_scale = float(input_size)
-            self.w_scale = float(input_size)
+        if self.DEBUG:
+            print(f"[BlazeDetector.load_model] Num Anchors: {self.num_anchors}")
+            print(f"[BlazeDetector.load_model] Input Size: {input_size}")
 
-            if self.DEBUG:
-                print(f"[BlazeDetector.load_model] Input Shape: {self.in_shape}")
-                print(f"[BlazeDetector.load_model] Num Anchors: {self.num_anchors}")
-                print(f"[BlazeDetector.load_model] Scales: x={self.x_scale}, y={self.y_scale}")
+        # Configure model with appropriate settings
+        self.config_model(self.blaze_app)
 
-            # Configure model with appropriate settings
-            self.config_model(self.blaze_app)
+    def _quantize_and_pad(self, x):
+        """Quantize float32 input to int8 and pad for hardware."""
+        inp = self.input_info
+        quantized = np.round(x / inp.scale + inp.zero_point).clip(-128, 127).astype(np.int8)
+        padded = np.pad(quantized, inp.padding, constant_values=inp.zero_point)
+        return padded
 
-        except Exception as e:
-            print(f"[BlazeDetector.load_model] Error loading model: {e}")
-            raise
+    def _depad_and_dequantize(self, raw_output, info):
+        """Remove padding and dequantize int8 output to float32."""
+        depadded = raw_output[tuple(slice(b, -e if e else None) for b, e in info.padding)]
+        dequantized = (depadded.astype(np.float32) - info.zero_point) * info.scale
+        return dequantized
 
     def preprocess(self, x):
-        """
-        Converts the image pixels to the range [0, 1] for Axelera input.
-
-        Args:
-            x: Input image as numpy array
-
-        Returns:
-            Preprocessed image
-        """
+        """Converts the image pixels to the range [0, 1]."""
         x = (x / 255.0)
         x = x.astype(np.float32)
         return x
 
     def predict(self, x):
-        """
-        Run inference on the Axelera Metis device.
+        self.profile_pre = 0.0
+        self.profile_model = 0.0
+        self.profile_post = 0.0
 
-        Args:
-            x: Preprocessed input image
+        start = timer()
 
-        Returns:
-            Tuple of (regression_output, classification_output)
-        """
-        if self.PROFILE:
-            start = timer()
-
-        # Ensure input has correct shape (batch, height, width, channels)
         if len(x.shape) == 3:
             x = np.expand_dims(x, axis=0)
 
-        # Run inference on Axelera device
-        try:
-            outputs = self.model.run(x)
+        # Quantize and pad input for Axelera hardware
+        x_hw = self._quantize_and_pad(x)
+        self.profile_pre = timer() - start
 
-            # Extract regression and classification outputs
-            # Typically: output[0] = regressors (boxes), output[1] = classificators (scores)
-            out_reg = outputs[0]
-            out_clf = outputs[1]
+        # Allocate output buffers
+        out_bufs = [np.zeros(o.shape, dtype=np.int8) for o in self.output_infos]
 
-        except Exception as e:
-            print(f"[BlazeDetector.predict] Inference error: {e}")
-            raise
+        # Run inference on Axelera Metis
+        start = timer()
+        self.model_instance.run([x_hw], out_bufs)
+        self.profile_model = timer() - start
 
-        if self.PROFILE:
-            end = timer()
-            self.profile_pre_nb_frames += 1
-            self.profile_pre_time_ms += (end - start) * 1000
-            if self.profile_pre_nb_frames == 1:
-                self.profile_pre_time_first_ms = (end - start) * 1000
+        start = timer()
+        # Depad and dequantize outputs
+        # Detection models output: [0] = regressors (boxes), [1] = classificators (scores)
+        out_reg = self._depad_and_dequantize(out_bufs[0], self.output_infos[0])
+        out_clf = self._depad_and_dequantize(out_bufs[1], self.output_infos[1])
+        self.profile_post = timer() - start
 
         return out_reg, out_clf

@@ -213,7 +213,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--testimage'  , default=False, action='store_true', help="Use test image as input (womand_hands.jpg). Default is usbcam")
 ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
-ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_tflite_qnn,blaze_qairt,blaze_rpp", help="Command seperated list of targets (blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_tflite_qnn,blaze_qairt,blaze_rpp).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_rpp'")
+ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_tflite_qnn,blaze_qairt,blaze_rpp,blaze_axelera", help="Command seperated list of targets (blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_tflite_qnn,blaze_qairt,blaze_rpp,blaze_axelera).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_rpp,blaze_axelera'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
 ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
 ap.add_argument('-v', '--verbose'    , default=False, action='store_true', help="Enable Verbose mode. Default is off")
@@ -301,13 +301,14 @@ blaze_pipelines = [
     { "blaze": "pose", "pipeline": "rpp_pose_v0_10_lite"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_lite_sim.onnx" },
     { "blaze": "pose", "pipeline": "rpp_pose_v0_10_full"  , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_full_sim.onnx" },
     { "blaze": "pose", "pipeline": "rpp_pose_v0_10_heavy" , "model1": "blaze_tflite/models/pose_detection.tflite",                   "model2": "blaze_rpp/models/pose_landmark_heavy_sim.onnx" },
-    { "blaze": "hand", "pipeline": "axl_hand_lite"        , "model1": "blaze_axelera/models/palm_detection_lite.axmodel",            "model2": "blaze_axelera/models/hand_landmark_lite.axmodel" },
-    { "blaze": "hand", "pipeline": "axl_hand_full"        , "model1": "blaze_axelera/models/palm_detection_full.axmodel",            "model2": "blaze_axelera/models/hand_landmark_full.axmodel" },
-    { "blaze": "face", "pipeline": "axl_face_short"       , "model1": "blaze_axelera/models/face_detection_short_range.axmodel",     "model2": "blaze_axelera/models/face_landmark.axmodel" },
-    { "blaze": "face", "pipeline": "axl_face_full"        , "model1": "blaze_axelera/models/face_detection_full_range.axmodel",      "model2": "blaze_axelera/models/face_landmark.axmodel" },
-    { "blaze": "pose", "pipeline": "axl_pose_lite"        , "model1": "blaze_axelera/models/pose_detection.axmodel",                 "model2": "blaze_axelera/models/pose_landmark_lite.axmodel" },
-    { "blaze": "pose", "pipeline": "axl_pose_full"        , "model1": "blaze_axelera/models/pose_detection.axmodel",                 "model2": "blaze_axelera/models/pose_landmark_full.axmodel" },
-    { "blaze": "pose", "pipeline": "axl_pose_heavy"       , "model1": "blaze_axelera/models/pose_detection.axmodel",                 "model2": "blaze_axelera/models/pose_landmark_heavy.axmodel" }
+    #{ "blaze": "hand", "pipeline": "axl_hand_lite"        , "model1": "blaze_axelera/models/palm_detection_lite.axmodel",            "model2": "blaze_axelera/models/hand_landmark_lite.axmodel" },
+    #{ "blaze": "hand", "pipeline": "axl_hand_full"        , "model1": "blaze_axelera/models/palm_detection_full.axmodel",            "model2": "blaze_axelera/models/hand_landmark_full.axmodel" },
+    #{ "blaze": "face", "pipeline": "axl_face_short"       , "model1": "blaze_axelera/models/face_detection_short_range.axmodel",     "model2": "blaze_axelera/models/face_landmark.axmodel" },
+    #{ "blaze": "face", "pipeline": "axl_face_full"        , "model1": "blaze_axelera/models/face_detection_full_range.axmodel",      "model2": "blaze_axelera/models/face_landmark.axmodel" },
+    #{ "blaze": "pose", "pipeline": "axl_pose_lite"        , "model1": "blaze_axelera/models/pose_detection.axmodel",                 "model2": "blaze_axelera/models/pose_landmark_lite.axmodel" },
+    #{ "blaze": "pose", "pipeline": "axl_pose_full"        , "model1": "blaze_axelera/models/pose_detection.axmodel",                 "model2": "blaze_axelera/models/pose_landmark_full.axmodel" },
+    #{ "blaze": "pose", "pipeline": "axl_pose_heavy"       , "model1": "blaze_axelera/models/pose_detection.axmodel",                 "model2": "blaze_axelera/models/pose_landmark_heavy.axmodel" }
+    { "blaze": "hand", "pipeline": "axl_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_axelera/models/compiled_hand_landmark_full" }
 ]
 nb_blaze_pipelines = len(blaze_pipelines)
 
