@@ -10,20 +10,21 @@ Python demonstration application for MediaPipe models (blazepalm/hand, blazeface
 
 ### Axelera Metis M.2 Implementation (blaze_axelera-dev-claude branch)
 
-**Status**: Implementation complete, initial testing successful
+**Status**: Hybrid pipeline verified working on hardware
 - Branch: `blaze_axelera-dev-claude`
 - Created: 2026-02-26
 - Virtual environment: `/home/abbeefai/.cache/axelera/venvs/644f17ff/bin/activate`
 
 **Testing Results**:
-- ✓ Axelera SDK imports successfully in virtual environment
-- ✓ blazedetector.py syntax and imports verified
-- Ready for full pipeline testing with compiled models
+- ✓ Hybrid pipeline working: TFLite palm detection + Axelera hand landmarks
+- ✓ Pipeline `axl_hand_v0_10_full` tested on Metis M.2 hardware
+- Only `hand_landmark_full` compiled so far; other models pending
 
 **Next Steps**:
-1. Download TFLite models: `cd blaze_axelera/models && bash convert_models.sh`
-2. Compile models: `python3 compile_axelera_models.py --model <model_name>`
-3. Test pipelines: `python3 blaze_detect_live.py --blaze hand --target blaze_axelera`
+1. Compile remaining models in blaze_tutorial repo
+2. Publish compiled models as GitHub release
+3. Complete `blaze_axelera/models/get_axelera_models.sh` with release URL
+4. Uncomment pure Axelera pipelines in `blaze_detect_live.py`
 
 ## Architecture
 
@@ -40,6 +41,7 @@ The codebase uses a plugin-style architecture where each AI framework is impleme
 - `blaze_onnx/` - ONNX Runtime
 - `blaze_rpp/` - AMD ROCm Performance Primitives
 - `blaze_qairt/` - Qualcomm AI Engine Direct (QCS6490)
+- `blaze_axelera/` - Axelera Metis M.2 AI accelerator (Voyager SDK)
 
 Each framework directory contains:
 - `blazedetector.py` - Detection model wrapper (palm, face, pose detection)
@@ -82,6 +84,7 @@ Other framework model download scripts:
 - `blaze_tflite_quant/models/get_tflite_quant_models.sh`
 - `blaze_onnx/models/convert_models.sh`
 - `blaze_rpp/models/convert_models.sh`
+- `blaze_axelera/models/get_axelera_models.sh`
 - `blaze_vitisai/models/` (varies by DPU architecture)
 
 ### Run the Application
@@ -188,6 +191,7 @@ The codebase gracefully handles missing dependencies. Framework imports are wrap
 - **Hailo**: Requires `hailo_platform`
 - **QAIRT**: Requires QAIRT SDK with `QAIRT_SDK_ROOT` environment variable
 - **TFLite QNN**: Requires Qualcomm QNN delegate libraries
+- **Axelera**: Requires Voyager SDK v1.5+ (`axelera.runtime.objects`), Metis M.2 hardware
 
 When a framework is unavailable, it's marked as not supported and skipped during pipeline initialization.
 
