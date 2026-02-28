@@ -68,6 +68,7 @@ sys.path.append(os.path.abspath('blaze_onnx/'))
 sys.path.append(os.path.abspath('blaze_rpp/'))
 sys.path.append(os.path.abspath('blaze_tflite_qnn/'))
 sys.path.append(os.path.abspath('blaze_qairt/'))
+sys.path.append(os.path.abspath('blaze_deepx/'))
 
 supported_targets = {
     "blaze_tflite": False,
@@ -78,7 +79,8 @@ supported_targets = {
     "blaze_onnx": False,
     "blaze_tflite_qnn": False,
     "blaze_qairt": False,
-    "blaze_rpp": False
+    "blaze_rpp": False,
+    "blaze_deepx": False
 }
 try:
     from blaze_tflite.blazedetector import BlazeDetector as BlazeDetector_tflite
@@ -180,6 +182,14 @@ try:
 except Exception as e:
     print(f"[INFO] blaze_rpp NOT supported ... ({e})")
 
+try:
+    from blaze_deepx.blazedetector import BlazeDetector as BlazeDetector_deepx
+    from blaze_deepx.blazelandmark import BlazeLandmark as BlazeLandmark_deepx
+    print("[INFO] blaze_deepx supported ...")
+    supported_targets["blaze_deepx"] = True
+except Exception as e:
+    print(f"[INFO] blaze_deepx NOT supported ... ({e})")
+
 
 from visualization import draw_detections, draw_landmarks, draw_roi
 from visualization import HAND_CONNECTIONS, FACE_CONNECTIONS, POSE_FULL_BODY_CONNECTIONS, POSE_UPPER_BODY_CONNECTIONS
@@ -203,7 +213,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('-i', '--input'      , type=str, default="", help="Video input device. Default is auto-detect (first usbcam)")
 ap.add_argument('-I', '--testimage'  , default=False, action='store_true', help="Use test image as input (womand_hands.jpg). Default is usbcam")
 ap.add_argument('-b', '--blaze'      , type=str,  default="hand,face,pose", help="Command seperated list of targets  (hand, face, pose).  Default is 'hand, face, pose'")
-ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_tflite_qnn,blaze_qairt,blaze_rpp", help="Command seperated list of targets (blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_tflite_qnn,blaze_qairt,blaze_rpp).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_rpp'")
+ap.add_argument('-t', '--target'     , type=str,  default="blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_tflite_qnn,blaze_qairt,blaze_rpp,blaze_deepx", help="Command seperated list of targets (blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_onnx,blaze_tflite_qnn,blaze_qairt,blaze_rpp,blaze_deepx).  Default is 'blaze_tflite,blaze_tflite_quant,blaze_pytorch,blaze_vitisai,blaze_hailo,blaze_rpp,blaze_deepx'")
 ap.add_argument('-p', '--pipeline'   , type=str,  default="all", help="Command seperated list of pipelines (Use --list to get list of targets). Default is 'all'")
 ap.add_argument('-l', '--list'       , default=False, action='store_true', help="List pipelines.")
 ap.add_argument('-v', '--verbose'    , default=False, action='store_true', help="Enable Verbose mode. Default is off")
@@ -252,6 +262,8 @@ blaze_pipelines = [
     { "blaze": "hand", "pipeline": "rpp_hand_v0_07"       , "model1": "blaze_rpp/models/palm_detection_v0_07_sim.onnx",              "model2": "blaze_rpp/models/hand_landmark_v0_07_sim.onnx" },
     { "blaze": "hand", "pipeline": "rpp_hand_v0_10_lite"  , "model1": "blaze_rpp/models/palm_detection_lite_sim.onnx",               "model2": "blaze_rpp/models/hand_landmark_lite_sim.onnx" },
     { "blaze": "hand", "pipeline": "rpp_hand_v0_10_full"  , "model1": "blaze_rpp/models/palm_detection_full_sim.onnx",               "model2": "blaze_rpp/models/hand_landmark_full_sim.onnx" },
+    { "blaze": "hand", "pipeline": "dx_hand_v0_10_lite"  , "model1": "blaze_tflite/models/palm_detection_lite.tflite",              "model2": "blaze_deepx/models/hand_landmark_lite.dxnn" },
+    { "blaze": "hand", "pipeline": "dx_hand_v0_10_full"  , "model1": "blaze_tflite/models/palm_detection_full.tflite",              "model2": "blaze_deepx/models/hand_landmark_full.dxnn" },
     { "blaze": "face", "pipeline": "tfl_face_v0_07_front" , "model1": "blaze_tflite/models/face_detection_front_v0_07.tflite",       "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
     { "blaze": "face", "pipeline": "tfl_face_v0_07_back"  , "model1": "blaze_tflite/models/face_detection_back_v0_07.tflite",        "model2": "blaze_tflite/models/face_landmark_v0_07.tflite" },
     { "blaze": "face", "pipeline": "tfl_face_v0_10_short" , "model1": "blaze_tflite/models/face_detection_short_range.tflite",       "model2": "blaze_tflite/models/face_landmark.tflite" },
@@ -427,6 +439,8 @@ for i in range(nb_blaze_pipelines):
             blaze_detector = BlazeDetector_qairt(detector_type)
         elif target1=="blaze_rpp":
             blaze_detector = BlazeDetector_rpp(detector_type)
+        elif target1=="blaze_deepx":
+            blaze_detector = BlazeDetector_deepx(detector_type)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
  
@@ -448,6 +462,8 @@ for i in range(nb_blaze_pipelines):
             blaze_landmark = BlazeLandmark_qairt(landmark_type)
         elif target2=="blaze_rpp":
             blaze_landmark = BlazeLandmark_rpp(landmark_type)
+        elif target2=="blaze_deepx":
+            blaze_landmark = BlazeLandmark_deepx(landmark_type)
         else:
             print("[ERROR] Invalid target : ",target1,".  MUST be a valid blaze_* directory.")
 
