@@ -26,6 +26,31 @@ Python demonstration application for MediaPipe models (blazepalm/hand, blazeface
 3. Complete `blaze_axelera/models/get_axelera_models.sh` with release URL
 4. Uncomment pure Axelera pipelines in `blaze_detect_live.py`
 
+### DeepX M1 Implementation (blaze_deepx-dev-claude branch)
+
+**Status**: Hybrid pipeline verified working on hardware
+- Branch: `blaze_deepx-dev-claude`
+- Created: 2026-02-28
+- Virtual environment: `/media/abbeefai/TheExpanse/dx-all-suite/dx-runtime/venv-dx-runtime/bin/activate`
+- DeepX SDK: `/media/abbeefai/TheExpanse/dx-all-suite/`
+
+**Hardware**:
+- DeepX M1 M.2 module, 3 NPU cores at 1000 MHz, LPDDR5 3.92 GiB
+- Firmware: v2.5.0 (requires v2.4.0+ for dx_engine v1.1.4)
+- PCIe Gen3 X4, device `/dev/dxrt0`
+- Monitor: `dxrt-cli -s` (status), `dxrt-cli -m 1` (continuous)
+
+**Testing Results**:
+- ✓ Hybrid pipeline working: TFLite palm detection (CPU) + DeepX hand landmarks (NPU)
+- ✓ Pipelines `dx_hand_v0_10_lite` and `dx_hand_v0_10_full` tested on M1 hardware
+- Only `hand_landmark_lite` and `hand_landmark_full` compiled so far; other models pending
+
+**Next Steps**:
+1. Compile palm detection models with DX-COM for pure DeepX pipelines
+2. Compile face and pose models
+3. Complete `blaze_deepx/models/get_deepx_models.sh` with download URLs
+4. Add pure DeepX pipelines to `blaze_detect_live.py`
+
 ## Architecture
 
 ### Multi-Framework Structure
@@ -42,6 +67,7 @@ The codebase uses a plugin-style architecture where each AI framework is impleme
 - `blaze_rpp/` - AMD ROCm Performance Primitives
 - `blaze_qairt/` - Qualcomm AI Engine Direct (QCS6490)
 - `blaze_axelera/` - Axelera Metis M.2 AI accelerator (Voyager SDK)
+- `blaze_deepx/` - DeepX M1 NPU accelerator (dx_engine SDK)
 
 Each framework directory contains:
 - `blazedetector.py` - Detection model wrapper (palm, face, pose detection)
@@ -85,6 +111,7 @@ Other framework model download scripts:
 - `blaze_onnx/models/convert_models.sh`
 - `blaze_rpp/models/convert_models.sh`
 - `blaze_axelera/models/get_axelera_models.sh`
+- `blaze_deepx/models/get_deepx_models.sh`
 - `blaze_vitisai/models/` (varies by DPU architecture)
 
 ### Run the Application
@@ -192,6 +219,7 @@ The codebase gracefully handles missing dependencies. Framework imports are wrap
 - **QAIRT**: Requires QAIRT SDK with `QAIRT_SDK_ROOT` environment variable
 - **TFLite QNN**: Requires Qualcomm QNN delegate libraries
 - **Axelera**: Requires Voyager SDK v1.5+ (`axelera.runtime.objects`), Metis M.2 hardware
+- **DeepX**: Requires `dx_engine` Python package from DeepX SDK, M1 firmware v2.4.0+, `/dev/dxrt0` device
 
 When a framework is unavailable, it's marked as not supported and skipped during pipeline initialization.
 
