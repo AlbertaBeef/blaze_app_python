@@ -6,7 +6,7 @@
 
 ## Goal and boundaries
 
-Add a continuous, Pi-camera-driven mouse controller to the Hailo-8L hand-landmark application: move the pointer from the index-finger fingertip and produce one left-click per intentional thumb–index pinch. Keep this work in `~/hailo-hand-mouse`; leave the original upstream checkout and the separate `barehands` application untouched. Keep model weights local and out of Git.
+Add a continuous, Pi-camera-driven mouse controller to the Hailo-8L hand-landmark application: move the pointer from the index-finger fingertip and produce one left-click per intentional thumb–index pinch. Keep this work in `~/hand-tracker-mouse`; leave the original upstream checkout and the separate `barehands` application untouched. Keep model weights local and out of Git.
 
 ## Verified starting point
 
@@ -20,9 +20,9 @@ Add a continuous, Pi-camera-driven mouse controller to the Hailo-8L hand-landmar
 
 ## Repository and Git status
 
-- Separate working tree: `/home/carlito-cl/hailo-hand-mouse`.
+- Separate working tree: `/home/carlito-cl/hand-tracker-mouse`.
 - `main` preserves the cloned upstream snapshot. `upstream` points to `https://github.com/AlbertaBeef/blaze_app_python.git`.
-- Current work branch: `feature/hailo-hand-mouse`. Changes made in the feature working tree cannot alter `/home/carlito-cl/blaze_app_python`.
+- Current work branch: `feature/hailo-hand-mouse`. Changes made in the feature working tree cannot alter `/home/carlito-cl/Documents/archive/blaze_app_python`.
 - Keep Hailo weights, image captures, profiling CSVs, Python environments, and runtime logs out of version control. Do not make or configure a GitHub repository, push, or expose model weights without the user explicitly selecting a remote, repository name, visibility, and appropriate Git identity/credentials.
 
 ## Implementation sequence
