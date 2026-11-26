@@ -17,3 +17,6 @@ blaze_qairt/models/*.bin
 
 *.log
 
+
+# Hailo model weights
+*.hef
