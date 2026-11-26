@@ -21,7 +21,7 @@ limitations under the License.
 #      hailo_platform
 #
 
-
+import subprocess
 import numpy as np
 import cv2
 import os
@@ -120,6 +120,24 @@ if os.path.exists(args.input):
         bInputVideo = True
         bInputCamera = False
 
+class PipeCamera:
+    """CSI camera via rpicam-vid stdout pipe (raw YUV420) - no v4l2loopback."""
+    def __init__(self, w=640, h=480, fps=30):
+        self.w, self.h = w, h
+        self.frame_size = w * h * 3 // 2
+        self.proc = subprocess.Popen(
+            ["rpicam-vid", "-t", "0", "--width", str(w), "--height", str(h),
+             "--framerate", str(fps), "--codec", "yuv420", "--nopreview", "-o", "-"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=self.frame_size * 4)
+    def read(self):
+        raw = self.proc.stdout.read(self.frame_size)
+        if len(raw) < self.frame_size:
+            return False, None
+        yuv = np.frombuffer(raw, np.uint8).reshape(self.h * 3 // 2, self.w)
+        return True, cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR_I420)
+    def release(self):
+        self.proc.terminate()
+
 if bInputCamera == True:
     print("[INFO] Searching for USB camera ...")
     dev_video = get_video_dev_by_name("uvcvideo")
@@ -135,14 +153,10 @@ if bInputCamera == True:
         input_video = dev_video  
 
     # Open video
-    cap = cv2.VideoCapture(input_video)
+    cap = PipeCamera(640, 480)
     frame_width = 640
     frame_height = 480
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH,frame_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT,frame_height)
-    #frame_width = int(round(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
-    #frame_height = int(round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    print("[INFO] input : camera",input_video," (",frame_width,",",frame_height,")")
+    print("[INFO] input : CSI camera via rpicam-vid pipe (",frame_width,",",frame_height,")")
 
 if bInputVideo == True:
     # Open video file
